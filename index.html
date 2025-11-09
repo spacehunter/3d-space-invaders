@@ -855,12 +855,14 @@
 
             if (gameActive) {
                 updatePlayer();
-                updateCamera();
                 updateMissiles();
                 updateAliens();
                 updateAlienMissiles();
-                updateParticles();
             }
+
+            // Always update camera and particles, even after game over
+            updateCamera();
+            updateParticles();
 
             renderer.render(scene, camera);
         }
