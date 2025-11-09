@@ -857,7 +857,7 @@
                     missile.rotation.y += Math.max(-turnRate, Math.min(turnRate, angleDiff));
 
                     // Move missile forward in the direction it's currently facing
-                    const moveSpeed = 0.25;
+                    const moveSpeed = 0.15;  // Reduced from 0.25 for better dodge-ability
                     missile.position.x += Math.sin(missile.rotation.y) * moveSpeed;
                     missile.position.z -= Math.cos(missile.rotation.y) * moveSpeed;
 
