@@ -781,9 +781,9 @@
             // Mark as tank missile for special behavior
             group.userData.isTankMissile = true;
             group.userData.lastTrailTime = Date.now();
-            // Add inaccuracy - 75% miss rate
+            // Add inaccuracy - 75% miss rate with smaller offset
             group.userData.targetOffset = new THREE.Vector3(
-                (Math.random() - 0.5) * 15,  // Random X offset
+                (Math.random() - 0.5) * 8,  // Reduced from 15 to 8 for better gameplay
                 0,
                 0
             );
@@ -831,9 +831,11 @@
 
                 // Tank missiles have homing behavior
                 if (missile.userData.isTankMissile) {
-                    // Calculate target position (player + random offset for inaccuracy)
+                    // Track player's current position with offset for inaccuracy
+                    // Blend 70% tracking with 30% random offset for realistic homing
+                    const targetX = player.position.x * 0.7 + missile.userData.targetOffset.x * 0.3;
                     const targetPos = new THREE.Vector3(
-                        player.position.x + missile.userData.targetOffset.x,
+                        targetX,
                         player.position.y,
                         player.position.z
                     );
@@ -890,6 +892,14 @@
                     // Regular missiles just move straight
                     missile.position.z += 0.3;
                     missile.rotation.y += 0.1;
+                }
+
+                // Remove homing missiles if they pass the player (missed)
+                if (missile.userData.isTankMissile && missile.position.z > player.position.z + 2) {
+                    createExplosion(missile.position);  // Explode when passing player
+                    scene.remove(missile);
+                    alienMissiles.splice(i, 1);
+                    continue;
                 }
 
                 // Remove if off screen
