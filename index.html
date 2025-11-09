@@ -807,7 +807,7 @@
                         missile = createTankMissile(randomAlien.position);
                     } else {
                         // Regular missiles for other aliens
-                        const missileGeometry = new THREE.BoxGeometry(0.15, 0.4, 0.15);
+                        const missileGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.4);  // Elongated in Z to point forward
                         const missileMaterial = new THREE.MeshPhongMaterial({
                             color: 0xff0000,
                             emissive: 0xff0000,
