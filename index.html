@@ -80,6 +80,7 @@
         let alienSpeed = 0.02;
         let alienMoveDown = false;
         let lastAlienFireTime = 0;
+        let starfield, starPositions;
 
         // Constants
         const PLAYER_SPEED = 0.5;
@@ -451,19 +452,42 @@
 
         function createStarfield() {
             const starGeometry = new THREE.BufferGeometry();
-            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+            const starMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.2,
+                transparent: true
+            });
 
-            const starVertices = [];
-            for (let i = 0; i < 1000; i++) {
-                const x = (Math.random() - 0.5) * 200;
-                const y = (Math.random() - 0.5) * 200;
-                const z = (Math.random() - 0.5) * 200 - 50;
-                starVertices.push(x, y, z);
+            // Create stars spread across a large area in front of the player
+            starPositions = [];
+            for (let i = 0; i < 2000; i++) {
+                const x = (Math.random() - 0.5) * 100;
+                const y = (Math.random() - 0.5) * 100;
+                const z = -Math.random() * 200 - 20;  // Stars in front of player
+                starPositions.push(x, y, z);
             }
 
-            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
-            const stars = new THREE.Points(starGeometry, starMaterial);
-            scene.add(stars);
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+            starfield = new THREE.Points(starGeometry, starMaterial);
+            scene.add(starfield);
+        }
+
+        function updateStarfield() {
+            const positions = starfield.geometry.attributes.position.array;
+
+            for (let i = 0; i < positions.length; i += 3) {
+                // Move stars toward player (increase Z)
+                positions[i + 2] += 0.5;  // Z coordinate
+
+                // Reset star to far distance if it passes the player
+                if (positions[i + 2] > 20) {
+                    positions[i + 2] = -200;
+                    positions[i] = (Math.random() - 0.5) * 100;  // New random X
+                    positions[i + 1] = (Math.random() - 0.5) * 100;  // New random Y
+                }
+            }
+
+            starfield.geometry.attributes.position.needsUpdate = true;
         }
 
         function onMouseMove(event) {
@@ -860,9 +884,10 @@
                 updateAlienMissiles();
             }
 
-            // Always update camera and particles, even after game over
+            // Always update camera, particles, and starfield (even after game over)
             updateCamera();
             updateParticles();
+            updateStarfield();
 
             renderer.render(scene, camera);
         }
