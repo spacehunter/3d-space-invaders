@@ -860,9 +860,16 @@
                         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
                         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-                        // Apply turn rate (limited to 0.03 radians per frame for dodge-ability)
-                        const turnRate = 0.03;  // Reduced from 0.05 to make missiles easier to dodge
-                        missile.rotation.y += Math.max(-turnRate, Math.min(turnRate, angleDiff));
+                        // Limit maximum turn angle to 50 degrees (0.8727 radians) from current heading
+                        const maxTurnAngle = 50 * Math.PI / 180;  // 50 degrees
+                        if (Math.abs(angleDiff) > maxTurnAngle) {
+                            // If target is beyond max turn angle, stop tracking and continue straight
+                            angleDiff = 0;
+                        } else {
+                            // Apply turn rate (limited to 0.03 radians per frame for dodge-ability)
+                            const turnRate = 0.03;  // Reduced from 0.05 to make missiles easier to dodge
+                            missile.rotation.y += Math.max(-turnRate, Math.min(turnRate, angleDiff));
+                        }
                     }
 
                     // Move missile forward in the direction it's currently facing (nose leads)
