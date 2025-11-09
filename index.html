@@ -728,7 +728,7 @@
                 flatShading: true
             });
             const nose = new THREE.Mesh(noseGeometry, noseMaterial);
-            nose.rotation.x = Math.PI / 2;
+            nose.rotation.x = -Math.PI / 2;  // Point nose forward (toward -Z)
             nose.position.z = -0.35;
             group.add(nose);
 
