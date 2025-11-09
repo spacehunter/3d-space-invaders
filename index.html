@@ -831,35 +831,52 @@
 
                 // Tank missiles have homing behavior
                 if (missile.userData.isTankMissile) {
-                    // Track player's current position with offset for inaccuracy
-                    // Blend 70% tracking with 30% random offset for realistic homing
-                    const targetX = player.position.x * 0.7 + missile.userData.targetOffset.x * 0.3;
-                    const targetPos = new THREE.Vector3(
-                        targetX,
-                        player.position.y,
-                        player.position.z
-                    );
+                    // Check if missile has passed the player
+                    if (!missile.userData.hasPassed && missile.position.z > player.position.z) {
+                        missile.userData.hasPassed = true;
+                        missile.userData.passedTime = Date.now();
+                    }
 
-                    // Calculate desired angle to target
-                    const direction = new THREE.Vector3();
-                    direction.subVectors(targetPos, missile.position).normalize();
-                    const targetAngle = Math.atan2(direction.x, direction.z);  // Angle for nose pointing at +Z
+                    // Only track player if missile hasn't passed yet
+                    if (!missile.userData.hasPassed) {
+                        // Track player's current position with offset for inaccuracy
+                        // Blend 70% tracking with 30% random offset for realistic homing
+                        const targetX = player.position.x * 0.7 + missile.userData.targetOffset.x * 0.3;
+                        const targetPos = new THREE.Vector3(
+                            targetX,
+                            player.position.y,
+                            player.position.z
+                        );
 
-                    // Slowly rotate toward target (turn rate)
-                    let angleDiff = targetAngle - missile.rotation.y;
+                        // Calculate desired angle to target
+                        const direction = new THREE.Vector3();
+                        direction.subVectors(targetPos, missile.position).normalize();
+                        const targetAngle = Math.atan2(direction.x, direction.z);  // Angle for nose pointing at +Z
 
-                    // Normalize angle difference to -PI to PI range
-                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                        // Slowly rotate toward target (turn rate)
+                        let angleDiff = targetAngle - missile.rotation.y;
 
-                    // Apply turn rate (limited to 0.03 radians per frame for dodge-ability)
-                    const turnRate = 0.03;  // Reduced from 0.05 to make missiles easier to dodge
-                    missile.rotation.y += Math.max(-turnRate, Math.min(turnRate, angleDiff));
+                        // Normalize angle difference to -PI to PI range
+                        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+                        // Apply turn rate (limited to 0.03 radians per frame for dodge-ability)
+                        const turnRate = 0.03;  // Reduced from 0.05 to make missiles easier to dodge
+                        missile.rotation.y += Math.max(-turnRate, Math.min(turnRate, angleDiff));
+                    }
 
                     // Move missile forward in the direction it's currently facing (nose leads)
                     const moveSpeed = 0.15;  // Reduced from 0.25 for better dodge-ability
                     missile.position.x += Math.sin(missile.rotation.y) * moveSpeed;
                     missile.position.z += Math.cos(missile.rotation.y) * moveSpeed;
+
+                    // If missile passed player more than 2 seconds ago, explode it
+                    if (missile.userData.hasPassed && Date.now() - missile.userData.passedTime > 2000) {
+                        createExplosion(missile.position);
+                        scene.remove(missile);
+                        alienMissiles.splice(i, 1);
+                        continue;
+                    }
 
                     // Create particle trail
                     const currentTime = Date.now();
@@ -904,14 +921,6 @@
                     // Regular missiles just move straight
                     missile.position.z += 0.3;
                     missile.rotation.y += 0.1;
-                }
-
-                // Remove homing missiles if they pass the player (missed)
-                if (missile.userData.isTankMissile && missile.position.z > player.position.z + 2) {
-                    createExplosion(missile.position);  // Explode when passing player
-                    scene.remove(missile);
-                    alienMissiles.splice(i, 1);
-                    continue;
                 }
 
                 // Remove if off screen
