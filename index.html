@@ -194,7 +194,7 @@
             engineRight.position.set(1, -0.2, -0.8);
             group.add(engineRight);
 
-            group.position.y = -2;
+            group.position.y = 0;  // On same plane as aliens
             group.position.z = 10;
 
             player = group;
@@ -210,7 +210,7 @@
                     const alien = createAlien(row);
                     alien.position.x = startX + col * ALIEN_SPACING;
                     alien.position.z = startZ - row * ALIEN_SPACING;
-                    alien.position.y = 2;
+                    alien.position.y = 0;  // On same plane as player
                     alien.userData = {
                         row: row,
                         col: col,
@@ -492,7 +492,7 @@
             const missile = new THREE.Mesh(missileGeometry, missileMaterial);
 
             missile.position.copy(player.position);
-            missile.position.y += 1;
+            missile.position.y = 0;  // Same Y plane as targets
             missile.position.z -= 1;
 
             missiles.push(missile);
@@ -700,7 +700,7 @@
                     const missile = new THREE.Mesh(missileGeometry, missileMaterial);
 
                     missile.position.copy(randomAlien.position);
-                    missile.position.y -= 0.5;
+                    missile.position.y = 0;  // Same Y plane as targets
 
                     alienMissiles.push(missile);
                     scene.add(missile);
@@ -766,7 +766,7 @@
                     if (alien.userData.clawRight) {
                         alien.userData.clawRight.position.z = 0.3 + Math.sin(time * 4 + Math.PI) * 0.1;
                     }
-                    alien.position.y = 2 + Math.sin(time * 2) * 0.1;
+                    alien.position.y = 0 + Math.sin(time * 2) * 0.1;  // Adjusted for y=0 base
                     break;
 
                 case 2: // Squid - wiggle legs
@@ -786,7 +786,7 @@
                         });
                     }
                     alien.rotation.y = time * 0.5;
-                    alien.position.y = 2 + Math.sin(time * 3) * 0.15;
+                    alien.position.y = 0 + Math.sin(time * 3) * 0.15;  // Adjusted for y=0 base
                     break;
 
                 case 4: // Tank - rotate cannon
