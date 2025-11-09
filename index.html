@@ -860,8 +860,8 @@
                         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
                         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-                        // Limit maximum turn angle to 50 degrees (0.8727 radians) from current heading
-                        const maxTurnAngle = 50 * Math.PI / 180;  // 50 degrees
+                        // Limit maximum turn angle to 10 degrees (0.1745 radians) from current heading
+                        const maxTurnAngle = 10 * Math.PI / 180;  // 10 degrees
                         if (Math.abs(angleDiff) > maxTurnAngle) {
                             // If target is beyond max turn angle, stop tracking and continue straight
                             angleDiff = 0;
