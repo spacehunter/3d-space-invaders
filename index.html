@@ -74,7 +74,7 @@
         let scene, camera, renderer;
         let player, missiles = [], aliens = [], particles = [], alienMissiles = [];
         let score = 0, lives = 3;
-        let mouseX = 0;
+        let mouseX = 0, mouseY = 0;
         let gameActive = true;
         let alienDirection = 1;
         let alienSpeed = 0.02;
@@ -469,6 +469,7 @@
         function onMouseMove(event) {
             // Normalize mouse position
             mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = (event.clientY / window.innerHeight) * 2 - 1;  // -1 at top, 1 at bottom
         }
 
         function onMouseClick(event) {
@@ -517,7 +518,15 @@
             const targetX = player.position.x * 0.15;  // Reduced from 0.3
             const targetRotY = -mouseX * 0.05;  // Reduced from 0.2
 
+            // Mouse Y controls camera depth (Z position)
+            // Mouse up (negative Y) = camera moves forward (closer)
+            // Mouse down (positive Y) = camera moves backward (further)
+            const targetZ = 15 - mouseY * 5;  // Range from 10 to 20
+            const targetY = 8 + Math.abs(mouseY) * 2;  // Height increases slightly when looking from extreme angles
+
             camera.position.x += (targetX - camera.position.x) * 0.08;  // Smoother interpolation
+            camera.position.z += (targetZ - camera.position.z) * 0.08;  // Smooth Z movement
+            camera.position.y += (targetY - camera.position.y) * 0.08;  // Keep camera above plane
             camera.rotation.y += (targetRotY - camera.rotation.y) * 0.08;
 
             // Always look at a point slightly ahead of the player
