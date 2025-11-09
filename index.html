@@ -966,49 +966,89 @@
 
             // Different animations for each row
             switch(row) {
-                case 0: // Octopus - wave tentacles
+                case 0: // Octopus - dramatic pulsing and tentacle waving
                     if (alien.userData.tentacles) {
                         alien.userData.tentacles.forEach((tentacle, i) => {
-                            tentacle.position.y = tentacle.userData.baseY + Math.sin(time * 3 + i) * 0.2;
+                            // Dramatic wave motion
+                            tentacle.position.y = tentacle.userData.baseY + Math.sin(time * 4 + i * 0.8) * 0.35;
+                            tentacle.rotation.z = Math.sin(time * 3 + i) * 0.3;
                         });
                     }
-                    alien.rotation.y = Math.sin(time) * 0.2;
+                    // Pulsing body scale
+                    const pulseScale = 1 + Math.sin(time * 3) * 0.1;
+                    alien.scale.set(pulseScale, pulseScale, pulseScale);
+                    // Rotation wobble
+                    alien.rotation.y = Math.sin(time * 2) * 0.3;
+                    alien.rotation.z = Math.sin(time * 1.5) * 0.15;
                     break;
 
-                case 1: // Crab - snap claws
+                case 1: // Crab - aggressive claw snapping and side-to-side sway
                     if (alien.userData.clawLeft) {
-                        alien.userData.clawLeft.position.z = 0.3 + Math.sin(time * 4) * 0.1;
+                        // Sharp snapping motion
+                        const snapLeft = Math.sin(time * 6) > 0.5 ? 0.5 : 0.3;
+                        alien.userData.clawLeft.position.z = snapLeft;
+                        alien.userData.clawLeft.rotation.y = Math.sin(time * 6) * 0.4;
                     }
                     if (alien.userData.clawRight) {
-                        alien.userData.clawRight.position.z = 0.3 + Math.sin(time * 4 + Math.PI) * 0.1;
+                        const snapRight = Math.sin(time * 6 + Math.PI) > 0.5 ? 0.5 : 0.3;
+                        alien.userData.clawRight.position.z = snapRight;
+                        alien.userData.clawRight.rotation.y = Math.sin(time * 6 + Math.PI) * 0.4;
                     }
-                    alien.position.y = 0 + Math.sin(time * 2) * 0.1;  // Adjusted for y=0 base
+                    // Side-to-side sway
+                    alien.rotation.z = Math.sin(time * 3) * 0.25;
+                    // Aggressive bobbing
+                    alien.position.y = 0 + Math.sin(time * 4) * 0.2;
                     break;
 
-                case 2: // Squid - wiggle legs
+                case 2: // Squid - swimming motion with squash and stretch
                     if (alien.userData.legs) {
                         alien.userData.legs.forEach((leg, i) => {
-                            leg.position.y = leg.userData.baseY + Math.sin(time * 4 + i * 0.5) * 0.15;
+                            // Wave motion like swimming
+                            leg.position.y = leg.userData.baseY + Math.sin(time * 5 + i * 0.7) * 0.25;
+                            leg.rotation.x = Math.sin(time * 4 + i * 0.5) * 0.2;
                         });
                     }
-                    alien.rotation.x = Math.sin(time * 2) * 0.1;
+                    // Squash and stretch effect
+                    const stretch = 1 + Math.sin(time * 4) * 0.15;
+                    alien.scale.set(1 / Math.sqrt(stretch), stretch, 1 / Math.sqrt(stretch));
+                    // Tilting motion
+                    alien.rotation.x = Math.sin(time * 3) * 0.2;
+                    alien.rotation.z = Math.sin(time * 2.5) * 0.15;
+                    // Vertical swimming motion
+                    alien.position.y = 0 + Math.sin(time * 3) * 0.15;
                     break;
 
-                case 3: // UFO - rotate lights
+                case 3: // UFO - spinning with dramatic light show and wobble
                     if (alien.userData.lights) {
                         alien.userData.lights.forEach((light, i) => {
-                            const intensity = (Math.sin(time * 5 + i * 0.785) + 1) / 2;
-                            light.material.emissiveIntensity = intensity;
+                            // Dramatic pulsing sequence
+                            const phase = time * 8 + i * 0.785;
+                            const intensity = Math.pow((Math.sin(phase) + 1) / 2, 2);
+                            light.material.emissiveIntensity = intensity * 2;
+                            // Make lights scale pulse
+                            const lightScale = 1 + intensity * 0.5;
+                            light.scale.set(lightScale, lightScale, lightScale);
                         });
                     }
-                    alien.rotation.y = time * 0.5;
-                    alien.position.y = 0 + Math.sin(time * 3) * 0.15;  // Adjusted for y=0 base
+                    // Fast rotation
+                    alien.rotation.y = time * 1.5;
+                    // Wobble motion like anti-gravity
+                    alien.position.y = 0 + Math.sin(time * 2) * 0.25 + Math.sin(time * 5) * 0.1;
+                    alien.rotation.x = Math.sin(time * 3) * 0.15;
+                    alien.rotation.z = Math.sin(time * 2.3) * 0.15;
                     break;
 
-                case 4: // Tank - rotate cannon
+                case 4: // Tank - aggressive targeting and movement
                     if (alien.userData.cannon) {
-                        alien.userData.cannon.rotation.x = Math.sin(time * 2) * 0.2;
+                        // Cannon tracks and aims aggressively
+                        alien.userData.cannon.rotation.x = Math.sin(time * 3) * 0.4;
+                        alien.userData.cannon.rotation.y = Math.sin(time * 2) * 0.2;
                     }
+                    // Tank body tilts as if moving
+                    alien.rotation.z = Math.sin(time * 4) * 0.1;
+                    alien.rotation.x = Math.sin(time * 3.5) * 0.08;
+                    // Slight forward-back rocking
+                    alien.position.y = 0 + Math.abs(Math.sin(time * 8)) * 0.05;
                     break;
             }
         }
