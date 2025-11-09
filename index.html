@@ -852,8 +852,8 @@
                     while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
                     while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-                    // Apply turn rate (0.05 radians per frame = slow turn)
-                    const turnRate = 0.05;
+                    // Apply turn rate (limited to 0.03 radians per frame for dodge-ability)
+                    const turnRate = 0.03;  // Reduced from 0.05 to make missiles easier to dodge
                     missile.rotation.y += Math.max(-turnRate, Math.min(turnRate, angleDiff));
 
                     // Move missile forward in the direction it's currently facing (nose leads)
