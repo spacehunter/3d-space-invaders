@@ -719,7 +719,7 @@
             // Create aerial missile model with nose cone, body, and fins
             const group = new THREE.Group();
 
-            // Nose cone
+            // Nose cone (points toward +Z, direction of travel)
             const noseGeometry = new THREE.ConeGeometry(0.1, 0.3, 6);
             const noseMaterial = new THREE.MeshPhongMaterial({
                 color: 0xff4400,
@@ -728,8 +728,8 @@
                 flatShading: true
             });
             const nose = new THREE.Mesh(noseGeometry, noseMaterial);
-            nose.rotation.x = -Math.PI / 2;  // Point nose forward (toward -Z)
-            nose.position.z = -0.35;
+            nose.rotation.x = Math.PI / 2;  // Point nose toward +Z
+            nose.position.z = 0.35;  // Nose at front
             group.add(nose);
 
             // Body
@@ -757,12 +757,12 @@
                 const angle = (i / 4) * Math.PI * 2;
                 fin.position.x = Math.cos(angle) * 0.12;
                 fin.position.y = Math.sin(angle) * 0.12;
-                fin.position.z = 0.2;
+                fin.position.z = -0.2;  // Fins toward rear
                 fin.rotation.z = angle;
                 group.add(fin);
             }
 
-            // Engine glow
+            // Engine glow (at rear)
             const engineGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.1, 6);
             const engineMaterial = new THREE.MeshPhongMaterial({
                 color: 0xffff00,
@@ -772,7 +772,7 @@
             });
             const engine = new THREE.Mesh(engineGeometry, engineMaterial);
             engine.rotation.x = Math.PI / 2;
-            engine.position.z = 0.3;
+            engine.position.z = -0.3;  // Engine at back
             group.add(engine);
 
             group.position.copy(position);
@@ -843,7 +843,7 @@
                     // Calculate desired angle to target
                     const direction = new THREE.Vector3();
                     direction.subVectors(targetPos, missile.position).normalize();
-                    const targetAngle = Math.atan2(direction.x, -direction.z);
+                    const targetAngle = Math.atan2(direction.x, direction.z);  // Angle for nose pointing at +Z
 
                     // Slowly rotate toward target (turn rate)
                     let angleDiff = targetAngle - missile.rotation.y;
@@ -856,10 +856,10 @@
                     const turnRate = 0.05;
                     missile.rotation.y += Math.max(-turnRate, Math.min(turnRate, angleDiff));
 
-                    // Move missile forward in the direction it's currently facing
+                    // Move missile forward in the direction it's currently facing (nose leads)
                     const moveSpeed = 0.15;  // Reduced from 0.25 for better dodge-ability
                     missile.position.x += Math.sin(missile.rotation.y) * moveSpeed;
-                    missile.position.z -= Math.cos(missile.rotation.y) * moveSpeed;
+                    missile.position.z += Math.cos(missile.rotation.y) * moveSpeed;
 
                     // Create particle trail
                     const currentTime = Date.now();
@@ -876,9 +876,12 @@
                         });
                         const trail = new THREE.Mesh(trailGeometry, trailMaterial);
 
-                        // Position at back of missile
+                        // Position at back of missile (rear engine)
+                        // Calculate engine position based on missile rotation
+                        const engineOffsetZ = -0.3;
                         trail.position.copy(missile.position);
-                        trail.position.z += 0.3;
+                        trail.position.x += Math.sin(missile.rotation.y) * engineOffsetZ;
+                        trail.position.z += Math.cos(missile.rotation.y) * engineOffsetZ;
 
                         trail.userData = {
                             velocity: new THREE.Vector3(
