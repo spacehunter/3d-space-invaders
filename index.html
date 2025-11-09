@@ -715,6 +715,82 @@
             }
         }
 
+        function createTankMissile(position) {
+            // Create aerial missile model with nose cone, body, and fins
+            const group = new THREE.Group();
+
+            // Nose cone
+            const noseGeometry = new THREE.ConeGeometry(0.1, 0.3, 6);
+            const noseMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff4400,
+                emissive: 0xff4400,
+                emissiveIntensity: 0.8,
+                flatShading: true
+            });
+            const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+            nose.rotation.x = Math.PI / 2;
+            nose.position.z = -0.35;
+            group.add(nose);
+
+            // Body
+            const bodyGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.5, 6);
+            const bodyMaterial = new THREE.MeshPhongMaterial({
+                color: 0xcccccc,
+                flatShading: true
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.rotation.x = Math.PI / 2;
+            group.add(body);
+
+            // Fins
+            const finGeometry = new THREE.BoxGeometry(0.3, 0.05, 0.2);
+            const finMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.5,
+                flatShading: true
+            });
+
+            // 4 fins in cross pattern
+            for (let i = 0; i < 4; i++) {
+                const fin = new THREE.Mesh(finGeometry, finMaterial);
+                const angle = (i / 4) * Math.PI * 2;
+                fin.position.x = Math.cos(angle) * 0.12;
+                fin.position.y = Math.sin(angle) * 0.12;
+                fin.position.z = 0.2;
+                fin.rotation.z = angle;
+                group.add(fin);
+            }
+
+            // Engine glow
+            const engineGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.1, 6);
+            const engineMaterial = new THREE.MeshPhongMaterial({
+                color: 0xffff00,
+                emissive: 0xffff00,
+                emissiveIntensity: 2,
+                flatShading: true
+            });
+            const engine = new THREE.Mesh(engineGeometry, engineMaterial);
+            engine.rotation.x = Math.PI / 2;
+            engine.position.z = 0.3;
+            group.add(engine);
+
+            group.position.copy(position);
+            group.position.y = 0;
+
+            // Mark as tank missile for special behavior
+            group.userData.isTankMissile = true;
+            group.userData.lastTrailTime = Date.now();
+            // Add inaccuracy - 75% miss rate
+            group.userData.targetOffset = new THREE.Vector3(
+                (Math.random() - 0.5) * 15,  // Random X offset
+                0,
+                0
+            );
+
+            return group;
+        }
+
         function alienFire() {
             if (aliens.length === 0) return;
 
@@ -724,16 +800,24 @@
             for (let i = 0; i < fireCount; i++) {
                 const randomAlien = aliens[Math.floor(Math.random() * aliens.length)];
                 if (randomAlien && !randomAlien.userData.destroyed) {
-                    const missileGeometry = new THREE.BoxGeometry(0.15, 0.4, 0.15);
-                    const missileMaterial = new THREE.MeshPhongMaterial({
-                        color: 0xff0000,
-                        emissive: 0xff0000,
-                        emissiveIntensity: 1.5
-                    });
-                    const missile = new THREE.Mesh(missileGeometry, missileMaterial);
+                    let missile;
 
-                    missile.position.copy(randomAlien.position);
-                    missile.position.y = 0;  // Same Y plane as targets
+                    // Tank aliens (row 4) fire special homing missiles
+                    if (randomAlien.userData.row === 4) {
+                        missile = createTankMissile(randomAlien.position);
+                    } else {
+                        // Regular missiles for other aliens
+                        const missileGeometry = new THREE.BoxGeometry(0.15, 0.4, 0.15);
+                        const missileMaterial = new THREE.MeshPhongMaterial({
+                            color: 0xff0000,
+                            emissive: 0xff0000,
+                            emissiveIntensity: 1.5
+                        });
+                        missile = new THREE.Mesh(missileGeometry, missileMaterial);
+
+                        missile.position.copy(randomAlien.position);
+                        missile.position.y = 0;  // Same Y plane as targets
+                    }
 
                     alienMissiles.push(missile);
                     scene.add(missile);
@@ -744,10 +828,69 @@
         function updateAlienMissiles() {
             for (let i = alienMissiles.length - 1; i >= 0; i--) {
                 const missile = alienMissiles[i];
-                missile.position.z += 0.3;  // Move toward player
 
-                // Rotate for effect
-                missile.rotation.y += 0.1;
+                // Tank missiles have homing behavior
+                if (missile.userData.isTankMissile) {
+                    // Calculate target position (player + random offset for inaccuracy)
+                    const targetPos = new THREE.Vector3(
+                        player.position.x + missile.userData.targetOffset.x,
+                        player.position.y,
+                        player.position.z
+                    );
+
+                    // Calculate direction to target
+                    const direction = new THREE.Vector3();
+                    direction.subVectors(targetPos, missile.position).normalize();
+
+                    // Move toward target with some speed
+                    missile.position.x += direction.x * 0.25;
+                    missile.position.z += direction.z * 0.25;
+
+                    // Point missile in direction of travel
+                    const angle = Math.atan2(direction.x, -direction.z);
+                    missile.rotation.y = angle;
+
+                    // Create particle trail
+                    const currentTime = Date.now();
+                    if (currentTime - missile.userData.lastTrailTime > 50) {  // Every 50ms
+                        missile.userData.lastTrailTime = currentTime;
+
+                        // Create trail particle at engine position
+                        const trailGeometry = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+                        const trailMaterial = new THREE.MeshPhongMaterial({
+                            color: 0xffaa00,
+                            emissive: 0xffaa00,
+                            emissiveIntensity: 1.5,
+                            transparent: true
+                        });
+                        const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+
+                        // Position at back of missile
+                        trail.position.copy(missile.position);
+                        trail.position.z += 0.3;
+
+                        trail.userData = {
+                            velocity: new THREE.Vector3(
+                                (Math.random() - 0.5) * 0.05,
+                                (Math.random() - 0.5) * 0.05,
+                                (Math.random() - 0.5) * 0.05
+                            ),
+                            life: 0.6,
+                            rotationSpeed: new THREE.Vector3(
+                                (Math.random() - 0.5) * 0.15,
+                                (Math.random() - 0.5) * 0.15,
+                                (Math.random() - 0.5) * 0.15
+                            )
+                        };
+
+                        particles.push(trail);
+                        scene.add(trail);
+                    }
+                } else {
+                    // Regular missiles just move straight
+                    missile.position.z += 0.3;
+                    missile.rotation.y += 0.1;
+                }
 
                 // Remove if off screen
                 if (missile.position.z > 20) {
@@ -756,22 +899,24 @@
                     continue;
                 }
 
-                // Check collision with player
-                const distance = missile.position.distanceTo(player.position);
-                if (distance < 1.5) {
-                    // Hit!
-                    scene.remove(missile);
-                    alienMissiles.splice(i, 1);
+                // Check collision with player (only if game is active)
+                if (gameActive) {
+                    const distance = missile.position.distanceTo(player.position);
+                    if (distance < 1.5) {
+                        // Hit!
+                        scene.remove(missile);
+                        alienMissiles.splice(i, 1);
 
-                    // Create explosion at player
-                    createExplosion(missile.position);
+                        // Create explosion at player
+                        createExplosion(missile.position);
 
-                    // Decrease lives
-                    lives--;
-                    document.getElementById('lives').textContent = lives;
+                        // Decrease lives
+                        lives--;
+                        document.getElementById('lives').textContent = lives;
 
-                    if (lives <= 0) {
-                        gameOver(false);
+                        if (lives <= 0) {
+                            gameOver(false);
+                        }
                     }
                 }
             }
@@ -879,12 +1024,12 @@
 
             if (gameActive) {
                 updatePlayer();
-                updateMissiles();
                 updateAliens();
-                updateAlienMissiles();
             }
 
-            // Always update camera, particles, and starfield (even after game over)
+            // Always update missiles, camera, particles, and starfield (even after game over)
+            updateMissiles();
+            updateAlienMissiles();
             updateCamera();
             updateParticles();
             updateStarfield();
