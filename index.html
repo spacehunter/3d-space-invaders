@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Invaders</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Courier New', monospace;
+        }
+        canvas {
+            display: block;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #0f0;
+            font-size: 24px;
+            text-shadow: 0 0 10px #0f0;
+            z-index: 100;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #f00;
+            font-size: 48px;
+            text-shadow: 0 0 20px #f00;
+            display: none;
+            text-align: center;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #0ff;
+            font-size: 16px;
+            text-shadow: 0 0 10px #0ff;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div>SCORE: <span id="score">0</span></div>
+        <div>LIVES: <span id="lives">3</span></div>
+    </div>
+    <div id="gameOver">
+        <div>GAME OVER</div>
+        <div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>
+    </div>
+    <div id="instructions">
+        Move Mouse: Control Ship | Click: Fire Missile
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // Game state
+        let scene, camera, renderer;
+        let player, missiles = [], aliens = [], particles = [];
+        let score = 0, lives = 3;
+        let mouseX = 0;
+        let gameActive = true;
+        let alienDirection = 1;
+        let alienSpeed = 0.02;
+        let alienMoveDown = false;
+
+        // Constants
+        const PLAYER_SPEED = 0.5;
+        const MISSILE_SPEED = 0.5;
+        const ALIEN_ROWS = 5;
+        const ALIEN_COLS = 11;
+        const ALIEN_SPACING = 2;
+
+        // Initialize
+        init();
+        animate();
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x000000, 10, 100);
+
+            // Camera - 3rd person view
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 15);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Point lights for atmosphere
+            const greenLight = new THREE.PointLight(0x00ff00, 1, 50);
+            greenLight.position.set(0, 5, 0);
+            scene.add(greenLight);
+
+            // Create player
+            createPlayer();
+
+            // Create aliens
+            createAliens();
+
+            // Create starfield
+            createStarfield();
+
+            // Event listeners
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('click', onMouseClick);
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createPlayer() {
+            const group = new THREE.Group();
+
+            // Blocky spaceship design
+            const bodyGeometry = new THREE.BoxGeometry(1.5, 0.5, 2);
+            const bodyMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00ff00,
+                emissive: 0x00ff00,
+                emissiveIntensity: 0.3,
+                flatShading: true
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.castShadow = true;
+            group.add(body);
+
+            // Cockpit
+            const cockpitGeometry = new THREE.BoxGeometry(0.8, 0.6, 0.8);
+            const cockpitMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00ffff,
+                emissive: 0x00ffff,
+                emissiveIntensity: 0.5,
+                flatShading: true
+            });
+            const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+            cockpit.position.y = 0.5;
+            cockpit.castShadow = true;
+            group.add(cockpit);
+
+            // Wings
+            const wingGeometry = new THREE.BoxGeometry(3, 0.2, 1);
+            const wingMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00aa00,
+                flatShading: true
+            });
+            const wings = new THREE.Mesh(wingGeometry, wingMaterial);
+            wings.position.y = -0.2;
+            wings.position.z = -0.3;
+            wings.castShadow = true;
+            group.add(wings);
+
+            // Engine glow (left and right)
+            const engineGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.6);
+            const engineMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff3300,
+                emissive: 0xff3300,
+                emissiveIntensity: 0.8,
+                flatShading: true
+            });
+
+            const engineLeft = new THREE.Mesh(engineGeometry, engineMaterial);
+            engineLeft.position.set(-1, -0.2, -0.8);
+            group.add(engineLeft);
+
+            const engineRight = new THREE.Mesh(engineGeometry, engineMaterial);
+            engineRight.position.set(1, -0.2, -0.8);
+            group.add(engineRight);
+
+            group.position.y = -2;
+            group.position.z = 10;
+
+            player = group;
+            scene.add(player);
+        }
+
+        function createAliens() {
+            const startX = -10;
+            const startZ = -15;
+
+            for (let row = 0; row < ALIEN_ROWS; row++) {
+                for (let col = 0; col < ALIEN_COLS; col++) {
+                    const alien = createAlien(row);
+                    alien.position.x = startX + col * ALIEN_SPACING;
+                    alien.position.z = startZ - row * ALIEN_SPACING;
+                    alien.position.y = 2;
+                    alien.userData = {
+                        row: row,
+                        col: col,
+                        animationOffset: Math.random() * Math.PI * 2,
+                        destroyed: false
+                    };
+                    aliens.push(alien);
+                    scene.add(alien);
+                }
+            }
+        }
+
+        function createAlien(row) {
+            const group = new THREE.Group();
+
+            // Different alien types for each row
+            switch(row) {
+                case 0: // Top row - Octopus style
+                    createOctopusAlien(group);
+                    break;
+                case 1: // Crab style
+                    createCrabAlien(group);
+                    break;
+                case 2: // Squid style
+                    createSquidAlien(group);
+                    break;
+                case 3: // UFO style
+                    createUFOAlien(group);
+                    break;
+                case 4: // Tank style
+                    createTankAlien(group);
+                    break;
+            }
+
+            return group;
+        }
+
+        function createOctopusAlien(group) {
+            const material = new THREE.MeshPhongMaterial({
+                color: 0xff00ff,
+                emissive: 0xff00ff,
+                emissiveIntensity: 0.3,
+                flatShading: true
+            });
+
+            // Head
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 1), material);
+            head.castShadow = true;
+            group.add(head);
+
+            // Eyes
+            const eyeMaterial = new THREE.MeshPhongMaterial({
+                color: 0xffff00,
+                emissive: 0xffff00,
+                emissiveIntensity: 0.8
+            });
+            const eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), eyeMaterial);
+            eyeLeft.position.set(-0.3, 0.2, 0.5);
+            group.add(eyeLeft);
+
+            const eyeRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), eyeMaterial);
+            eyeRight.position.set(0.3, 0.2, 0.5);
+            group.add(eyeRight);
+
+            // Tentacles
+            for (let i = 0; i < 4; i++) {
+                const tentacle = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 0.2), material);
+                tentacle.position.set(-0.45 + i * 0.3, -0.7, 0);
+                tentacle.userData.baseY = -0.7;
+                group.add(tentacle);
+                group.userData.tentacles = group.userData.tentacles || [];
+                group.userData.tentacles.push(tentacle);
+            }
+        }
+
+        function createCrabAlien(group) {
+            const material = new THREE.MeshPhongMaterial({
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.3,
+                flatShading: true
+            });
+
+            // Body
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.6, 0.8), material);
+            body.castShadow = true;
+            group.add(body);
+
+            // Eyes on stalks
+            const eyeMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00ffff,
+                emissive: 0x00ffff,
+                emissiveIntensity: 0.8
+            });
+
+            const stalkLeft = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), material);
+            stalkLeft.position.set(-0.4, 0.5, 0.2);
+            group.add(stalkLeft);
+
+            const eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.25), eyeMaterial);
+            eyeLeft.position.set(-0.4, 0.75, 0.2);
+            group.add(eyeLeft);
+
+            const stalkRight = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), material);
+            stalkRight.position.set(0.4, 0.5, 0.2);
+            group.add(stalkRight);
+
+            const eyeRight = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.25), eyeMaterial);
+            eyeRight.position.set(0.4, 0.75, 0.2);
+            group.add(eyeRight);
+
+            // Claws
+            const clawLeft = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.5), material);
+            clawLeft.position.set(-0.8, 0, 0.3);
+            group.add(clawLeft);
+            group.userData.clawLeft = clawLeft;
+
+            const clawRight = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.5), material);
+            clawRight.position.set(0.8, 0, 0.3);
+            group.add(clawRight);
+            group.userData.clawRight = clawRight;
+        }
+
+        function createSquidAlien(group) {
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x00ff00,
+                emissive: 0x00ff00,
+                emissiveIntensity: 0.3,
+                flatShading: true
+            });
+
+            // Head/body
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1, 1.2, 0.8), material);
+            head.castShadow = true;
+            group.add(head);
+
+            // Eyes
+            const eyeMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.8
+            });
+            const eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.2), eyeMaterial);
+            eyeLeft.position.set(-0.25, 0.3, 0.4);
+            group.add(eyeLeft);
+
+            const eyeRight = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.2), eyeMaterial);
+            eyeRight.position.set(0.25, 0.3, 0.4);
+            group.add(eyeRight);
+
+            // Bottom tentacles
+            group.userData.legs = [];
+            for (let i = 0; i < 6; i++) {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), material);
+                leg.position.set(-0.5 + i * 0.2, -0.8, 0);
+                leg.userData.baseY = -0.8;
+                group.add(leg);
+                group.userData.legs.push(leg);
+            }
+        }
+
+        function createUFOAlien(group) {
+            const material = new THREE.MeshPhongMaterial({
+                color: 0xffff00,
+                emissive: 0xffff00,
+                emissiveIntensity: 0.3,
+                flatShading: true,
+                shininess: 100
+            });
+
+            // Dome
+            const dome = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.6, 1.2), material);
+            dome.position.y = 0.3;
+            dome.castShadow = true;
+            group.add(dome);
+
+            // Base
+            const base = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.3, 1.6), material);
+            base.castShadow = true;
+            group.add(base);
+
+            // Lights around the edge
+            const lightMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00ffff,
+                emissive: 0x00ffff,
+                emissiveIntensity: 1
+            });
+
+            group.userData.lights = [];
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const light = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), lightMaterial);
+                light.position.set(Math.cos(angle) * 0.7, -0.1, Math.sin(angle) * 0.7);
+                group.add(light);
+                group.userData.lights.push(light);
+            }
+        }
+
+        function createTankAlien(group) {
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x00ffff,
+                emissive: 0x00ffff,
+                emissiveIntensity: 0.3,
+                flatShading: true
+            });
+
+            // Main body
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.7, 1.2), material);
+            body.castShadow = true;
+            group.add(body);
+
+            // Top block
+            const top = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.8), material);
+            top.position.y = 0.6;
+            top.castShadow = true;
+            group.add(top);
+
+            // Cannon
+            const cannon = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.8), material);
+            cannon.position.set(0, 0.6, 0.6);
+            group.add(cannon);
+            group.userData.cannon = cannon;
+
+            // Treads
+            const treadMaterial = new THREE.MeshPhongMaterial({
+                color: 0x008888,
+                flatShading: true
+            });
+
+            const treadLeft = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 1.4), treadMaterial);
+            treadLeft.position.set(-0.7, -0.3, 0);
+            group.add(treadLeft);
+
+            const treadRight = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 1.4), treadMaterial);
+            treadRight.position.set(0.7, -0.3, 0);
+            group.add(treadRight);
+        }
+
+        function createStarfield() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+
+            const starVertices = [];
+            for (let i = 0; i < 1000; i++) {
+                const x = (Math.random() - 0.5) * 200;
+                const y = (Math.random() - 0.5) * 200;
+                const z = (Math.random() - 0.5) * 200 - 50;
+                starVertices.push(x, y, z);
+            }
+
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            const stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+        }
+
+        function onMouseMove(event) {
+            // Normalize mouse position
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+        }
+
+        function onMouseClick(event) {
+            if (!gameActive) {
+                resetGame();
+                return;
+            }
+
+            fireMissile();
+        }
+
+        function fireMissile() {
+            if (!gameActive) return;
+
+            const missileGeometry = new THREE.BoxGeometry(0.1, 0.5, 0.1);
+            const missileMaterial = new THREE.MeshPhongMaterial({
+                color: 0xffff00,
+                emissive: 0xffff00,
+                emissiveIntensity: 1
+            });
+            const missile = new THREE.Mesh(missileGeometry, missileMaterial);
+
+            missile.position.copy(player.position);
+            missile.position.y += 1;
+            missile.position.z -= 1;
+
+            missiles.push(missile);
+            scene.add(missile);
+        }
+
+        function updatePlayer() {
+            // Move player based on mouse position
+            const targetX = mouseX * 12;
+            player.position.x += (targetX - player.position.x) * 0.1;
+
+            // Clamp player position
+            player.position.x = Math.max(-14, Math.min(14, player.position.x));
+
+            // Tilt player slightly based on movement
+            player.rotation.z = -mouseX * 0.3;
+        }
+
+        function updateCamera() {
+            // Tilt camera based on mouse position
+            const targetX = player.position.x * 0.3;
+            const targetRotY = -mouseX * 0.2;
+
+            camera.position.x += (targetX - camera.position.x) * 0.05;
+            camera.rotation.y += (targetRotY - camera.rotation.y) * 0.05;
+
+            // Always look at a point slightly ahead of the player
+            const lookAtPoint = new THREE.Vector3(player.position.x, 0, player.position.z - 5);
+            camera.lookAt(lookAtPoint);
+        }
+
+        function updateMissiles() {
+            for (let i = missiles.length - 1; i >= 0; i--) {
+                const missile = missiles[i];
+                missile.position.z -= MISSILE_SPEED;
+
+                // Remove if off screen
+                if (missile.position.z < -30) {
+                    scene.remove(missile);
+                    missiles.splice(i, 1);
+                    continue;
+                }
+
+                // Check collision with aliens
+                checkMissileCollision(missile, i);
+            }
+        }
+
+        function checkMissileCollision(missile, missileIndex) {
+            for (let alien of aliens) {
+                if (alien.userData.destroyed) continue;
+
+                const distance = missile.position.distanceTo(alien.position);
+                if (distance < 1) {
+                    // Hit!
+                    alien.userData.destroyed = true;
+                    scene.remove(alien);
+                    scene.remove(missile);
+                    missiles.splice(missileIndex, 1);
+
+                    // Explosion effect
+                    createExplosion(alien.position);
+
+                    // Update score
+                    score += (5 - alien.userData.row) * 10;
+                    document.getElementById('score').textContent = score;
+
+                    // Remove from aliens array
+                    const alienIndex = aliens.indexOf(alien);
+                    if (alienIndex > -1) {
+                        aliens.splice(alienIndex, 1);
+                    }
+
+                    // Check win condition
+                    if (aliens.length === 0) {
+                        gameOver(true);
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        function createExplosion(position) {
+            const particleCount = 20;
+            for (let i = 0; i < particleCount; i++) {
+                const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+                const material = new THREE.MeshPhongMaterial({
+                    color: Math.random() > 0.5 ? 0xff0000 : 0xffff00,
+                    emissive: Math.random() > 0.5 ? 0xff0000 : 0xffff00,
+                    emissiveIntensity: 1
+                });
+                const particle = new THREE.Mesh(geometry, material);
+
+                particle.position.copy(position);
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.2,
+                        (Math.random() - 0.5) * 0.2,
+                        (Math.random() - 0.5) * 0.2
+                    ),
+                    life: 1.0
+                };
+
+                particles.push(particle);
+                scene.add(particle);
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                particle.position.add(particle.userData.velocity);
+                particle.userData.life -= 0.02;
+                particle.material.opacity = particle.userData.life;
+                particle.material.transparent = true;
+
+                if (particle.userData.life <= 0) {
+                    scene.remove(particle);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function updateAliens() {
+            if (aliens.length === 0) return;
+
+            let shouldMoveDown = false;
+
+            // Check if any alien hit the edge
+            for (let alien of aliens) {
+                if (alien.userData.destroyed) continue;
+
+                if ((alienDirection > 0 && alien.position.x > 13) ||
+                    (alienDirection < 0 && alien.position.x < -13)) {
+                    shouldMoveDown = true;
+                    break;
+                }
+            }
+
+            if (shouldMoveDown) {
+                alienDirection *= -1;
+                for (let alien of aliens) {
+                    if (!alien.userData.destroyed) {
+                        alien.position.z += 1;
+
+                        // Check if aliens reached player
+                        if (alien.position.z > 8) {
+                            gameOver(false);
+                        }
+                    }
+                }
+                alienSpeed *= 1.05; // Speed up over time
+            }
+
+            // Move aliens
+            for (let alien of aliens) {
+                if (alien.userData.destroyed) continue;
+
+                alien.position.x += alienDirection * alienSpeed;
+
+                // Animate aliens
+                animateAlien(alien);
+            }
+        }
+
+        function animateAlien(alien) {
+            const time = Date.now() * 0.001 + alien.userData.animationOffset;
+            const row = alien.userData.row;
+
+            // Different animations for each row
+            switch(row) {
+                case 0: // Octopus - wave tentacles
+                    if (alien.userData.tentacles) {
+                        alien.userData.tentacles.forEach((tentacle, i) => {
+                            tentacle.position.y = tentacle.userData.baseY + Math.sin(time * 3 + i) * 0.2;
+                        });
+                    }
+                    alien.rotation.y = Math.sin(time) * 0.2;
+                    break;
+
+                case 1: // Crab - snap claws
+                    if (alien.userData.clawLeft) {
+                        alien.userData.clawLeft.position.z = 0.3 + Math.sin(time * 4) * 0.1;
+                    }
+                    if (alien.userData.clawRight) {
+                        alien.userData.clawRight.position.z = 0.3 + Math.sin(time * 4 + Math.PI) * 0.1;
+                    }
+                    alien.position.y = 2 + Math.sin(time * 2) * 0.1;
+                    break;
+
+                case 2: // Squid - wiggle legs
+                    if (alien.userData.legs) {
+                        alien.userData.legs.forEach((leg, i) => {
+                            leg.position.y = leg.userData.baseY + Math.sin(time * 4 + i * 0.5) * 0.15;
+                        });
+                    }
+                    alien.rotation.x = Math.sin(time * 2) * 0.1;
+                    break;
+
+                case 3: // UFO - rotate lights
+                    if (alien.userData.lights) {
+                        alien.userData.lights.forEach((light, i) => {
+                            const intensity = (Math.sin(time * 5 + i * 0.785) + 1) / 2;
+                            light.material.emissiveIntensity = intensity;
+                        });
+                    }
+                    alien.rotation.y = time * 0.5;
+                    alien.position.y = 2 + Math.sin(time * 3) * 0.15;
+                    break;
+
+                case 4: // Tank - rotate cannon
+                    if (alien.userData.cannon) {
+                        alien.userData.cannon.rotation.x = Math.sin(time * 2) * 0.2;
+                    }
+                    break;
+            }
+        }
+
+        function gameOver(won) {
+            gameActive = false;
+            const gameOverDiv = document.getElementById('gameOver');
+            gameOverDiv.style.display = 'block';
+
+            if (won) {
+                gameOverDiv.innerHTML = '<div style="color: #0f0;">YOU WIN!</div><div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>';
+            } else {
+                gameOverDiv.innerHTML = '<div style="color: #f00;">GAME OVER</div><div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>';
+            }
+        }
+
+        function resetGame() {
+            // Remove all game objects
+            aliens.forEach(alien => scene.remove(alien));
+            missiles.forEach(missile => scene.remove(missile));
+            particles.forEach(particle => scene.remove(particle));
+
+            aliens = [];
+            missiles = [];
+            particles = [];
+
+            score = 0;
+            lives = 3;
+            alienDirection = 1;
+            alienSpeed = 0.02;
+
+            document.getElementById('score').textContent = score;
+            document.getElementById('lives').textContent = lives;
+            document.getElementById('gameOver').style.display = 'none';
+
+            createAliens();
+            gameActive = true;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (gameActive) {
+                updatePlayer();
+                updateCamera();
+                updateMissiles();
+                updateAliens();
+                updateParticles();
+            }
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
