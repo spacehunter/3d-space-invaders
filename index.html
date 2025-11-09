@@ -702,9 +702,6 @@
                 if (alien.userData.destroyed) continue;
 
                 alien.position.x += alienDirection * alienSpeed;
-
-                // Animate aliens
-                animateAlien(alien);
             }
 
             // Alien firing logic
@@ -1110,6 +1107,13 @@
             updateCamera();
             updateParticles();
             updateStarfield();
+
+            // Always animate aliens (even after game over)
+            for (let alien of aliens) {
+                if (!alien.userData.destroyed) {
+                    animateAlien(alien);
+                }
+            }
 
             renderer.render(scene, camera);
         }
