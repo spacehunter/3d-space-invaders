@@ -508,7 +508,7 @@
         function fireMissile() {
             if (!gameActive) return;
 
-            const missileGeometry = new THREE.BoxGeometry(0.1, 0.5, 0.1);
+            const missileGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.5);  // Elongated in Z to point forward
             const missileMaterial = new THREE.MeshPhongMaterial({
                 color: 0xffff00,
                 emissive: 0xffff00,
