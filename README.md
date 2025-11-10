@@ -79,6 +79,30 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
 - **Fog Effect**: Atmospheric depth fog
 - **Post-Game Animation**: Aliens continue their distinctive animations even after game over!
 
+### Audio & Sound Effects
+Massive, earth-shaking sound effects using procedurally generated Web Audio API synthesis:
+
+- **ASTEROID-IMPACT EXPLOSIONS**: 7-layer synthesized BOOM sounds
+  - **Layer 1 - Sub-Bass Impact** (25-10 Hz, 2.5x gain): Ultra-low frequencies you feel in your chest
+  - **Layer 2 - Deep Bass Rumble** (60-20 Hz, 2.0x gain): Prolonged 1.2-second BOOOOOM
+  - **Layer 3 - Massive White Noise** (1.8x gain): The initial crack and atmospheric explosion
+  - **Layer 4 - Mid-Range Body** (150-30 Hz, 1.5x gain): Meaty impact punch
+  - **Layer 5 - Thunder Crack** (1200-80 Hz, 1.2x gain): Sharp transient crack
+  - **Layer 6 - Distorted Low End** (45-15 Hz, 1.8x gain): Extra weight and power
+  - **Layer 7 - Textured Noise** (1.5x gain): Exponentially decaying for realism
+
+- **EXPLOSION TYPES**:
+  - **Alien Destruction**: Full-power explosion (1.0x intensity)
+  - **Player Hit**: EXTRA LOUD explosion (1.5x intensity) - you'll definitely know you got hit!
+
+- **MISSILE FIRING**: Quick laser-like "pewpew" sound when firing
+
+- **TECHNICAL**:
+  - All sounds procedurally generated in real-time (no audio files needed)
+  - Duration up to 1.5 seconds for realistic rumble and decay
+  - Multi-frequency layering creates convincing, powerful explosions
+  - Audio context initializes on first user click (browser requirement)
+
 ### Game Mechanics
 - **Score Tracking**: Points based on alien type (50-10 points)
 - **Lives System**: 3 lives - lose one when hit by alien missiles
@@ -97,14 +121,18 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
 ## How to Play
 
 1. Open `index.html` in a modern web browser
-2. Move your mouse left and right to control your spaceship horizontally
-3. Move your mouse up and down to adjust camera distance (zoom)
-4. Click to fire yellow missiles at the invading aliens
-5. **Dodge alien missiles!** Watch for:
+2. **Click once to start** - this initializes the audio system
+3. Move your mouse left and right to control your spaceship horizontally
+4. Move your mouse up and down to adjust camera distance (zoom)
+5. Click to fire yellow missiles at the invading aliens (hear that satisfying "pewpew"!)
+6. **Dodge alien missiles!** Watch for:
    - Red straight missiles from most aliens
    - Cyan homing missiles with particle trails from tank aliens
-6. Destroy all aliens before they reach you or you run out of lives!
-7. Watch the camera tilt dynamically as you move
+7. **Listen for explosions!** Massive BOOM sounds when:
+   - Your missiles destroy aliens
+   - Enemy missiles hit you (EXTRA LOUD!)
+8. Destroy all aliens before they reach you or you run out of lives!
+9. Watch the camera tilt dynamically as you move
 
 ## Controls Summary
 
@@ -120,6 +148,7 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
 ### Core Technology
 - **Engine**: THREE.js (v0.158.0)
 - **Rendering**: WebGL with shadows enabled
+- **Audio**: Web Audio API for procedurally generated sound effects
 - **Geometry**: Box geometries for pixel/voxel aesthetic
 - **Materials**: Phong materials with emissive properties
 - **Animation**: RequestAnimationFrame loop running at 60 FPS
@@ -138,6 +167,11 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
   - Life-based particle decay
 - **Animation System**: Time-based animations with per-alien offsets for variety
 - **Game State Management**: Separate update loops for active gameplay vs. post-game visuals
+- **Procedural Audio Synthesis**:
+  - 7-layer explosion sounds with multiple oscillators and noise generators
+  - Real-time frequency sweeps and envelope shaping
+  - Gain values tuned for maximum impact (2.0-2.5x for bass layers)
+  - Multi-second decay times for realistic rumble
 
 ## File Structure
 
@@ -152,12 +186,15 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
 Works in all modern browsers that support:
 - ES6 Modules
 - WebGL
+- Web Audio API
 - Import Maps
 
 Tested on:
 - Chrome/Edge (recommended)
 - Firefox
 - Safari
+
+**Note**: Audio requires user interaction (click) to initialize due to browser autoplay policies.
 
 ## Performance
 
@@ -169,16 +206,18 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
-- ✅ Enhanced alien animations for each row type (dramatically more noticeable)
-- ✅ Tank alien homing missiles with realistic physics
-- ✅ Particle trail system for missile exhaust
-- ✅ Fixed missile orientations to point nose-first
-- ✅ Animated starfield with flying stars
-- ✅ Smooth camera controls with Y-axis depth adjustment
-- ✅ Alien counter-fire system
-- ✅ Lives system (3 lives)
-- ✅ Post-game animation continuation
-- ✅ Enhanced explosion effects
+- ✅ **MASSIVE explosion sound effects** - 7-layer asteroid-impact BOOM sounds
+- ✅ **Procedural audio synthesis** with Web Audio API (no external files)
+- ✅ **Enhanced alien animations** for each row type (dramatically more noticeable)
+- ✅ **Tank alien homing missiles** with realistic physics
+- ✅ **Particle trail system** for missile exhaust
+- ✅ **Fixed missile orientations** to point nose-first
+- ✅ **Animated starfield** with flying stars
+- ✅ **Smooth camera controls** with Y-axis depth adjustment
+- ✅ **Alien counter-fire system**
+- ✅ **Lives system** (3 lives)
+- ✅ **Post-game animation continuation**
+- ✅ **Enhanced explosion visual effects**
 
 ### Physics & Balancing
 - Turn rate tuned for dodge-ability (0.03 rad/frame)
@@ -193,7 +232,7 @@ Potential features to add:
 - Player shields/barriers
 - Power-ups (rapid fire, shields, etc.)
 - High score persistence (localStorage)
-- Sound effects and music
+- Background music and additional sound effects
 - Mobile touch controls
 - More alien types and formations
 - Boss battles
