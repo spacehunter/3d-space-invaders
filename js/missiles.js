@@ -28,6 +28,33 @@ export function fireMissile(player, scene) {
     playMissileFire();
 }
 
+// Check missile-to-missile collision (player missile vs alien missile)
+function checkMissileToMissileCollision(missile, missileIndex, scene) {
+    for (let j = alienMissiles.length - 1; j >= 0; j--) {
+        const alienMissile = alienMissiles[j];
+        const distance = missile.position.distanceTo(alienMissile.position);
+
+        // Check if missiles collided (using larger radius for easier interception)
+        if (distance < 0.8) {
+            // Remove both missiles
+            scene.remove(missile);
+            missiles.splice(missileIndex, 1);
+
+            scene.remove(alienMissile);
+            alienMissiles.splice(j, 1);
+
+            // Create explosion at collision point
+            const collisionPoint = new THREE.Vector3();
+            collisionPoint.lerpVectors(missile.position, alienMissile.position, 0.5);
+            createExplosion(collisionPoint, scene);
+            playExplosion(0.4);  // Quieter explosion for missile intercept
+
+            return true;  // Missile was destroyed
+        }
+    }
+    return false;  // No collision
+}
+
 // Update player missiles
 export function updateMissiles(scene, scoreCallback, gameOverCallback) {
     for (let i = missiles.length - 1; i >= 0; i--) {
@@ -39,6 +66,11 @@ export function updateMissiles(scene, scoreCallback, gameOverCallback) {
             scene.remove(missile);
             missiles.splice(i, 1);
             continue;
+        }
+
+        // Check collision with alien missiles first (defensive play)
+        if (checkMissileToMissileCollision(missile, i, scene)) {
+            continue;  // Missile was destroyed, skip alien collision check
         }
 
         // Check collision with aliens
