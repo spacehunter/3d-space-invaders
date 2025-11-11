@@ -94,6 +94,7 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 - **EXPLOSION TYPES**:
   - **Alien Destruction**: Full-power explosion (1.0x intensity)
   - **Player Hit**: EXTRA LOUD explosion (1.5x intensity) - you'll definitely know you got hit!
+  - **Missile Interception**: Quieter explosion (0.4x intensity) when shooting down enemy missiles
 
 - **MISSILE FIRING**: Quick laser-like "pewpew" sound when firing
 
@@ -106,11 +107,13 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 ### Game Mechanics
 - **Score Tracking**: Points based on alien type (50-10 points)
 - **Lives System**: 3 lives - lose one when hit by alien missiles
+- **Defensive Interception**: Shoot down incoming alien missiles with your own missiles for strategic defense!
 - **Progressive Difficulty**: Aliens speed up as more are destroyed (5% faster per wave down)
 - **Edge Detection**: Aliens move down when reaching screen edges
 - **Collision Detection**:
   - Your missiles vs. aliens
   - Alien missiles vs. your ship
+  - **Your missiles vs. alien missiles** (defensive interception)
   - Distance-based detection on the same Y plane
 - **Win/Lose Conditions**:
   - Win: Destroy all aliens
@@ -125,14 +128,18 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 3. Move your mouse left and right to control your spaceship horizontally
 4. Move your mouse up and down to adjust camera distance (zoom)
 5. Click to fire yellow missiles at the invading aliens (hear that satisfying "pewpew"!)
-6. **Dodge alien missiles!** Watch for:
+6. **Defend yourself!** You can:
+   - Dodge alien missiles by moving left/right
+   - **Shoot down incoming missiles** with your own missiles for defensive play!
+7. **Watch for enemy fire**:
    - Red straight missiles from most aliens
    - Cyan homing missiles with particle trails from tank aliens
-7. **Listen for explosions!** Massive BOOM sounds when:
+8. **Listen for explosions!** Massive BOOM sounds when:
    - Your missiles destroy aliens
    - Enemy missiles hit you (EXTRA LOUD!)
-8. Destroy all aliens before they reach you or you run out of lives!
-9. Watch the camera tilt dynamically as you move
+   - You intercept enemy missiles (quieter defensive explosion)
+9. Destroy all aliens before they reach you or you run out of lives!
+10. Watch the camera tilt dynamically as you move
 
 ## Controls Summary
 
@@ -156,6 +163,12 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 
 ### Advanced Features
 - **Smooth Camera Interpolation**: Reduces frantic movement
+- **Defensive Missile Interception**:
+  - Collision detection between player missiles and enemy missiles
+  - 0.8 unit collision radius for easier interception
+  - Both missiles destroyed on impact
+  - Explosion spawns at midpoint between colliding missiles
+  - Lower intensity audio feedback (0.4x) for defensive hits
 - **Homing Missile AI**:
   - Turn rate limiting (0.03 radians/frame)
   - Maximum turn angle (25 degrees from current heading)
@@ -177,8 +190,19 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 
 ```
 3d-space-invaders/
-├── index.html          # Main game file (self-contained)
-└── README.md          # This file
+├── index.html          # Main HTML file with game UI
+├── js/                 # Modular JavaScript game code
+│   ├── main.js         # Entry point and initialization
+│   ├── game.js         # Game state and main update loop
+│   ├── player.js       # Player spaceship logic
+│   ├── aliens.js       # Alien entities and animations
+│   ├── missiles.js     # Missile systems (player + alien + interception)
+│   ├── particles.js    # Particle effects system
+│   ├── audio.js        # Procedural sound effects
+│   ├── input.js        # Mouse input handling
+│   ├── starfield.js    # Animated starfield background
+│   └── constants.js    # Game constants and configuration
+└── README.md           # This file
 ```
 
 ## Browser Compatibility
@@ -206,6 +230,7 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
+- ✅ **Missile interception system** - Shoot down incoming enemy missiles defensively!
 - ✅ **MASSIVE explosion sound effects** - 7-layer asteroid-impact BOOM sounds
 - ✅ **Procedural audio synthesis** with Web Audio API (no external files)
 - ✅ **Enhanced alien animations** for each row type (dramatically more noticeable)
