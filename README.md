@@ -77,6 +77,14 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
 - **Glowing Effects**: Emissive materials on engines, eyes, missiles, and alien features
 - **Dynamic Lighting**: Point lights and directional shadows
 - **Fog Effect**: Atmospheric depth fog
+- **3D High Score Interface**:
+  - Stunning glowing panel with pulsing cyan border
+  - 3D character meshes with emissive glow
+  - Animated wireframe selectors
+  - 50 floating ambient particles
+  - Rainbow color cycling on completion
+  - Dynamic point lights for each character
+  - Canvas-rendered text with perfect clarity
 - **Post-Game Animation**: Aliens continue their distinctive animations even after game over!
 
 ### Audio & Sound Effects
@@ -106,6 +114,12 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 
 ### Game Mechanics
 - **Score Tracking**: Points based on alien type (50-10 points)
+- **High Score System**:
+  - Top 10 high scores saved in localStorage (persists across sessions)
+  - Beautiful 3D initial entry interface when you achieve a high score
+  - Mouse wheel to select letters (A-Z, 0-9) for your 3-letter initials
+  - Stunning visual effects with glowing panels, particles, and animations
+  - High scores displayed in top-right corner of screen
 - **Lives System**: 3 lives - lose one when hit by alien missiles
 - **Defensive Interception**: Shoot down incoming alien missiles with your own missiles for strategic defense!
 - **Progressive Difficulty**: Aliens speed up as more are destroyed (5% faster per wave down)
@@ -139,10 +153,15 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
    - Enemy missiles hit you (EXTRA LOUD!)
    - You intercept enemy missiles (quieter defensive explosion)
 9. Destroy all aliens before they reach you or you run out of lives!
-10. Watch the camera tilt dynamically as you move
+10. **Beat a high score?** You'll see a stunning 3D interface:
+   - Use mouse wheel to cycle through letters (A-Z, 0-9)
+   - Click to confirm each of your 3 initials
+   - Watch the beautiful glow and particle effects!
+11. Watch the camera tilt dynamically as you move
 
 ## Controls Summary
 
+### During Gameplay
 | Input | Action |
 |-------|--------|
 | Mouse Left/Right | Move spaceship horizontally |
@@ -150,12 +169,19 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 | Left Click | Fire missile |
 | Click (Game Over) | Restart game |
 
+### During High Score Entry
+| Input | Action |
+|-------|--------|
+| Mouse Wheel Up/Down | Cycle through letters (A-Z, 0-9) |
+| Left Click | Confirm current letter and move to next |
+
 ## Technical Details
 
 ### Core Technology
 - **Engine**: THREE.js (v0.158.0)
 - **Rendering**: WebGL with shadows enabled
 - **Audio**: Web Audio API for procedurally generated sound effects
+- **Persistence**: localStorage API for high score data
 - **Geometry**: Box geometries for pixel/voxel aesthetic
 - **Materials**: Phong materials with emissive properties
 - **Animation**: RequestAnimationFrame loop running at 60 FPS
@@ -163,6 +189,18 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 
 ### Advanced Features
 - **Smooth Camera Interpolation**: Reduces frantic movement
+- **3D High Score System**:
+  - localStorage persistence for top 10 scores
+  - Automatic high score detection on game over
+  - Beautiful 3D initial entry interface with THREE.js
+  - Mouse wheel character selection (A-Z, 0-9)
+  - Real-time 3D animations (pulse, rotation, glow)
+  - Canvas texture generation for text rendering
+  - Ambient particle system with 50 floating particles
+  - Rainbow HSL color cycling on completion
+  - Dynamic point lighting per character
+  - Wireframe selector boxes with pulsing opacity
+  - Prevents input conflicts during entry
 - **Defensive Missile Interception**:
   - Collision detection between player missiles and enemy missiles
   - 0.8 unit collision radius for easier interception
@@ -201,6 +239,7 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 │   ├── audio.js        # Procedural sound effects
 │   ├── input.js        # Mouse input handling
 │   ├── starfield.js    # Animated starfield background
+│   ├── highscores.js   # High score system with 3D UI and localStorage
 │   └── constants.js    # Game constants and configuration
 └── README.md           # This file
 ```
@@ -211,6 +250,7 @@ Works in all modern browsers that support:
 - ES6 Modules
 - WebGL
 - Web Audio API
+- localStorage API
 - Import Maps
 
 Tested on:
@@ -218,7 +258,9 @@ Tested on:
 - Firefox
 - Safari
 
-**Note**: Audio requires user interaction (click) to initialize due to browser autoplay policies.
+**Notes**:
+- Audio requires user interaction (click) to initialize due to browser autoplay policies
+- High scores are saved in localStorage and persist across browser sessions
 
 ## Performance
 
@@ -230,6 +272,11 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
+- ✅ **Beautiful 3D high score system** - Stunning arcade-style interface with localStorage persistence!
+  - Mouse wheel character selection for 3-letter initials
+  - Gorgeous glowing panels, particles, and animations
+  - Top 10 scores saved permanently across sessions
+  - Real-time display in top-right corner
 - ✅ **Missile interception system** - Shoot down incoming enemy missiles defensively!
 - ✅ **MASSIVE explosion sound effects** - 7-layer asteroid-impact BOOM sounds
 - ✅ **Procedural audio synthesis** with Web Audio API (no external files)
