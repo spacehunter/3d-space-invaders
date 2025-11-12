@@ -87,14 +87,14 @@ function createInitialEntryUI() {
     highScoreGroup.position.set(0, -2, 5);
     scene.add(highScoreGroup);
 
-    // Background panel with glow
+    // Background panel - dark for better contrast
     const panelGeometry = new THREE.BoxGeometry(12, 6, 0.3);
     const panelMaterial = new THREE.MeshPhongMaterial({
-        color: 0x001133,
-        emissive: 0x002255,
-        emissiveIntensity: 0.5,
+        color: 0x000000,
+        emissive: 0x001122,
+        emissiveIntensity: 0.3,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.95,
         shininess: 100
     });
     const panel = new THREE.Mesh(panelGeometry, panelMaterial);
@@ -138,23 +138,22 @@ function createInitialEntryUI() {
         characterMeshes.push(charMesh);
         highScoreGroup.add(charMesh);
 
-        // Selection indicator (box around character)
-        const selectorGeometry = new THREE.BoxGeometry(1.8, 2.2, 0.2);
+        // Selection indicator - glowing underline instead of wireframe box
+        const selectorGeometry = new THREE.BoxGeometry(1.6, 0.15, 0.1);
         const selectorMaterial = new THREE.MeshPhongMaterial({
-            color: 0x00ff00,
-            emissive: 0x00ff00,
+            color: 0xffff00,
+            emissive: 0xffff00,
             emissiveIntensity: 2,
             transparent: true,
-            opacity: 0,
-            wireframe: true
+            opacity: 0
         });
         const selector = new THREE.Mesh(selectorGeometry, selectorMaterial);
-        selector.position.set(xPos, -0.5, 0.3);
+        selector.position.set(xPos, -1.5, 0.3);  // Below the character
         selectorMeshes.push(selector);
         highScoreGroup.add(selector);
 
-        // Point light for glow effect
-        const light = new THREE.PointLight(0x00ff00, 0, 3);
+        // Point light for glow effect - yellow to match selector
+        const light = new THREE.PointLight(0xffff00, 0, 3);
         light.position.set(xPos, -0.5, 1);
         glowLights.push(light);
         highScoreGroup.add(light);
@@ -171,26 +170,33 @@ function createInitialEntryUI() {
 function createCharacterMesh(char, x, y) {
     const group = new THREE.Group();
 
-    // Create character using boxes (pixel art style)
+    // Create character using boxes (pixel art style) - bright yellow/orange for visibility
     const charGeometry = new THREE.BoxGeometry(1.2, 1.8, 0.3);
     const charMaterial = new THREE.MeshPhongMaterial({
-        color: 0xffffff,
-        emissive: 0x00ffff,
-        emissiveIntensity: 0.8,
+        color: 0xffaa00,
+        emissive: 0xff8800,
+        emissiveIntensity: 1.2,
         shininess: 100
     });
     const charBox = new THREE.Mesh(charGeometry, charMaterial);
     group.add(charBox);
 
-    // Add text using canvas texture
+    // Add text using canvas texture - bright yellow text
     const canvas = document.createElement('canvas');
     canvas.width = 128;
     canvas.height = 128;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
+
+    // Add dark outline for better readability
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 8;
     ctx.font = 'bold 100px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.strokeText(char, 64, 64);
+
+    // Fill with bright yellow
+    ctx.fillStyle = '#ffff00';
     ctx.fillText(char, 64, 64);
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -276,15 +282,22 @@ function updateCharacterDisplay(index) {
     const char = currentInitials[index];
     const mesh = characterMeshes[index];
 
-    // Update canvas texture
+    // Update canvas texture with yellow text and outline
     const canvas = document.createElement('canvas');
     canvas.width = 128;
     canvas.height = 128;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
+
+    // Add dark outline for better readability
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 8;
     ctx.font = 'bold 100px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.strokeText(char, 64, 64);
+
+    // Fill with bright yellow
+    ctx.fillStyle = '#ffff00';
     ctx.fillText(char, 64, 64);
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -487,11 +500,11 @@ export function updateHighScoreUI() {
             } else if (mesh.userData.animateType === 'confirm') {
                 // Flash and lock
                 const intensity = Math.max(0, 1 - elapsed / 500);
-                mesh.userData.charBox.material.emissiveIntensity = 0.8 + intensity * 2;
+                mesh.userData.charBox.material.emissiveIntensity = 1.2 + intensity * 2;
 
                 if (elapsed > 500) {
                     mesh.userData.animateTime = null;
-                    mesh.userData.charBox.material.emissiveIntensity = 0.8;
+                    mesh.userData.charBox.material.emissiveIntensity = 1.2;
                 }
             } else if (mesh.userData.animateType === 'complete') {
                 // Rainbow flash
@@ -511,13 +524,13 @@ export function updateHighScoreUI() {
         }
     });
 
-    // Animate selectors
+    // Animate selectors - just pulse, no rotation
     selectorMeshes.forEach((selector, i) => {
         if (selector.material.opacity > 0) {
-            selector.rotation.z = time * 0.002;
-            const pulse = Math.sin(time * 0.005) * 0.2 + 0.6;
+            const pulse = Math.sin(time * 0.005) * 0.3 + 0.7;  // Smoother pulsing
             if (i === currentCharIndex) {
                 selector.material.opacity = pulse;
+                selector.material.emissiveIntensity = pulse * 3;  // Intensity pulses too
             }
         }
     });

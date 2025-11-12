@@ -156,7 +156,11 @@ function resetGame() {
     lives = 3;
 
     updateUI();
-    document.getElementById('gameOver').style.display = 'none';
+
+    // Hide and clear game over screen
+    const gameOverDiv = document.getElementById('gameOver');
+    gameOverDiv.style.display = 'none';
+    gameOverDiv.innerHTML = '';  // Clear old content
 
     createAliens(scene);
     gameActive = true;
