@@ -6,6 +6,7 @@ import { createAliens, updateAliens, animateAlien, getAliens, resetAliens } from
 import { fireMissile, updateMissiles, updateAlienMissiles, checkAlienFire, resetMissiles } from './missiles.js';
 import { updateParticles, resetParticles } from './particles.js';
 import { getMousePosition } from './input.js';
+import { isHighScore, showInitialEntry, updateHighScoreUI, hideInitialEntry, isInitialEntryActive } from './highscores.js';
 
 // Game state
 let scene;
@@ -51,6 +52,11 @@ export function updateCamera(player, mouseX, mouseY) {
 export function handleFire() {
     initAudio();  // Initialize audio on first click
 
+    // If initial entry is active, don't fire or reset
+    if (isInitialEntryActive()) {
+        return;
+    }
+
     if (!gameActive) {
         resetGame();
         return;
@@ -84,18 +90,45 @@ function updateUI() {
 // Game over handler
 function gameOver(won) {
     gameActive = false;
+
+    // Check if this is a high score
+    if (isHighScore(score)) {
+        // Show initial entry UI instead of regular game over
+        showInitialEntry(scene, camera, score, (initials) => {
+            // After initials are entered, show regular game over
+            showGameOverScreen(won, initials);
+        });
+    } else {
+        // Regular game over
+        showGameOverScreen(won, null);
+    }
+}
+
+// Show game over screen
+function showGameOverScreen(won, initials) {
     const gameOverDiv = document.getElementById('gameOver');
     gameOverDiv.style.display = 'block';
 
-    if (won) {
-        gameOverDiv.innerHTML = '<div style="color: #0f0;">YOU WIN!</div><div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>';
-    } else {
-        gameOverDiv.innerHTML = '<div style="color: #f00;">GAME OVER</div><div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>';
+    let message = '';
+    if (initials) {
+        message = `<div style="color: #00ff00; font-size: 36px; margin-bottom: 10px;">HIGH SCORE!</div>`;
+        message += `<div style="color: #ffff00; font-size: 28px; margin-bottom: 20px;">${initials}: ${score}</div>`;
     }
+
+    if (won) {
+        message += '<div style="color: #0f0;">YOU WIN!</div><div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>';
+    } else {
+        message += '<div style="color: #f00;">GAME OVER</div><div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>';
+    }
+
+    gameOverDiv.innerHTML = message;
 }
 
 // Reset game
 function resetGame() {
+    // Hide initial entry if active
+    hideInitialEntry();
+
     // Reset game state
     resetAliens(scene);
     resetMissiles(scene);
@@ -131,6 +164,9 @@ export function update() {
     updateParticles(scene);
     updateStarfield();
 
+    // Update high score UI animations
+    updateHighScoreUI();
+
     // Always animate aliens (even after game over)
     const aliens = getAliens();
     for (let alien of aliens) {
@@ -143,4 +179,9 @@ export function update() {
 // Get game active state
 export function isGameActive() {
     return gameActive;
+}
+
+// Get current score
+export function getScore() {
+    return score;
 }

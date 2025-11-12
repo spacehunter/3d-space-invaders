@@ -4,6 +4,7 @@ import { createStarfield } from './starfield.js';
 import { createAliens } from './aliens.js';
 import { initInput } from './input.js';
 import { initGame, update, handleFire } from './game.js';
+import { updateHighScoresDisplay } from './highscores.js';
 
 let scene, camera, renderer;
 
@@ -48,6 +49,9 @@ function init() {
 
     // Initialize input
     initInput(handleFire);
+
+    // Initialize high scores display
+    updateHighScoresDisplay();
 
     // Event listeners
     window.addEventListener('resize', onWindowResize);
