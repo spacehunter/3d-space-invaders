@@ -8,6 +8,7 @@ let scene;
 let camera;
 let highScoreGroup;
 let initialEntryActive = false;
+let completionAnimationActive = false;
 let currentInitials = ['A', 'A', 'A'];
 let currentCharIndex = 0;
 let characterMeshes = [];
@@ -373,20 +374,35 @@ function animateConfirm(index) {
 
 // Complete initial entry and save high score
 function completeInitialEntry() {
+    // Prevent double completion
+    if (!initialEntryActive || completionAnimationActive) return;
+
     const initials = currentInitials.join('');
     addHighScore(initials, currentScore);
 
     // Update high scores display
     updateHighScoresDisplay();
 
+    // Disable further input immediately
+    window.removeEventListener('wheel', handleWheel);
+    window.removeEventListener('click', handleClick);
+
+    // Mark as completing - prevents input but allows animation
+    completionAnimationActive = true;
+    initialEntryActive = false;
+
     // Animate completion
     animateCompletion();
 
+    // Store callback to call after cleanup
+    const callback = onCompleteCallback;
+
     // Clean up after animation
     setTimeout(() => {
+        completionAnimationActive = false;
         hideInitialEntry();
-        if (onCompleteCallback) {
-            onCompleteCallback(initials);
+        if (callback) {
+            callback(initials);
         }
     }, 2000);
 }
@@ -408,23 +424,49 @@ function animateCompletion() {
 
 // Hide initial entry UI
 export function hideInitialEntry() {
-    if (highScoreGroup) {
+    if (highScoreGroup && scene) {
+        // Dispose of all materials and geometries
+        highScoreGroup.traverse((child) => {
+            if (child.geometry) {
+                child.geometry.dispose();
+            }
+            if (child.material) {
+                if (Array.isArray(child.material)) {
+                    child.material.forEach(material => {
+                        if (material.map) material.map.dispose();
+                        material.dispose();
+                    });
+                } else {
+                    if (child.material.map) child.material.map.dispose();
+                    child.material.dispose();
+                }
+            }
+        });
+
+        // Remove from scene
         scene.remove(highScoreGroup);
         highScoreGroup = null;
     }
 
+    // Reset all state flags
     initialEntryActive = false;
+    completionAnimationActive = false;
     characterMeshes = [];
     selectorMeshes = [];
     glowLights = [];
+    onCompleteCallback = null;
+    currentCharIndex = 0;
+    currentInitials = ['A', 'A', 'A'];
 
+    // Remove event listeners (safe to call even if already removed)
     window.removeEventListener('wheel', handleWheel);
     window.removeEventListener('click', handleClick);
 }
 
 // Update animations
 export function updateHighScoreUI() {
-    if (!initialEntryActive || !highScoreGroup) return;
+    // Allow updates during initial entry OR completion animation
+    if ((!initialEntryActive && !completionAnimationActive) || !highScoreGroup) return;
 
     const time = Date.now();
 

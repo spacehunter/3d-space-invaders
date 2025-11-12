@@ -28,6 +28,24 @@ export function initGame(sceneRef, cameraRef) {
 
 // Update camera position based on player and mouse
 export function updateCamera(player, mouseX, mouseY) {
+    // If high score entry is active, lock camera to face the panel
+    if (isInitialEntryActive()) {
+        // High score panel is at position (0, -2, 5)
+        // Position camera to face it directly
+        const targetX = 0;
+        const targetY = 2;  // Slightly above for better viewing angle
+        const targetZ = 12;  // Back from the panel
+
+        camera.position.x += (targetX - camera.position.x) * 0.1;
+        camera.position.y += (targetY - camera.position.y) * 0.1;
+        camera.position.z += (targetZ - camera.position.z) * 0.1;
+
+        // Look directly at the high score panel
+        camera.lookAt(0, -2, 5);
+        return;
+    }
+
+    // Normal gameplay camera
     // Smooth camera follow with subtle tilt
     const targetX = player.position.x * 0.15;  // Reduced from 0.3
     const targetRotY = -mouseX * 0.05;  // Reduced from 0.2
