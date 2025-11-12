@@ -44,12 +44,40 @@
             text-shadow: 0 0 10px #0ff;
             text-align: center;
         }
+        #highscores {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #ffff00;
+            font-size: 16px;
+            text-shadow: 0 0 10px #ffff00;
+            z-index: 100;
+            text-align: right;
+        }
+        #highscores h3 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            color: #00ff00;
+            text-shadow: 0 0 15px #00ff00;
+        }
+        #highscores .score-entry {
+            margin: 5px 0;
+            color: #ffff00;
+        }
+        #highscores .rank {
+            color: #00ffff;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
     <div id="ui">
         <div>SCORE: <span id="score">0</span></div>
         <div>LIVES: <span id="lives">3</span></div>
+    </div>
+    <div id="highscores">
+        <h3>HIGH SCORES</h3>
+        <div id="highscores-list"></div>
     </div>
     <div id="gameOver">
         <div>GAME OVER</div>
