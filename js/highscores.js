@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { hidePlayer, showPlayer } from './player.js';
 
 const HIGHSCORE_KEY = 'spaceInvaders3D_highscores';
 const MAX_HIGHSCORES = 10;
@@ -90,6 +91,9 @@ export function showInitialEntry(sceneRef, cameraRef, score, onComplete) {
     glowLights = [];
 
     createInitialEntryUI();
+
+    // Hide player so it doesn't block the high score panel
+    hidePlayer();
 
     // Add mouse wheel listener
     window.addEventListener('wheel', handleWheel);
@@ -489,6 +493,9 @@ export function hideInitialEntry() {
     // Remove event listeners (safe to call even if already removed)
     window.removeEventListener('wheel', handleWheel);
     window.removeEventListener('click', handleClick);
+
+    // Show player again
+    showPlayer();
 }
 
 // Update animations

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { initAudio } from './audio.js';
-import { getPlayer, updatePlayer } from './player.js';
+import { getPlayer, updatePlayer, showPlayer } from './player.js';
 import { updateStarfield } from './starfield.js';
 import { createAliens, updateAliens, animateAlien, getAliens, resetAliens } from './aliens.js';
 import { fireMissile, updateMissiles, updateAlienMissiles, checkAlienFire, resetMissiles } from './missiles.js';
@@ -161,6 +161,9 @@ function resetGame() {
     const gameOverDiv = document.getElementById('gameOver');
     gameOverDiv.style.display = 'none';
     gameOverDiv.innerHTML = '';  // Clear old content
+
+    // Ensure player is visible for new game
+    showPlayer();
 
     createAliens(scene);
     gameActive = true;
