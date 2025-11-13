@@ -11,7 +11,7 @@ export function createPlayer(scene) {
     const bodyMaterial = new THREE.MeshPhongMaterial({
         color: 0x00ff00,
         emissive: 0x00ff00,
-        emissiveIntensity: 0.8,
+        emissiveIntensity: 1.6,
         flatShading: true
     });
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
@@ -23,7 +23,7 @@ export function createPlayer(scene) {
     const cockpitMaterial = new THREE.MeshPhongMaterial({
         color: 0x00ffff,
         emissive: 0x00ffff,
-        emissiveIntensity: 1.0,
+        emissiveIntensity: 2.0,
         flatShading: true
     });
     const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
@@ -36,7 +36,7 @@ export function createPlayer(scene) {
     const wingMaterial = new THREE.MeshPhongMaterial({
         color: 0x00aa00,
         emissive: 0x00aa00,
-        emissiveIntensity: 0.6,
+        emissiveIntensity: 1.2,
         flatShading: true
     });
     const wings = new THREE.Mesh(wingGeometry, wingMaterial);
@@ -50,7 +50,7 @@ export function createPlayer(scene) {
     const engineMaterial = new THREE.MeshPhongMaterial({
         color: 0xff3300,
         emissive: 0xff3300,
-        emissiveIntensity: 1.5,
+        emissiveIntensity: 3.0,
         flatShading: true
     });
 
