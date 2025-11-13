@@ -36,9 +36,9 @@ function init() {
     // UnrealBloomPass for that 80s vector glow aesthetic
     bloomPass = new UnrealBloomPass(
         new THREE.Vector2(window.innerWidth, window.innerHeight),
-        1.0,    // strength - adjustable via slider
-        0.6,    // radius - larger for more diffuse glow
-        0.3     // threshold - lower to make more objects glow
+        1.5,    // strength - adjustable via slider (increased default)
+        0.8,    // radius - larger for more diffuse glow
+        0.6     // threshold - higher to only affect bright emissive objects
     );
     composer.addPass(bloomPass);
 
