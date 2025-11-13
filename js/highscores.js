@@ -10,6 +10,7 @@ let camera;
 let highScoreGroup;
 let initialEntryActive = false;
 let completionAnimationActive = false;
+let inputReady = false;  // Tracks if input is ready to accept clicks/wheel
 let currentInitials = ['A', 'A', 'A'];
 let currentCharIndex = 0;
 let characterMeshes = [];
@@ -84,6 +85,7 @@ export function showInitialEntry(sceneRef, cameraRef, score, onComplete) {
     onCompleteCallback = onComplete;
     initialEntryActive = true;
     completionAnimationActive = false;
+    inputReady = false;  // Block input initially
     currentInitials = ['A', 'A', 'A'];
     currentCharIndex = 0;
     characterMeshes = [];
@@ -95,7 +97,21 @@ export function showInitialEntry(sceneRef, cameraRef, score, onComplete) {
     // Hide player so it doesn't block the high score panel
     hidePlayer();
 
-    // Add mouse wheel listener
+    // Delay before accepting input to prevent accidental clicks from gameplay
+    setTimeout(() => {
+        inputReady = true;
+        // Update instructions text to show READY
+        updateReadyStatus();
+        // Add "READY" visual indicator by making selector more visible
+        if (selectorMeshes[0]) {
+            selectorMeshes[0].material.opacity = 0.8;
+        }
+        if (glowLights[0]) {
+            glowLights[0].intensity = 2;
+        }
+    }, 1200);  // 1.2 second delay before input is accepted (after fade completes)
+
+    // Add mouse wheel listener (but will check inputReady flag)
     window.addEventListener('wheel', handleWheel);
     window.addEventListener('click', handleClick);
 }
@@ -104,6 +120,12 @@ export function showInitialEntry(sceneRef, cameraRef, score, onComplete) {
 function createInitialEntryUI() {
     highScoreGroup = new THREE.Group();
     highScoreGroup.position.set(0, -2, 5);
+
+    // Start with low opacity for fade-in effect
+    highScoreGroup.userData.opacity = 0;
+    highScoreGroup.userData.targetOpacity = 1;
+    highScoreGroup.userData.fadeStartTime = Date.now();
+
     scene.add(highScoreGroup);
 
     // Background panel - dark for better contrast
@@ -140,8 +162,9 @@ function createInitialEntryUI() {
 
     // Instructions
     createText('ENTER YOUR INITIALS', 0, 0.6, 0.25, 0x00ffff);
-    createText('Mouse Wheel: Change Letter', 0, -2, 0.18, 0xaaaaaa);
-    createText('Click: Confirm Letter', 0, -2.4, 0.18, 0xaaaaaa);
+    createText('WAIT FOR READY...', 0, -2, 0.18, 0xff8800);  // Orange warning
+    createText('Mouse Wheel: Change Letter', 0, -2.4, 0.18, 0xaaaaaa);
+    createText('Click: Confirm Letter', 0, -2.7, 0.18, 0xaaaaaa);
 
     // Create character slots
     characterMeshes = [];
@@ -237,6 +260,28 @@ function createCharacterMesh(char, x, y) {
     return group;
 }
 
+// Update ready status text
+function updateReadyStatus() {
+    // Find and update the "WAIT FOR READY..." text to "READY!"
+    highScoreGroup.children.forEach((child) => {
+        if (child.userData.isReadyText) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#00ff00';  // Green for ready
+            ctx.font = 'bold 36px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('READY!', 512, 64);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            child.material.map = texture;
+            child.material.needsUpdate = true;
+        }
+    });
+}
+
 // Create text using canvas texture
 function createText(text, x, y, size, color) {
     const canvas = document.createElement('canvas');
@@ -258,6 +303,12 @@ function createText(text, x, y, size, color) {
     });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, 0.3);
+
+    // Mark the ready text so we can update it later
+    if (text === 'WAIT FOR READY...') {
+        mesh.userData.isReadyText = true;
+    }
+
     highScoreGroup.add(mesh);
 
     return mesh;
@@ -346,7 +397,7 @@ function updateSelector() {
 
 // Handle mouse wheel for character selection
 function handleWheel(event) {
-    if (!initialEntryActive) return;
+    if (!initialEntryActive || !inputReady) return;  // Check inputReady flag
 
     event.preventDefault();
 
@@ -371,7 +422,7 @@ function handleWheel(event) {
 
 // Handle mouse click to confirm character
 function handleClick(event) {
-    if (!initialEntryActive) return;
+    if (!initialEntryActive || !inputReady) return;  // Check inputReady flag
 
     // Move to next character
     currentCharIndex++;
@@ -483,6 +534,7 @@ export function hideInitialEntry() {
     // Reset all state flags
     initialEntryActive = false;
     completionAnimationActive = false;
+    inputReady = false;
     characterMeshes = [];
     selectorMeshes = [];
     glowLights = [];
@@ -504,6 +556,32 @@ export function updateHighScoreUI() {
     if ((!initialEntryActive && !completionAnimationActive) || !highScoreGroup) return;
 
     const time = Date.now();
+
+    // Handle fade-in animation
+    if (highScoreGroup.userData.fadeStartTime) {
+        const fadeElapsed = time - highScoreGroup.userData.fadeStartTime;
+        const fadeDuration = 800;  // 800ms fade-in
+
+        if (fadeElapsed < fadeDuration) {
+            // Fade in all transparent materials
+            const opacity = Math.min(1, fadeElapsed / fadeDuration);
+            highScoreGroup.userData.opacity = opacity;
+
+            // Apply opacity to all transparent materials
+            highScoreGroup.traverse((child) => {
+                if (child.material && child.material.transparent) {
+                    const targetOpacity = child.userData.targetOpacity || child.material.opacity;
+                    if (!child.userData.targetOpacity) {
+                        child.userData.targetOpacity = child.material.opacity;
+                    }
+                    child.material.opacity = targetOpacity * opacity;
+                }
+            });
+        } else {
+            // Fade complete
+            delete highScoreGroup.userData.fadeStartTime;
+        }
+    }
 
     // Animate characters
     characterMeshes.forEach((mesh, i) => {
