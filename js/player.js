@@ -89,3 +89,17 @@ export function updatePlayer(mouseX) {
 export function getPlayer() {
     return player;
 }
+
+// Hide player (e.g., during high score entry)
+export function hidePlayer() {
+    if (player) {
+        player.visible = false;
+    }
+}
+
+// Show player
+export function showPlayer() {
+    if (player) {
+        player.visible = true;
+    }
+}
