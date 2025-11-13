@@ -68,6 +68,25 @@
             color: #00ffff;
             margin-right: 10px;
         }
+        #settings {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #0ff;
+            font-size: 14px;
+            text-shadow: 0 0 10px #0ff;
+            text-align: center;
+            z-index: 100;
+        }
+        #settings label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        #glowSlider {
+            width: 200px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -86,11 +105,16 @@
     <div id="instructions">
         Move Mouse: Control Ship | Click: Fire Missile
     </div>
+    <div id="settings">
+        <label for="glowSlider">GLOW INTENSITY: <span id="glowValue">1.0</span></label>
+        <input type="range" id="glowSlider" min="0" max="3" step="0.1" value="1.0">
+    </div>
 
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js"
+            "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
         }
     }
     </script>

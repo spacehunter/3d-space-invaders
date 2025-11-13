@@ -15,7 +15,7 @@ export function fireMissile(player, scene) {
     const missileMaterial = new THREE.MeshPhongMaterial({
         color: 0xffff00,
         emissive: 0xffff00,
-        emissiveIntensity: 1
+        emissiveIntensity: 2.0
     });
     const missile = new THREE.Mesh(missileGeometry, missileMaterial);
 
@@ -121,7 +121,7 @@ function createTankMissile(position) {
     const noseMaterial = new THREE.MeshPhongMaterial({
         color: 0xff4400,
         emissive: 0xff4400,
-        emissiveIntensity: 0.8,
+        emissiveIntensity: 1.5,
         flatShading: true
     });
     const nose = new THREE.Mesh(noseGeometry, noseMaterial);
@@ -144,7 +144,7 @@ function createTankMissile(position) {
     const finMaterial = new THREE.MeshPhongMaterial({
         color: 0xff0000,
         emissive: 0xff0000,
-        emissiveIntensity: 0.5,
+        emissiveIntensity: 1.0,
         flatShading: true
     });
 
@@ -164,7 +164,7 @@ function createTankMissile(position) {
     const engineMaterial = new THREE.MeshPhongMaterial({
         color: 0xffff00,
         emissive: 0xffff00,
-        emissiveIntensity: 2,
+        emissiveIntensity: 2.5,
         flatShading: true
     });
     const engine = new THREE.Mesh(engineGeometry, engineMaterial);
@@ -210,7 +210,7 @@ export function alienFire(scene) {
                 const missileMaterial = new THREE.MeshPhongMaterial({
                     color: 0xff0000,
                     emissive: 0xff0000,
-                    emissiveIntensity: 1.5
+                    emissiveIntensity: 2.0
                 });
                 missile = new THREE.Mesh(missileGeometry, missileMaterial);
 
@@ -297,7 +297,7 @@ export function updateAlienMissiles(player, scene, gameActive, livesCallback, ga
                 const trailMaterial = new THREE.MeshPhongMaterial({
                     color: 0xffaa00,
                     emissive: 0xffaa00,
-                    emissiveIntensity: 1.5,
+                    emissiveIntensity: 2.0,
                     transparent: true
                 });
                 const trail = new THREE.Mesh(trailGeometry, trailMaterial);

@@ -60,7 +60,7 @@ function createOctopusAlien(group) {
     const material = new THREE.MeshPhongMaterial({
         color: 0xff00ff,
         emissive: 0xff00ff,
-        emissiveIntensity: 0.3,
+        emissiveIntensity: 0.8,
         flatShading: true
     });
 
@@ -73,7 +73,7 @@ function createOctopusAlien(group) {
     const eyeMaterial = new THREE.MeshPhongMaterial({
         color: 0xffff00,
         emissive: 0xffff00,
-        emissiveIntensity: 0.8
+        emissiveIntensity: 1.5
     });
     const eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), eyeMaterial);
     eyeLeft.position.set(-0.3, 0.2, 0.5);
@@ -98,7 +98,7 @@ function createCrabAlien(group) {
     const material = new THREE.MeshPhongMaterial({
         color: 0xff0000,
         emissive: 0xff0000,
-        emissiveIntensity: 0.3,
+        emissiveIntensity: 0.8,
         flatShading: true
     });
 
@@ -111,7 +111,7 @@ function createCrabAlien(group) {
     const eyeMaterial = new THREE.MeshPhongMaterial({
         color: 0x00ffff,
         emissive: 0x00ffff,
-        emissiveIntensity: 0.8
+        emissiveIntensity: 1.5
     });
 
     const stalkLeft = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), material);
@@ -146,7 +146,7 @@ function createSquidAlien(group) {
     const material = new THREE.MeshPhongMaterial({
         color: 0x00ff00,
         emissive: 0x00ff00,
-        emissiveIntensity: 0.3,
+        emissiveIntensity: 0.8,
         flatShading: true
     });
 
@@ -159,7 +159,7 @@ function createSquidAlien(group) {
     const eyeMaterial = new THREE.MeshPhongMaterial({
         color: 0xff0000,
         emissive: 0xff0000,
-        emissiveIntensity: 0.8
+        emissiveIntensity: 1.5
     });
     const eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.2), eyeMaterial);
     eyeLeft.position.set(-0.25, 0.3, 0.4);
@@ -184,7 +184,7 @@ function createUFOAlien(group) {
     const material = new THREE.MeshPhongMaterial({
         color: 0xffff00,
         emissive: 0xffff00,
-        emissiveIntensity: 0.3,
+        emissiveIntensity: 0.8,
         flatShading: true,
         shininess: 100
     });
@@ -204,7 +204,7 @@ function createUFOAlien(group) {
     const lightMaterial = new THREE.MeshPhongMaterial({
         color: 0x00ffff,
         emissive: 0x00ffff,
-        emissiveIntensity: 1
+        emissiveIntensity: 2.0
     });
 
     group.userData.lights = [];
@@ -221,7 +221,7 @@ function createTankAlien(group) {
     const material = new THREE.MeshPhongMaterial({
         color: 0x00ffff,
         emissive: 0x00ffff,
-        emissiveIntensity: 0.3,
+        emissiveIntensity: 0.8,
         flatShading: true
     });
 
