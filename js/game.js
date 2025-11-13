@@ -173,6 +173,15 @@ export function update() {
 
     if (!player) return;
 
+    // Ensure game over screen is hidden during active gameplay (defensive)
+    if (gameActive) {
+        const gameOverDiv = document.getElementById('gameOver');
+        if (gameOverDiv && gameOverDiv.style.display !== 'none') {
+            gameOverDiv.style.display = 'none';
+            gameOverDiv.innerHTML = '';
+        }
+    }
+
     if (gameActive) {
         updatePlayer(mouse.x);
         updateAliens(gameOver);
