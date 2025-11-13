@@ -76,7 +76,7 @@ function init() {
     glowSlider.addEventListener('input', (e) => {
         const intensity = parseFloat(e.target.value);
         bloomPass.strength = intensity;
-        glowValue.textContent = intensity.toFixed(1);
+        glowValue.textContent = intensity.toFixed(2);
     });
 
     // Event listeners
