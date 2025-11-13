@@ -120,6 +120,8 @@ export function showInitialEntry(sceneRef, cameraRef, score, onComplete) {
 function createInitialEntryUI() {
     highScoreGroup = new THREE.Group();
     highScoreGroup.position.set(0, -2, 5);
+    // Rotate panel to be more perpendicular to player's view
+    highScoreGroup.rotation.x = -0.6;  // Tilt backward about 34 degrees
 
     // Start with low opacity for fade-in effect
     highScoreGroup.userData.opacity = 0;
