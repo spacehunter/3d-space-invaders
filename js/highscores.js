@@ -66,13 +66,28 @@ export function getTopHighScores(count = 5) {
 
 // Create 3D initial entry interface
 export function showInitialEntry(sceneRef, cameraRef, score, onComplete) {
+    // Clean up any existing state first (defensive)
+    if (highScoreGroup && sceneRef) {
+        sceneRef.remove(highScoreGroup);
+        highScoreGroup = null;
+    }
+
+    // Remove any existing event listeners (defensive)
+    window.removeEventListener('wheel', handleWheel);
+    window.removeEventListener('click', handleClick);
+
+    // Reset all state variables to initial values
     scene = sceneRef;
     camera = cameraRef;
     currentScore = score;
     onCompleteCallback = onComplete;
     initialEntryActive = true;
+    completionAnimationActive = false;
     currentInitials = ['A', 'A', 'A'];
     currentCharIndex = 0;
+    characterMeshes = [];
+    selectorMeshes = [];
+    glowLights = [];
 
     createInitialEntryUI();
 
