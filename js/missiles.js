@@ -4,6 +4,7 @@ import { playMissileFire } from './audio.js';
 import { createExplosion, getParticles } from './particles.js';
 import { playExplosion } from './audio.js';
 import { getAliens, removeAlien } from './aliens.js';
+import { getBonusUFO, removeBonusUFO } from './bonus-ufo.js';
 
 let missiles = [];
 let alienMissiles = [];
@@ -80,6 +81,30 @@ export function updateMissiles(scene, scoreCallback, gameOverCallback) {
 
 // Check missile collision with aliens
 function checkMissileCollision(missile, missileIndex, scene, scoreCallback, gameOverCallback) {
+    // First check collision with bonus UFO
+    const bonusUFO = getBonusUFO();
+    if (bonusUFO) {
+        const distance = missile.position.distanceTo(bonusUFO.position);
+        if (distance < 2.0) { // Larger collision radius for the bigger bonus UFO
+            // Hit the bonus UFO!
+            scene.remove(missile);
+            missiles.splice(missileIndex, 1);
+
+            // Big explosion effect
+            createExplosion(bonusUFO.position, scene);
+            playExplosion(1.5); // Louder explosion for bonus
+
+            // Award 500 points
+            scoreCallback(500);
+
+            // Remove the bonus UFO
+            removeBonusUFO(scene);
+
+            return; // Early return, don't check regular aliens
+        }
+    }
+
+    // Check collision with regular aliens
     const aliens = getAliens();
     for (let alien of aliens) {
         if (alien.userData.destroyed) continue;

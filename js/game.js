@@ -7,6 +7,7 @@ import { fireMissile, updateMissiles, updateAlienMissiles, checkAlienFire, reset
 import { updateParticles, resetParticles } from './particles.js';
 import { getMousePosition } from './input.js';
 import { isHighScore, showInitialEntry, updateHighScoreUI, hideInitialEntry, isInitialEntryActive } from './highscores.js';
+import { spawnBonusUFO, updateBonusUFO, resetBonusUFO } from './bonus-ufo.js';
 
 // Game state
 let scene;
@@ -151,6 +152,7 @@ function resetGame() {
     resetAliens(scene);
     resetMissiles(scene);
     resetParticles(scene);
+    resetBonusUFO(scene);
 
     score = 0;
     lives = 3;
@@ -189,6 +191,10 @@ export function update() {
         updatePlayer(mouse.x);
         updateAliens(gameOver);
         checkAlienFire(scene);
+
+        // Spawn and update bonus UFO
+        spawnBonusUFO(scene, Date.now());
+        updateBonusUFO();
     }
 
     // Always update missiles, camera, particles, and starfield (even after game over)
