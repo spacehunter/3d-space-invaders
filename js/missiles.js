@@ -1,14 +1,20 @@
 import * as THREE from 'three';
 import { MISSILE_SPEED } from './constants.js';
-import { playMissileFire } from './audio.js';
-import { createExplosion, getParticles } from './particles.js';
+import { playMissileFire, playUFOMissileLaunch } from './audio.js';
+import { createExplosion, createShrapnelExplosion, getParticles } from './particles.js';
 import { playExplosion } from './audio.js';
 import { getAliens, removeAlien } from './aliens.js';
-import { getBonusUFO, removeBonusUFO } from './bonus-ufo.js';
+import { getBonusUFO, removeBonusUFO, setUFOMissileFireCallback } from './bonus-ufo.js';
 
 let missiles = [];
 let alienMissiles = [];
+let ufoMissiles = [];
 let lastAlienFireTime = 0;
+
+// Initialize UFO missile callback
+export function initUFOMissiles() {
+    setUFOMissileFireCallback(fireUFOMissile);
+}
 
 // Fire a player missile
 export function fireMissile(player, scene) {
@@ -249,6 +255,129 @@ export function alienFire(scene) {
     }
 }
 
+// Create UFO smart missile
+function createUFOMissile(position) {
+    const group = new THREE.Group();
+
+    // Large glowing sphere warhead (2-3x normal missile size)
+    const warheadGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+    const warheadMaterial = new THREE.MeshPhongMaterial({
+        color: 0xff4400,
+        emissive: 0xff4400,
+        emissiveIntensity: 5.0,
+        flatShading: true
+    });
+    const warhead = new THREE.Mesh(warheadGeometry, warheadMaterial);
+    group.add(warhead);
+
+    // Inner core (brighter)
+    const coreGeometry = new THREE.SphereGeometry(0.25, 12, 12);
+    const coreMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffaa00,
+        emissive: 0xffaa00,
+        emissiveIntensity: 8.0
+    });
+    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+    group.add(core);
+
+    group.position.copy(position);
+    group.position.y = 0;
+
+    // Mark as UFO missile
+    group.userData.isUFOMissile = true;
+    group.userData.lastTrailTime = Date.now();
+    group.userData.speed = 0.2; // Configurable speed
+
+    return group;
+}
+
+// Fire UFO missile (callback from bonus-ufo.js)
+function fireUFOMissile(ufoPosition, scene) {
+    const missile = createUFOMissile(ufoPosition);
+    ufoMissiles.push(missile);
+    scene.add(missile);
+
+    // Play launch sound
+    playUFOMissileLaunch();
+}
+
+// Update UFO missiles
+export function updateUFOMissiles(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const particles = getParticles();
+
+    for (let i = ufoMissiles.length - 1; i >= 0; i--) {
+        const missile = ufoMissiles[i];
+
+        // Track player's X position
+        const targetX = player.position.x;
+        const currentX = missile.position.x;
+        const diffX = targetX - currentX;
+
+        // Smoothly adjust X position toward player (homing behavior)
+        const trackingSpeed = 0.08; // How quickly it tracks
+        missile.position.x += diffX * trackingSpeed;
+
+        // Move forward toward player (increase Z)
+        missile.position.z += missile.userData.speed;
+
+        // Pulsing warhead animation
+        const time = Date.now() * 0.005;
+        const pulseScale = 1.0 + Math.sin(time * 5) * 0.15;
+        missile.children[0].scale.set(pulseScale, pulseScale, pulseScale);
+        missile.children[1].scale.set(pulseScale, pulseScale, pulseScale);
+
+        // Create particle trail
+        const currentTime = Date.now();
+        if (currentTime - missile.userData.lastTrailTime > 30) {
+            missile.userData.lastTrailTime = currentTime;
+
+            // Create multiple trail particles for thick trail
+            for (let j = 0; j < 3; j++) {
+                const trailGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+                const trailMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xff6600,
+                    emissive: 0xff6600,
+                    emissiveIntensity: 4.0,
+                    transparent: true
+                });
+                const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+
+                trail.position.copy(missile.position);
+                trail.position.x += (Math.random() - 0.5) * 0.3;
+                trail.position.y += (Math.random() - 0.5) * 0.3;
+                trail.position.z -= 0.3 - j * 0.15;
+
+                trail.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.03,
+                        (Math.random() - 0.5) * 0.03,
+                        -0.05
+                    ),
+                    life: 0.8,
+                    rotationSpeed: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.1,
+                        (Math.random() - 0.5) * 0.1,
+                        (Math.random() - 0.5) * 0.1
+                    )
+                };
+
+                particles.push(trail);
+                scene.add(trail);
+            }
+        }
+
+        // Auto-detonate at Z = 8 (just in front of player)
+        if (missile.position.z >= 8) {
+            // Create shrapnel explosion
+            createShrapnelExplosion(missile.position, scene, gameActive, livesCallback, gameOverCallback);
+
+            // Remove missile
+            scene.remove(missile);
+            ufoMissiles.splice(i, 1);
+        }
+    }
+}
+
 // Update alien missiles
 export function updateAlienMissiles(player, scene, gameActive, livesCallback, gameOverCallback) {
     const particles = getParticles();
@@ -398,12 +527,14 @@ export function checkAlienFire(scene) {
 export function resetMissiles(scene) {
     missiles.forEach(missile => scene.remove(missile));
     alienMissiles.forEach(missile => scene.remove(missile));
+    ufoMissiles.forEach(missile => scene.remove(missile));
     missiles = [];
     alienMissiles = [];
+    ufoMissiles = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles };
+    return { missiles, alienMissiles, ufoMissiles };
 }

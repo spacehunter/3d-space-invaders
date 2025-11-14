@@ -1,11 +1,15 @@
 import * as THREE from 'three';
+import { playUFOSpawn, playUFOTravel, stopUFOTravel, updateUFOTravelPanning } from './audio.js';
 
 let bonusUFO = null;
-let ufoSpeed = 0.3; // Fast movement speed
+let ufoSpeed = 0.15; // Slower movement speed (50% of original) - makes UFO more shootable
 let lastSpawnTime = 0;
 let spawnInterval = 20000; // Spawn every 20 seconds (can be adjusted)
 const minSpawnInterval = 15000; // Minimum time between spawns
 const maxSpawnInterval = 30000; // Maximum time between spawns
+
+// Callback for firing UFO missile (set by missiles.js)
+let ufoMissileFireCallback = null;
 
 /**
  * Creates a distinctive bonus UFO with elaborate design
@@ -128,8 +132,19 @@ export function spawnBonusUFO(scene, currentTime) {
     bonusUFO.userData.isBonusUFO = true;
     bonusUFO.userData.points = 500;
 
+    // 25% chance this UFO will attack
+    bonusUFO.userData.willAttack = Math.random() < 0.25;
+    bonusUFO.userData.hasFired = false;
+    bonusUFO.userData.startX = bonusUFO.position.x;
+
     scene.add(bonusUFO);
     lastSpawnTime = currentTime;
+
+    // Play spawn sound (warp in effect)
+    playUFOSpawn();
+
+    // Start continuous travel sound
+    playUFOTravel(bonusUFO);
 
     return bonusUFO;
 }
@@ -145,8 +160,26 @@ export function updateBonusUFO() {
     // Move horizontally
     bonusUFO.position.x += bonusUFO.userData.direction * ufoSpeed;
 
+    // Check if UFO should fire missile (40-60% through traverse)
+    if (bonusUFO.userData.willAttack && !bonusUFO.userData.hasFired) {
+        const totalDistance = 36; // From -18 to 18
+        const traveledDistance = Math.abs(bonusUFO.position.x - bonusUFO.userData.startX);
+        const traversePercent = (traveledDistance / totalDistance) * 100;
+
+        // Fire when UFO is 40-60% through screen
+        if (traversePercent >= 40 && traversePercent <= 60) {
+            bonusUFO.userData.hasFired = true;
+            if (ufoMissileFireCallback) {
+                ufoMissileFireCallback(bonusUFO.position, bonusUFO.parent);
+            }
+        }
+    }
+
     // Animate the UFO
     animateBonusUFO(bonusUFO, time);
+
+    // Update travel sound panning based on position
+    updateUFOTravelPanning(bonusUFO);
 
     // Remove if off-screen
     if (Math.abs(bonusUFO.position.x) > 20) {
@@ -195,6 +228,8 @@ function animateBonusUFO(ufo, time) {
  */
 export function removeBonusUFO(scene) {
     if (bonusUFO && scene) {
+        // Stop travel sound
+        stopUFOTravel();
         scene.remove(bonusUFO);
     }
     bonusUFO = null;
@@ -220,4 +255,11 @@ export function resetBonusUFO(scene) {
  */
 export function setSpawnInterval(interval) {
     spawnInterval = Math.max(minSpawnInterval, Math.min(maxSpawnInterval, interval));
+}
+
+/**
+ * Sets the callback for firing UFO missiles
+ */
+export function setUFOMissileFireCallback(callback) {
+    ufoMissileFireCallback = callback;
 }
