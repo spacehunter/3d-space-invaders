@@ -70,13 +70,25 @@ function init() {
     // Initialize high scores display
     updateHighScoresDisplay();
 
-    // Glow intensity slider
+    // Glow intensity slider with localStorage persistence
     const glowSlider = document.getElementById('glowSlider');
     const glowValue = document.getElementById('glowValue');
+
+    // Load saved glow intensity from localStorage
+    const savedGlowIntensity = localStorage.getItem('spaceInvaders3D_glowIntensity');
+    if (savedGlowIntensity !== null) {
+        const intensity = parseFloat(savedGlowIntensity);
+        bloomPass.strength = intensity;
+        glowSlider.value = intensity;
+        glowValue.textContent = intensity.toFixed(2);
+    }
+
     glowSlider.addEventListener('input', (e) => {
         const intensity = parseFloat(e.target.value);
         bloomPass.strength = intensity;
         glowValue.textContent = intensity.toFixed(2);
+        // Save to localStorage
+        localStorage.setItem('spaceInvaders3D_glowIntensity', intensity.toString());
     });
 
     // Event listeners
