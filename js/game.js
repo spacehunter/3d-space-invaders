@@ -3,8 +3,8 @@ import { initAudio } from './audio.js';
 import { getPlayer, updatePlayer, showPlayer } from './player.js';
 import { updateStarfield } from './starfield.js';
 import { createAliens, updateAliens, animateAlien, getAliens, resetAliens } from './aliens.js';
-import { fireMissile, updateMissiles, updateAlienMissiles, checkAlienFire, resetMissiles } from './missiles.js';
-import { updateParticles, resetParticles } from './particles.js';
+import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, checkAlienFire, resetMissiles, initUFOMissiles } from './missiles.js';
+import { updateParticles, updateShrapnelParticles, resetParticles } from './particles.js';
 import { getMousePosition } from './input.js';
 import { isHighScore, showInitialEntry, updateHighScoreUI, hideInitialEntry, isInitialEntryActive } from './highscores.js';
 import { spawnBonusUFO, updateBonusUFO, resetBonusUFO } from './bonus-ufo.js';
@@ -23,6 +23,9 @@ export function initGame(sceneRef, cameraRef) {
     score = 0;
     lives = 3;
     gameActive = true;
+
+    // Initialize UFO missile system
+    initUFOMissiles();
 
     updateUI();
 }
@@ -200,8 +203,10 @@ export function update() {
     // Always update missiles, camera, particles, and starfield (even after game over)
     updateMissiles(scene, updateScore, gameOver);
     updateAlienMissiles(player, scene, gameActive, decreaseLives, gameOver);
+    updateUFOMissiles(player, scene, gameActive, decreaseLives, gameOver);
     updateCamera(player, mouse.x, mouse.y);
     updateParticles(scene);
+    updateShrapnelParticles(scene);
     updateStarfield();
 
     // Update high score UI animations
