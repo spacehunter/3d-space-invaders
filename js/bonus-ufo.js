@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { playUFOSpawn, playUFOTravel, stopUFOTravel, updateUFOTravelPanning } from './audio.js';
 
 let bonusUFO = null;
-let ufoSpeed = 0.15; // Slower movement speed (50% of original) - makes UFO more shootable
+let ufoSpeed = 0.05; // Slower movement speed (50% of original) - makes UFO more shootable
 let lastSpawnTime = 0;
 let spawnInterval = 20000; // Spawn every 20 seconds (can be adjusted)
 const minSpawnInterval = 15000; // Minimum time between spawns
@@ -133,7 +133,7 @@ export function spawnBonusUFO(scene, currentTime) {
     bonusUFO.userData.points = 500;
 
     // 25% chance this UFO will attack
-    bonusUFO.userData.willAttack = Math.random() < 0.25;
+    bonusUFO.userData.willAttack = Math.random() < 0.75;
     bonusUFO.userData.hasFired = false;
     bonusUFO.userData.startX = bonusUFO.position.x;
 
