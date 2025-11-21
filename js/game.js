@@ -8,6 +8,9 @@ import { updateParticles, updateShrapnelParticles, resetParticles } from './part
 import { getMousePosition } from './input.js';
 import { isHighScore, showInitialEntry, updateHighScoreUI, hideInitialEntry, isInitialEntryActive } from './highscores.js';
 import { spawnBonusUFO, updateBonusUFO, resetBonusUFO } from './bonus-ufo.js';
+import { createBarriers, resetBarriers } from './barriers.js';
+import { updatePowerUps, resetPowerUps } from './powerups.js';
+import { getIsMouseDown } from './input.js';
 
 // Game state
 let scene;
@@ -26,6 +29,9 @@ export function initGame(sceneRef, cameraRef) {
 
     // Initialize UFO missile system
     initUFOMissiles();
+
+    // Create barriers
+    createBarriers(scene);
 
     updateUI();
 }
@@ -155,7 +161,12 @@ function resetGame() {
     resetAliens(scene);
     resetMissiles(scene);
     resetParticles(scene);
+    resetParticles(scene);
     resetBonusUFO(scene);
+    resetPowerUps(scene);
+
+    // Reset and recreate barriers
+    createBarriers(scene);
 
     score = 0;
     lives = 3;
@@ -197,7 +208,17 @@ export function update() {
 
         // Spawn and update bonus UFO
         spawnBonusUFO(scene, Date.now());
+        // Spawn and update bonus UFO
+        spawnBonusUFO(scene, Date.now());
         updateBonusUFO();
+
+        // Update power-ups
+        updatePowerUps(scene, player);
+
+        // Auto-fire check
+        if (getIsMouseDown()) {
+            handleFire();
+        }
     }
 
     // Always update missiles, camera, particles, and starfield (even after game over)

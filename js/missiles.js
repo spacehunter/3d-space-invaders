@@ -5,11 +5,15 @@ import { createExplosion, createShrapnelExplosion, getParticles } from './partic
 import { playExplosion } from './audio.js';
 import { getAliens, removeAlien } from './aliens.js';
 import { getBonusUFO, removeBonusUFO, setUFOMissileFireCallback } from './bonus-ufo.js';
+import { checkBarrierCollision } from './barriers.js';
+
+import { getActivePowerUp, POWERUP_TYPES } from './powerups.js';
 
 let missiles = [];
 let alienMissiles = [];
 let ufoMissiles = [];
 let lastAlienFireTime = 0;
+let lastPlayerFireTime = 0;
 
 // Initialize UFO missile callback
 export function initUFOMissiles() {
@@ -18,7 +22,38 @@ export function initUFOMissiles() {
 
 // Fire a player missile
 export function fireMissile(player, scene) {
-    const missileGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.5);  // Elongated in Z to point forward
+    const now = Date.now();
+    const activePowerUp = getActivePowerUp();
+
+    // Determine fire rate
+    let fireDelay = 400; // Default 400ms
+    if (activePowerUp === POWERUP_TYPES.RAPID_FIRE) {
+        fireDelay = 100; // Rapid fire 100ms
+    }
+
+    // Check cooldown
+    if (now - lastPlayerFireTime < fireDelay) {
+        return;
+    }
+    lastPlayerFireTime = now;
+
+    // Fire logic
+    if (activePowerUp === POWERUP_TYPES.SPREAD_SHOT) {
+        // Fire 3 missiles
+        createMissile(player.position, 0, scene);
+        createMissile(player.position, -0.2, scene); // Left angle
+        createMissile(player.position, 0.2, scene);  // Right angle
+    } else {
+        // Normal single shot
+        createMissile(player.position, 0, scene);
+    }
+
+    playMissileFire();
+}
+
+// Helper to create a single missile
+function createMissile(position, angleOffset, scene) {
+    const missileGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.5);
     const missileMaterial = new THREE.MeshPhongMaterial({
         color: 0xffff00,
         emissive: 0xffff00,
@@ -26,13 +61,26 @@ export function fireMissile(player, scene) {
     });
     const missile = new THREE.Mesh(missileGeometry, missileMaterial);
 
-    missile.position.copy(player.position);
-    missile.position.y = 0;  // Same Y plane as targets
+    missile.position.copy(position);
+    missile.position.y = 0;
     missile.position.z -= 1;
+
+    // Apply angle for spread shot
+    if (angleOffset !== 0) {
+        missile.rotation.y = angleOffset;
+    }
+
+    // Store velocity vector for angled shots
+    missile.userData = {
+        velocity: new THREE.Vector3(
+            Math.sin(angleOffset) * MISSILE_SPEED,
+            0,
+            -Math.cos(angleOffset) * MISSILE_SPEED
+        )
+    };
 
     missiles.push(missile);
     scene.add(missile);
-    playMissileFire();
 }
 
 // Check missile-to-missile collision (player missile vs alien missile)
@@ -64,9 +112,42 @@ function checkMissileToMissileCollision(missile, missileIndex, scene) {
 
 // Update player missiles
 export function updateMissiles(scene, scoreCallback, gameOverCallback) {
+    const bonusUFO = getBonusUFO();
+
     for (let i = missiles.length - 1; i >= 0; i--) {
         const missile = missiles[i];
-        missile.position.z -= MISSILE_SPEED;
+
+        // Move missile
+        if (missile.userData.velocity) {
+            missile.position.add(missile.userData.velocity);
+        } else {
+            missile.position.z -= MISSILE_SPEED;
+        }
+
+        // Smart Missile Logic: Climb if aligned with Bonus UFO
+        if (bonusUFO) {
+            // Check horizontal alignment (within 2 units)
+            if (Math.abs(missile.position.x - bonusUFO.position.x) < 2.0) {
+                // Check if UFO is ahead (in -Z direction)
+                if (missile.position.z > bonusUFO.position.z) {
+                    // Climb towards UFO height (usually Y=5)
+                    const targetY = bonusUFO.position.y;
+
+                    // Smoothly interpolate Y position
+                    missile.position.y += (targetY - missile.position.y) * 0.1;
+
+                    // Maintain forward orientation (no tilt)
+                    missile.rotation.x = 0;
+                }
+            } else {
+                // Return to normal flight if alignment lost
+                if (missile.position.y > 0) {
+                    missile.position.y -= 0.1;
+                    // Ensure rotation is reset
+                    missile.rotation.x = 0;
+                }
+            }
+        }
 
         // Remove if off screen
         if (missile.position.z < -30) {
@@ -78,6 +159,13 @@ export function updateMissiles(scene, scoreCallback, gameOverCallback) {
         // Check collision with alien missiles first (defensive play)
         if (checkMissileToMissileCollision(missile, i, scene)) {
             continue;  // Missile was destroyed, skip alien collision check
+        }
+
+        // Check collision with barriers
+        if (checkBarrierCollision(missile.position, 0.1, scene)) {
+            scene.remove(missile);
+            missiles.splice(i, 1);
+            continue;
         }
 
         // Check collision with aliens
@@ -366,6 +454,17 @@ export function updateUFOMissiles(player, scene, gameActive, livesCallback, game
             }
         }
 
+        // Check collision with barriers
+        if (checkBarrierCollision(missile.position, 0.4, scene)) {
+            // Create shrapnel explosion
+            createShrapnelExplosion(missile.position, scene, gameActive, livesCallback, gameOverCallback);
+
+            // Remove missile
+            scene.remove(missile);
+            ufoMissiles.splice(i, 1);
+            continue;
+        }
+
         // Auto-detonate at Z = 8 (just in front of player)
         if (missile.position.z >= 8) {
             // Create shrapnel explosion
@@ -487,6 +586,14 @@ export function updateAlienMissiles(player, scene, gameActive, livesCallback, ga
 
         // Remove if off screen
         if (missile.position.z > 20) {
+            scene.remove(missile);
+            alienMissiles.splice(i, 1);
+            continue;
+        }
+
+        // Check collision with barriers
+        if (checkBarrierCollision(missile.position, 0.15, scene)) {
+            createExplosion(missile.position, scene);
             scene.remove(missile);
             alienMissiles.splice(i, 1);
             continue;

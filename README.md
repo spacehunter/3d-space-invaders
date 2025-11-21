@@ -272,6 +272,21 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
+- ✅ **Power-Up System** - Collect drops for enhanced abilities!
+  - **Rapid Fire (Red)**: Hold to unleash a stream of missiles (100ms delay)
+  - **Spread Shot (Yellow)**: Fire 3 missiles at once to clear wide areas
+  - **Barrier Repair (Green)**: Instantly rebuilds all defensive barriers
+  - 10% drop chance from destroyed aliens
+  - Effects last for 10 seconds
+- ✅ **Destructible Barriers** - Classic defense with modern physics!
+  - 4 voxel-based barriers provide cover
+  - **Radial Destruction**: Missiles blast holes in the structure
+  - **Audio Feedback**: Satisfying crunch sound on impact
+  - Fully destructible and repairable
+- ✅ **Smart Missiles** - Anti-air capability!
+  - Missiles automatically climb to intercept high-flying UFOs
+  - "Strafe" elevation change maintains forward orientation
+  - Visual tilt removed for cleaner aesthetic
 - ✅ **Beautiful 3D high score system** - Stunning arcade-style interface with localStorage persistence!
   - Mouse wheel character selection for 3-letter initials
   - Gorgeous glowing panels, particles, and animations
@@ -301,15 +316,11 @@ Tested on:
 ## Future Enhancements
 
 Potential features to add:
-- Player shields/barriers
-- Power-ups (rapid fire, shields, etc.)
-- High score persistence (localStorage)
 - Background music and additional sound effects
 - Mobile touch controls
 - More alien types and formations
 - Boss battles
 - Multiple difficulty levels
-- Mystery UFO bonus enemy
 
 ## Credits
 

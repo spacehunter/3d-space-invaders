@@ -35,7 +35,7 @@ function createAlien(row) {
     const group = new THREE.Group();
 
     // Different alien types for each row
-    switch(row) {
+    switch (row) {
         case 0: // Top row - Octopus style
             createOctopusAlien(group);
             break;
@@ -263,7 +263,7 @@ export function animateAlien(alien) {
     const row = alien.userData.row;
 
     // Different animations for each row
-    switch(row) {
+    switch (row) {
         case 0: // Octopus - dramatic pulsing and tentacle waving
             if (alien.userData.tentacles) {
                 alien.userData.tentacles.forEach((tentacle, i) => {
@@ -396,9 +396,17 @@ export function getAliens() {
     return aliens;
 }
 
+import { spawnPowerUp } from './powerups.js';
+
 // Remove alien from array
 export function removeAlien(alien, scene) {
     alien.userData.destroyed = true;
+
+    // Chance to drop power-up (10%)
+    if (Math.random() < 0.1) {
+        spawnPowerUp(alien.position, scene);
+    }
+
     scene.remove(alien);
     const alienIndex = aliens.indexOf(alien);
     if (alienIndex > -1) {
