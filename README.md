@@ -240,6 +240,8 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 │   ├── input.js        # Mouse input handling
 │   ├── starfield.js    # Animated starfield background
 │   ├── highscores.js   # High score system with 3D UI and localStorage
+│   ├── barriers.js     # Destructible barrier system
+│   ├── powerups.js     # Power-up system (drops and effects)
 │   └── constants.js    # Game constants and configuration
 └── README.md           # This file
 ```
