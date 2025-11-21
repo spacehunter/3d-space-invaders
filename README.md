@@ -18,42 +18,40 @@ A modern 3D recreation of the classic Space Invaders arcade game built with THRE
 The game features 7 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
 
 1. **Octopus Aliens** (Top Row - Purple)
-   - **Dramatic tentacle waving** with synchronized wave motion
-   - **Pulsing body** that scales up and down
+   - **Ripple tentacle waving** with fluid, sequential wave motion
+   - **Breathing body** that scales independently of tentacles
    - Glowing yellow eyes
-   - **Rotation wobble** for menacing appearance
+   - **Gentle rotation wobble**
    - Fires standard red missiles
    - Worth 60 points
 
 2. **Crab Aliens** (Row 2 - Red)
-   - **Aggressive claw snapping** with sharp, jerky motions
+   - **Snappy claws** with aggressive fast-close, slow-open motion
    - Eye stalks that bob
-   - **Side-to-side sway** for crab-like movement
-   - **Aggressive bobbing** animation
+   - **Nervous scuttle** with jittery side-to-side movement
+   - **Anxious rotation**
    - Fires standard red missiles
    - Worth 50 points
 
 3. **Squid Aliens** (Row 3 - Green)
-   - **Swimming motion** with six wiggling legs
-   - **Squash and stretch effect** for realistic movement
-   - **Tilting body** animation with multiple axes
-   - **Vertical swimming motion**
+   - **Jet propulsion swimming** (fast stretch forward, slow relax back)
+   - **Trailing legs** that drag behind during propulsion
+   - **Dynamic squash and stretch** synced with movement
    - Red glowing eyes
    - Fires standard red missiles
    - Worth 40 points
 
 4. **UFO Aliens** (Row 4 - Yellow)
-   - **Fast spinning** rotation
-   - **Dramatic pulsing light show** with 8 lights around the rim
-   - **Wobble motion** simulating anti-gravity
-   - **Tilting on multiple axes**
+   - **Chasing lights** that rotate around the rim
+   - **Gyroscopic hover** with complex multi-axis wobble
+   - **Spinning** rotation while floating
    - Fires standard red missiles
    - Worth 30 points
 
 5. **Tank Aliens** (Row 5 - Cyan)
-   - **Tracking cannon** that aims aggressively
-   - **Tank body tilts** as if moving
-   - **Forward-back rocking** motion
+   - **Recoil animation** on cannon when firing
+   - **Engine rumble** vibration effect
+   - **Tracking cannon** that aims at player
    - Tank treads and armored appearance
    - **Fires special homing missiles** with particle trails!
    - Worth 20 points

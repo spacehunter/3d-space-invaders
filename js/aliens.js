@@ -484,89 +484,121 @@ export function animateAlien(alien) {
 
     // Different animations for each row
     switch (row) {
-        case 0: // Octopus - dramatic pulsing and tentacle waving
+        case 0: // Octopus - ripple tentacles and breathing
             if (alien.userData.tentacles) {
                 alien.userData.tentacles.forEach((tentacle, i) => {
-                    // Dramatic wave motion
-                    tentacle.position.y = tentacle.userData.baseY + Math.sin(time * 4 + i * 0.8) * 0.35;
-                    tentacle.rotation.z = Math.sin(time * 3 + i) * 0.3;
+                    // Ripple wave motion (sequential phase offsets)
+                    const wavePhase = time * 5 + i * 0.5;
+                    tentacle.position.y = tentacle.userData.baseY + Math.sin(wavePhase) * 0.3;
+                    tentacle.rotation.z = Math.sin(wavePhase * 0.8) * 0.4;
+                    // Slight x-sway
+                    tentacle.position.x = (i - 1.5) * 0.3 + Math.cos(wavePhase) * 0.1;
                 });
             }
-            // Pulsing body scale
-            const pulseScale = 1 + Math.sin(time * 3) * 0.1;
-            alien.scale.set(pulseScale, pulseScale, pulseScale);
-            // Rotation wobble
-            alien.rotation.y = Math.sin(time * 2) * 0.3;
-            alien.rotation.z = Math.sin(time * 1.5) * 0.15;
+            // Breathing body scale (out of sync with tentacles)
+            const breathScale = 1 + Math.sin(time * 2) * 0.08;
+            alien.scale.set(breathScale, breathScale, breathScale);
+            // Gentle rotation wobble
+            alien.rotation.y = Math.sin(time) * 0.2;
+            alien.rotation.z = Math.sin(time * 1.2) * 0.1;
             break;
 
-        case 1: // Crab - aggressive claw snapping and side-to-side sway
+        case 1: // Crab - snappy claws and nervous look
             if (alien.userData.clawLeft) {
-                // Sharp snapping motion
-                const snapLeft = Math.sin(time * 6) > 0.5 ? 0.5 : 0.3;
-                alien.userData.clawLeft.position.z = snapLeft;
-                alien.userData.clawLeft.rotation.y = Math.sin(time * 6) * 0.4;
+                // Snappy motion: fast close, slow open
+                // Use a sawtooth-like wave or power function for snap
+                const snapCycle = (Math.sin(time * 4) + 1) / 2; // 0 to 1
+                const snapAction = Math.pow(snapCycle, 4); // Spikes the value near 1
+
+                alien.userData.clawLeft.rotation.y = -0.2 + snapAction * 0.8;
+                alien.userData.clawLeft.position.z = 0.3 + snapAction * 0.2;
             }
             if (alien.userData.clawRight) {
-                const snapRight = Math.sin(time * 6 + Math.PI) > 0.5 ? 0.5 : 0.3;
-                alien.userData.clawRight.position.z = snapRight;
-                alien.userData.clawRight.rotation.y = Math.sin(time * 6 + Math.PI) * 0.4;
+                const snapCycle = (Math.sin(time * 4 + Math.PI) + 1) / 2;
+                const snapAction = Math.pow(snapCycle, 4);
+
+                alien.userData.clawRight.rotation.y = 0.2 - snapAction * 0.8;
+                alien.userData.clawRight.position.z = 0.3 + snapAction * 0.2;
             }
-            // Side-to-side sway
-            alien.rotation.z = Math.sin(time * 3) * 0.25;
-            // Aggressive bobbing
-            alien.position.y = 0 + Math.sin(time * 4) * 0.2;
+            // Side-to-side scuttle sway
+            alien.position.x += Math.sin(time * 10) * 0.02;
+            alien.rotation.z = Math.sin(time * 5) * 0.15;
             break;
 
-        case 2: // Squid - swimming motion with squash and stretch
+        case 2: // Squid - propulsion cycle
+            // Propulsion: fast stretch/move, slow relax
+            const swimCycle = (Math.sin(time * 3) + 1) / 2; // 0 to 1
+            const propulsion = Math.pow(swimCycle, 2); // Non-linear
+
             if (alien.userData.legs) {
                 alien.userData.legs.forEach((leg, i) => {
-                    // Wave motion like swimming
-                    leg.position.y = leg.userData.baseY + Math.sin(time * 5 + i * 0.7) * 0.25;
-                    leg.rotation.x = Math.sin(time * 4 + i * 0.5) * 0.2;
+                    // Legs trail behind during propulsion
+                    const legLag = propulsion * 0.5;
+                    leg.rotation.x = legLag + Math.sin(time * 8 + i) * 0.2;
+                    leg.position.y = leg.userData.baseY - legLag * 0.2;
                 });
             }
-            // Squash and stretch effect
-            const stretch = 1 + Math.sin(time * 4) * 0.15;
-            alien.scale.set(1 / Math.sqrt(stretch), stretch, 1 / Math.sqrt(stretch));
-            // Tilting motion
-            alien.rotation.x = Math.sin(time * 3) * 0.2;
-            alien.rotation.z = Math.sin(time * 2.5) * 0.15;
-            // Vertical swimming motion
-            alien.position.y = 0 + Math.sin(time * 3) * 0.15;
+
+            // Squash and stretch
+            const stretch = 1 + propulsion * 0.3;
+            const squash = 1 - propulsion * 0.15;
+            alien.scale.set(squash, stretch, squash);
+
+            // Move forward (up/down in this view) with propulsion
+            alien.position.y = Math.sin(time * 3) * 0.3;
+
+            // Tilt into movement
+            alien.rotation.x = propulsion * 0.3;
             break;
 
-        case 3: // UFO - spinning with dramatic light show and wobble
+        case 3: // UFO - complex hover and chase lights
             if (alien.userData.lights) {
                 alien.userData.lights.forEach((light, i) => {
-                    // Dramatic pulsing sequence
-                    const phase = time * 8 + i * 0.785;
-                    const intensity = Math.pow((Math.sin(phase) + 1) / 2, 2);
-                    light.material.emissiveIntensity = intensity * 2;
-                    // Make lights scale pulse
-                    const lightScale = 1 + intensity * 0.5;
+                    // Chase effect: light intensity moves around the ring
+                    const angle = (i / 8) * Math.PI * 2;
+                    const chasePhase = time * 5 + angle;
+                    const intensity = (Math.sin(chasePhase) + 1) / 2;
+
+                    light.material.emissiveIntensity = 0.5 + intensity * 3.5;
+                    const lightScale = 1 + intensity * 0.8;
                     light.scale.set(lightScale, lightScale, lightScale);
                 });
             }
-            // Fast rotation
-            alien.rotation.y = time * 1.5;
-            // Wobble motion like anti-gravity
-            alien.position.y = 0 + Math.sin(time * 2) * 0.25 + Math.sin(time * 5) * 0.1;
-            alien.rotation.x = Math.sin(time * 3) * 0.15;
-            alien.rotation.z = Math.sin(time * 2.3) * 0.15;
+
+            // Complex hover (superimposed waves)
+            alien.position.y = Math.sin(time * 1.5) * 0.2 + Math.sin(time * 4.2) * 0.1;
+
+            // Gyroscopic wobble
+            alien.rotation.x = Math.sin(time * 2) * 0.15;
+            alien.rotation.z = Math.cos(time * 1.7) * 0.15;
+            alien.rotation.y = time * 2; // Spin
             break;
 
-        case 4: // Tank - aggressive targeting and movement
+        case 4: // Tank - recoil and rumble
+            // Periodic recoil
+            const fireCycle = Math.sin(time * 2);
+            const isFiring = fireCycle > 0.9;
+
             if (alien.userData.cannon) {
-                // Cannon tracks and aims aggressively
-                alien.userData.cannon.rotation.x = Math.sin(time * 3) * 0.4;
-                alien.userData.cannon.rotation.y = Math.sin(time * 2) * 0.2;
+                // Aiming
+                alien.userData.cannon.rotation.y = Math.sin(time * 1.5) * 0.3;
+
+                // Recoil kickback
+                const recoil = isFiring ? 0.2 : 0;
+                alien.userData.cannon.position.z = 0.6 - recoil;
             }
-            // Tank body tilts as if moving
-            alien.rotation.z = Math.sin(time * 4) * 0.1;
-            alien.rotation.x = Math.sin(time * 3.5) * 0.08;
-            // Slight forward-back rocking
-            alien.position.y = 0 + Math.abs(Math.sin(time * 8)) * 0.05;
+
+            // Body recoil
+            if (isFiring) {
+                alien.position.z -= 0.05;
+                alien.rotation.x = -0.1;
+            } else {
+                // Return to normal
+                alien.rotation.x = Math.sin(time * 4) * 0.05; // Rumble
+            }
+
+            // Rumble/Vibration
+            alien.position.y = Math.sin(time * 20) * 0.02;
             break;
 
         case 5: // Beetle - scuttling motion with antenna waggle
