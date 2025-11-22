@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { playSwoopWarning } from './audio.js';
 import { ALIEN_ROWS, ALIEN_COLS, ALIEN_SPACING } from './constants.js';
 
 let aliens = [];
@@ -684,11 +685,24 @@ export function animateAlien(alien) {
 export function updateAliens(gameOverCallback) {
     if (aliens.length === 0) return;
 
+    // Dynamic speed calculation based on remaining aliens
+    // As aliens are destroyed, they speed up significantly
+    const totalAliens = ALIEN_ROWS * ALIEN_COLS;
+    const remainingRatio = aliens.length / totalAliens;
+
+    // Base speed is 0.02, max speed is 0.12 (6x faster at the end)
+    const minSpeed = 0.02;
+    const maxSpeed = 0.12;
+
+    // Non-linear speed curve (gets faster more quickly at the end)
+    alienSpeed = minSpeed + (maxSpeed - minSpeed) * Math.pow(1 - remainingRatio, 1.5);
+
     let shouldMoveDown = false;
 
     // Check if any alien hit the edge
     for (let alien of aliens) {
         if (alien.userData.destroyed) continue;
+        if (alien.userData.isSwooping || alien.userData.isTelegraphing) continue; // Ignore swooping aliens for edge check
 
         if ((alienDirection > 0 && alien.position.x > 13) ||
             (alienDirection < 0 && alien.position.x < -13)) {
@@ -700,7 +714,7 @@ export function updateAliens(gameOverCallback) {
     if (shouldMoveDown) {
         alienDirection *= -1;
         for (let alien of aliens) {
-            if (!alien.userData.destroyed) {
+            if (!alien.userData.destroyed && !alien.userData.isSwooping && !alien.userData.isTelegraphing) {
                 alien.position.z += 1;
 
                 // Check if aliens reached player
@@ -709,15 +723,138 @@ export function updateAliens(gameOverCallback) {
                 }
             }
         }
-        alienSpeed *= 1.05; // Speed up over time
+        // Speed is now calculated per frame, so we don't need to multiply here
     }
 
     // Move aliens
     for (let alien of aliens) {
         if (alien.userData.destroyed) continue;
 
-        alien.position.x += alienDirection * alienSpeed;
+        // Handle Kamikaze Swoop
+        if (alien.userData.isTelegraphing) {
+            updateTelegraph(alien);
+        } else if (alien.userData.isSwooping) {
+            updateSwoop(alien);
+        } else {
+            // Normal formation movement
+            alien.position.x += alienDirection * alienSpeed;
+        }
     }
+
+    // Check for new swoop triggers
+    checkSwoopTrigger();
+}
+
+// Swoop state
+let lastSwoopTime = 0;
+const SWOOP_INTERVAL_MIN = 5000; // 5 seconds
+const SWOOP_INTERVAL_MAX = 10000; // 10 seconds
+let nextSwoopInterval = 5000;
+
+function checkSwoopTrigger() {
+    // Only swoop if few aliens remain
+    if (aliens.length >= 5) return;
+
+    const now = Date.now();
+    if (now - lastSwoopTime > nextSwoopInterval) {
+        triggerSwoop();
+        lastSwoopTime = now;
+        nextSwoopInterval = SWOOP_INTERVAL_MIN + Math.random() * (SWOOP_INTERVAL_MAX - SWOOP_INTERVAL_MIN);
+    }
+}
+
+function triggerSwoop() {
+    // Find available aliens not already swooping
+    const availableAliens = aliens.filter(a => !a.userData.destroyed && !a.userData.isSwooping);
+
+    if (availableAliens.length === 0) return;
+
+    // Pick a random alien
+    const alien = availableAliens[Math.floor(Math.random() * availableAliens.length)];
+
+    // Initialize telegraph state (Warning phase)
+    alien.userData.isTelegraphing = true;
+    alien.userData.telegraphStartTime = Date.now();
+    alien.userData.originalScale = alien.scale.clone();
+
+    // Play warning sound
+    playSwoopWarning();
+}
+
+function updateTelegraph(alien) {
+    const now = Date.now();
+    const elapsed = (now - alien.userData.telegraphStartTime) / 1000;
+
+    // Pulse effect (scale up and down rapidly)
+    const pulse = 1 + Math.sin(elapsed * 20) * 0.3;
+    alien.scale.set(
+        alien.userData.originalScale.x * pulse,
+        alien.userData.originalScale.y * pulse,
+        alien.userData.originalScale.z * pulse
+    );
+
+    // Shake effect
+    alien.position.x += (Math.random() - 0.5) * 0.2;
+
+    // End telegraph after 1 second
+    if (elapsed > 1.0) {
+        alien.userData.isTelegraphing = false;
+        alien.scale.copy(alien.userData.originalScale); // Reset scale
+        startSwoop(alien);
+    }
+}
+
+function startSwoop(alien) {
+    // Initialize swoop state
+    alien.userData.isSwooping = true;
+    alien.userData.swoopStartTime = Date.now();
+    alien.userData.swoopStartX = alien.position.x;
+    alien.userData.swoopStartZ = alien.position.z;
+
+    // Randomize swoop pattern
+    alien.userData.swoopFreqX = 2 + Math.random() * 3; // Frequency of X wobble
+    alien.userData.swoopAmpX = 3 + Math.random() * 4;  // Amplitude of X wobble
+
+    // Increased speed: 0.25 to 0.40 (was 0.15 to 0.25)
+    alien.userData.swoopSpeedZ = 0.25 + Math.random() * 0.15;
+}
+
+function updateSwoop(alien) {
+    const time = (Date.now() - alien.userData.swoopStartTime) * 0.001;
+
+    // Move forward rapidly
+    alien.position.z += alien.userData.swoopSpeedZ;
+
+    // Sine wave motion on X
+    alien.position.x = alien.userData.swoopStartX + Math.sin(time * alien.userData.swoopFreqX) * alien.userData.swoopAmpX;
+
+    // Dive motion on Y (dip down then up)
+    alien.position.y = Math.sin(time * 3) * 2;
+
+    // Banking rotation
+    alien.rotation.z = Math.cos(time * alien.userData.swoopFreqX) * 0.5;
+
+    // Check if passed player (Z > 15)
+    if (alien.position.z > 15) {
+        resetSwoop(alien);
+    }
+}
+
+function resetSwoop(alien) {
+    alien.userData.isSwooping = false;
+
+    // Reset to back of formation
+    alien.position.z = -25;
+
+    // Random X position within bounds
+    alien.position.x = (Math.random() - 0.5) * 20;
+
+    // Reset rotation
+    alien.rotation.z = 0;
+    alien.position.y = 0;
+
+    // Ensure it's not too close to edges immediately
+    alien.position.x = Math.max(-10, Math.min(10, alien.position.x));
 }
 
 // Get all aliens

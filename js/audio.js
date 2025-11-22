@@ -404,3 +404,46 @@ export function playShrapnelExplosion() {
     burst.start(now);
     burst.stop(now + 0.5);
 }
+
+
+// Play Kamikaze Swoop warning siren
+export function playSwoopWarning() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Modulating siren (high pitched)
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const lfo = audioContext.createOscillator();
+    const lfoGain = audioContext.createGain();
+
+    // LFO for pitch modulation (siren effect)
+    lfo.type = 'sawtooth';
+    lfo.frequency.setValueAtTime(8, now); // 8Hz modulation
+    lfoGain.gain.setValueAtTime(200, now); // +/- 200Hz
+
+    // Main oscillator
+    osc.type = 'square'; // Harsh sound
+    osc.frequency.setValueAtTime(1200, now); // High base pitch
+
+    // Connect LFO
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+
+    // Volume envelope
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.3, now + 0.1);
+    gain.gain.linearRampToValueAtTime(0.3, now + 0.8);
+    gain.gain.linearRampToValueAtTime(0, now + 1.0);
+
+    // Connect to output
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    // Start/Stop
+    osc.start(now);
+    lfo.start(now);
+    osc.stop(now + 1.0);
+    lfo.stop(now + 1.0);
+}

@@ -103,9 +103,25 @@ function onWindowResize() {
     composer.setSize(window.innerWidth, window.innerHeight);
 }
 
+// FPS tracking
+let lastTime = performance.now();
+let frameCount = 0;
+const fpsElement = document.getElementById('fps');
+
 // Animation loop
 function animate() {
     requestAnimationFrame(animate);
+
+    // Calculate FPS
+    const currentTime = performance.now();
+    frameCount++;
+
+    if (currentTime - lastTime >= 1000) {
+        const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+        fpsElement.textContent = `FPS: ${fps}`;
+        frameCount = 0;
+        lastTime = currentTime;
+    }
 
     // Update game state
     update();

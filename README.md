@@ -72,6 +72,16 @@ The game features 7 rows of aliens, each with distinctive 3D designs and dramati
    - **Fires fast Blaster Bolts** - straight-shooting high-speed projectiles!
    - Worth 0 points (bonus row)
 
+### Kamikaze Swoop Attack
+When fewer than 5 aliens remain, they become desperate and aggressive:
+
+- **Telegraph Warning**: Aliens pulse and shake while a high-pitched siren plays (1 second warning)
+- **High-Speed Dive**: After the warning, aliens break formation and dive at the player at 60% faster speed
+- **Random Patterns**: Swooping aliens follow unpredictable sine-wave paths on both X and Y axes
+- **Banking Motion**: Aliens tilt and rotate as they weave through the air
+- **Reset Behavior**: If they miss, they teleport back to the rear formation and can attack again
+- **Interval**: Swoops occur every 5-10 seconds (randomized)
+
 ### Alien Counter-Fire System
 Aliens fight back! Every 1.5 seconds, random aliens fire at you:
 
@@ -136,6 +146,9 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
   - Multi-frequency layering creates convincing, powerful explosions
   - Audio context initializes on first user click (browser requirement)
 
+### Performance
+- **FPS Counter**: Real-time frames-per-second display in the bottom-left corner for performance monitoring
+
 ### Game Mechanics
 - **Score Tracking**: Points based on alien type (60-0 points, top rows worth more)
 - **High Score System**:
@@ -146,13 +159,17 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
   - High scores displayed in top-right corner of screen
 - **Lives System**: 3 lives - lose one when hit by alien missiles
 - **Defensive Interception**: Shoot down incoming alien missiles with your own missiles for strategic defense!
-- **Progressive Difficulty**: Aliens speed up as more are destroyed (5% faster per wave down)
+- **Dynamic Alien Speed**: Aliens automatically speed up as their numbers decrease (6x faster when only 1 remains)
+  - Non-linear speed curve that accelerates more quickly in the endgame
+  - Compensates for longer travel distances when outer columns are destroyed
+  - Maintains game intensity throughout
 - **Edge Detection**: Aliens move down when reaching screen edges
 - **Collision Detection**:
-  - Your missiles vs. aliens
+  - Your missiles vs. aliens (1.2 unit radius for easier hits)
   - Alien missiles vs. your ship
   - **Your missiles vs. alien missiles** (defensive interception)
   - Distance-based detection on the same Y plane
+  - Extended missile range (-60 units) ensures hits on back-row aliens
 - **Win/Lose Conditions**:
   - Win: Destroy all aliens
   - Lose: Run out of lives or aliens reach your position

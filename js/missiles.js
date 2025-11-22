@@ -153,7 +153,7 @@ export function updateMissiles(scene, scoreCallback, gameOverCallback) {
         }
 
         // Remove if off screen
-        if (missile.position.z < -30) {
+        if (missile.position.z < -60) { // Increased range from -30 to -60 to hit back row aliens
             scene.remove(missile);
             missiles.splice(i, 1);
             continue;
@@ -207,7 +207,7 @@ function checkMissileCollision(missile, missileIndex, scene, scoreCallback, game
         if (alien.userData.destroyed) continue;
 
         const distance = missile.position.distanceTo(alien.position);
-        if (distance < 1) {
+        if (distance < 1.2) { // Increased collision radius from 1.0 to 1.2 for easier hits
             // Hit!
             scene.remove(missile);
             missiles.splice(missileIndex, 1);

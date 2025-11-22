@@ -87,9 +87,20 @@
             width: 200px;
             cursor: pointer;
         }
+        #fps {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: #0f0;
+            font-size: 14px;
+            font-family: monospace;
+            z-index: 100;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
+    <div id="fps">FPS: 60</div>
     <div id="ui">
         <div>SCORE: <span id="score">0</span></div>
         <div>LIVES: <span id="lives">3</span></div>
