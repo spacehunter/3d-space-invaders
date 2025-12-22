@@ -3,7 +3,7 @@ import { initAudio } from './audio.js';
 import { getPlayer, updatePlayer, showPlayer } from './player.js';
 import { updateStarfield } from './starfield.js';
 import { createAliens, updateAliens, animateAlien, getAliens, resetAliens } from './aliens.js';
-import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, updateWebBombs, checkAlienFire, resetMissiles, initUFOMissiles } from './missiles.js';
+import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, updateWebBombs, updateBlasterBolts, checkAlienFire, resetMissiles, initUFOMissiles } from './missiles.js';
 import { updateParticles, updateShrapnelParticles, resetParticles } from './particles.js';
 import { getMousePosition } from './input.js';
 import { isHighScore, showInitialEntry, updateHighScoreUI, hideInitialEntry, isInitialEntryActive } from './highscores.js';
@@ -226,6 +226,7 @@ export function update() {
     updateAlienMissiles(player, scene, gameActive, decreaseLives, gameOver);
     updateUFOMissiles(player, scene, gameActive, decreaseLives, gameOver);
     updateWebBombs(player, scene, gameActive, decreaseLives, gameOver);
+    updateBlasterBolts(player, scene, gameActive, decreaseLives, gameOver);
     updateCamera(player, mouse.x, mouse.y);
     updateParticles(scene);
     updateShrapnelParticles(scene);

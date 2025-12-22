@@ -54,6 +54,9 @@ function createAlien(row) {
         case 5: // Beetle style - classic 70s arcade insect
             createBeetleAlien(group);
             break;
+        case 6: // Invader style - classic retro arcade invader
+            createInvaderAlien(group);
+            break;
     }
 
     return group;
@@ -366,6 +369,114 @@ function createBeetleAlien(group) {
     }
 }
 
+function createInvaderAlien(group) {
+    // Classic retro 1-bit white/bright look - high contrast
+    const material = new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        emissive: 0xffffff,
+        emissiveIntensity: 1.8,
+        flatShading: true
+    });
+
+    // Main body - chunky symmetrical block (classic invader shape)
+    const bodyTop = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.25, 0.6), material);
+    bodyTop.position.y = 0.25;
+    bodyTop.castShadow = true;
+    group.add(bodyTop);
+
+    const bodyMiddle = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.3, 0.7), material);
+    bodyMiddle.position.y = 0;
+    bodyMiddle.castShadow = true;
+    group.add(bodyMiddle);
+
+    const bodyBottom = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.25, 0.6), material);
+    bodyBottom.position.y = -0.25;
+    bodyBottom.castShadow = true;
+    group.add(bodyBottom);
+
+    // Side wings/arms - symmetrical pixel blocks
+    const wingLeft = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.2, 0.3), material);
+    wingLeft.position.set(-0.7, 0.1, 0);
+    group.add(wingLeft);
+
+    const wingRight = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.2, 0.3), material);
+    wingRight.position.set(0.7, 0.1, 0);
+    group.add(wingRight);
+
+    // Two short antennae - symmetrical
+    const antennaMaterial = new THREE.MeshPhongMaterial({
+        color: 0xcccccc,
+        emissive: 0xcccccc,
+        emissiveIntensity: 1.5,
+        flatShading: true
+    });
+
+    const antennaLeft = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.35, 0.1), antennaMaterial);
+    antennaLeft.position.set(-0.25, 0.55, 0);
+    antennaLeft.rotation.z = -0.3;
+    group.add(antennaLeft);
+    group.userData.antennaLeft = antennaLeft;
+
+    const antennaRight = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.35, 0.1), antennaMaterial);
+    antennaRight.position.set(0.25, 0.55, 0);
+    antennaRight.rotation.z = 0.3;
+    group.add(antennaRight);
+    group.userData.antennaRight = antennaRight;
+
+    // Eyes - classic arcade style, high contrast
+    const eyeMaterial = new THREE.MeshPhongMaterial({
+        color: 0x00ffff,
+        emissive: 0x00ffff,
+        emissiveIntensity: 3.5
+    });
+
+    const eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.15), eyeMaterial);
+    eyeLeft.position.set(-0.25, 0.1, 0.35);
+    group.add(eyeLeft);
+
+    const eyeRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.15), eyeMaterial);
+    eyeRight.position.set(0.25, 0.1, 0.35);
+    group.add(eyeRight);
+
+    // Single center blaster cannon
+    const cannonMaterial = new THREE.MeshPhongMaterial({
+        color: 0xff4444,
+        emissive: 0xff4444,
+        emissiveIntensity: 1.6,
+        flatShading: true
+    });
+
+    const cannon = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.5), cannonMaterial);
+    cannon.position.set(0, -0.15, 0.5);
+    group.add(cannon);
+    group.userData.cannon = cannon;
+
+    // Cannon tip - glowing muzzle
+    const tipMaterial = new THREE.MeshPhongMaterial({
+        color: 0xff0000,
+        emissive: 0xff0000,
+        emissiveIntensity: 4.0
+    });
+
+    const cannonTip = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.1), tipMaterial);
+    cannonTip.position.set(0, -0.15, 0.75);
+    group.add(cannonTip);
+    group.userData.cannonTip = cannonTip;
+
+    // Bottom pixel feet - symmetrical
+    const footLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.2), material);
+    footLeft.position.set(-0.35, -0.45, 0);
+    footLeft.userData.baseY = -0.45;
+    group.add(footLeft);
+    group.userData.footLeft = footLeft;
+
+    const footRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.2), material);
+    footRight.position.set(0.35, -0.45, 0);
+    footRight.userData.baseY = -0.45;
+    group.add(footRight);
+    group.userData.footRight = footRight;
+}
+
 // Animate a single alien
 export function animateAlien(alien) {
     const time = Date.now() * 0.001 + alien.userData.animationOffset;
@@ -494,6 +605,45 @@ export function animateAlien(alien) {
             alien.rotation.x = Math.sin(time * 6) * 0.05;
             // Forward creeping motion
             alien.position.y = 0 + Math.abs(Math.sin(time * 10)) * 0.03;
+            break;
+
+        case 6: // Invader - classic retro march with cannon charge
+            // Antenna waggle - visible swaying motion
+            if (alien.userData.antennaLeft) {
+                // Sway back and forth with some vertical bobbing
+                alien.userData.antennaLeft.rotation.z = -0.3 + Math.sin(time * 5) * 0.4;
+                alien.userData.antennaLeft.rotation.x = Math.sin(time * 4) * 0.25;
+            }
+            if (alien.userData.antennaRight) {
+                // Opposite phase for alternating effect
+                alien.userData.antennaRight.rotation.z = 0.3 + Math.sin(time * 5 + Math.PI) * 0.4;
+                alien.userData.antennaRight.rotation.x = Math.sin(time * 4 + Math.PI) * 0.25;
+            }
+            // Marching feet - alternating lift like walking
+            if (alien.userData.footLeft) {
+                const leftLift = Math.max(0, Math.sin(time * 6)) * 0.12;
+                alien.userData.footLeft.position.y = alien.userData.footLeft.userData.baseY + leftLift;
+                alien.userData.footLeft.position.z = Math.sin(time * 6) * 0.08;
+            }
+            if (alien.userData.footRight) {
+                const rightLift = Math.max(0, Math.sin(time * 6 + Math.PI)) * 0.12;
+                alien.userData.footRight.position.y = alien.userData.footRight.userData.baseY + rightLift;
+                alien.userData.footRight.position.z = Math.sin(time * 6 + Math.PI) * 0.08;
+            }
+            // Cannon charge pulse - grows brighter then dims (charging to fire)
+            if (alien.userData.cannon) {
+                const chargeIntensity = (Math.sin(time * 4) + 1) / 2;
+                alien.userData.cannon.material.emissiveIntensity = 1.6 + chargeIntensity * 1.5;
+            }
+            // Cannon tip glow pulse - pulsing muzzle glow
+            if (alien.userData.cannonTip) {
+                const tipPulse = (Math.sin(time * 8) + 1) / 2;
+                const tipScale = 1 + tipPulse * 0.5;
+                alien.userData.cannonTip.scale.set(tipScale, tipScale, tipScale);
+                alien.userData.cannonTip.material.emissiveIntensity = 3.0 + tipPulse * 2.0;
+            }
+            // Slight body rock during march
+            alien.rotation.z = Math.sin(time * 6) * 0.08;
             break;
     }
 }

@@ -15,7 +15,7 @@ A modern 3D recreation of the classic Space Invaders arcade game built with THRE
 - **Lives System**: Start with 3 lives - survive as long as you can!
 
 ### Aliens
-The game features 5 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
+The game features 7 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
 
 1. **Octopus Aliens** (Top Row - Purple)
    - **Dramatic tentacle waving** with synchronized wave motion
@@ -23,7 +23,7 @@ The game features 5 rows of aliens, each with distinctive 3D designs and dramati
    - Glowing yellow eyes
    - **Rotation wobble** for menacing appearance
    - Fires standard red missiles
-   - Worth 50 points
+   - Worth 60 points
 
 2. **Crab Aliens** (Row 2 - Red)
    - **Aggressive claw snapping** with sharp, jerky motions
@@ -31,7 +31,7 @@ The game features 5 rows of aliens, each with distinctive 3D designs and dramati
    - **Side-to-side sway** for crab-like movement
    - **Aggressive bobbing** animation
    - Fires standard red missiles
-   - Worth 40 points
+   - Worth 50 points
 
 3. **Squid Aliens** (Row 3 - Green)
    - **Swimming motion** with six wiggling legs
@@ -40,7 +40,7 @@ The game features 5 rows of aliens, each with distinctive 3D designs and dramati
    - **Vertical swimming motion**
    - Red glowing eyes
    - Fires standard red missiles
-   - Worth 30 points
+   - Worth 40 points
 
 4. **UFO Aliens** (Row 4 - Yellow)
    - **Fast spinning** rotation
@@ -48,7 +48,7 @@ The game features 5 rows of aliens, each with distinctive 3D designs and dramati
    - **Wobble motion** simulating anti-gravity
    - **Tilting on multiple axes**
    - Fires standard red missiles
-   - Worth 20 points
+   - Worth 30 points
 
 5. **Tank Aliens** (Row 5 - Cyan)
    - **Tracking cannon** that aims aggressively
@@ -56,7 +56,23 @@ The game features 5 rows of aliens, each with distinctive 3D designs and dramati
    - **Forward-back rocking** motion
    - Tank treads and armored appearance
    - **Fires special homing missiles** with particle trails!
+   - Worth 20 points
+
+6. **Beetle Aliens** (Row 6 - Orange)
+   - **Classic 70s arcade insect** with rounded shell
+   - **Scuttling leg animation** with alternating tripod gait
+   - **Antenna waggle** with glowing pulsing tips
+   - Six legs for realistic insect movement
+   - **Fires Web Bombs** - slow projectiles that create danger zones!
    - Worth 10 points
+
+7. **Invader Aliens** (Row 7 - White)
+   - **Classic retro 1-bit arcade style** with symmetrical silhouette
+   - **Two short antennae** that sway and bob
+   - **Center blaster cannon** with charging glow effect
+   - **Marching feet** with alternating step animation
+   - **Fires fast Blaster Bolts** - straight-shooting high-speed projectiles!
+   - Worth 0 points (bonus row)
 
 ### Alien Counter-Fire System
 Aliens fight back! Every 1.5 seconds, random aliens fire at you:
@@ -69,6 +85,16 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
   - **Particle trails** from the engine exhaust
   - **One-pass behavior**: Can't circle back once they pass you
   - All missiles orient nose-first in their direction of travel
+- **Web Bombs** (Row 5 - Beetle Aliens):
+  - Slow-moving green sticky projectiles with dripping strands
+  - **Creates danger zones** on the ground that persist for 2.5 seconds
+  - Wobbling flight animation with pulsing glow
+  - Step into a web zone and lose a life!
+- **Blaster Bolts** (Row 6 - Invader Aliens):
+  - Fast straight-shooting red/white energy bolts
+  - **High speed** (0.4 units/frame - faster than other projectiles)
+  - Pulsing glow animation as they travel
+  - Fires from the center blaster cannon
 
 ### Visual Effects
 - **Animated Starfield**: Thousands of stars flying toward you for immersive depth
@@ -113,7 +139,7 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
   - Audio context initializes on first user click (browser requirement)
 
 ### Game Mechanics
-- **Score Tracking**: Points based on alien type (50-10 points)
+- **Score Tracking**: Points based on alien type (60-0 points, top rows worth more)
 - **High Score System**:
   - Top 10 high scores saved in localStorage (persists across sessions)
   - Beautiful 3D initial entry interface when you achieve a high score
@@ -266,7 +292,7 @@ Tested on:
 
 ## Performance
 
-- Renders 50+ aliens with individual animations
+- Renders 77 aliens (7 rows × 11 columns) with individual animations
 - Hundreds of particles for explosions and trails
 - Thousands of animated stars
 - Runs at 60 FPS on modern hardware
@@ -307,6 +333,12 @@ Tested on:
 - ✅ **Lives system** (3 lives)
 - ✅ **Post-game animation continuation**
 - ✅ **Enhanced explosion visual effects**
+- ✅ **Beetle Alien** - Classic 70s arcade insect with Web Bomb weapon!
+  - Scuttling leg animation with alternating tripod gait
+  - Web Bombs create persistent danger zones
+- ✅ **Invader Alien** - Retro 1-bit arcade style with Blaster Cannon!
+  - Symmetrical silhouette with antennae and center cannon
+  - Fast Blaster Bolts for high-speed attacks
 
 ### Physics & Balancing
 - Turn rate tuned for dodge-ability (0.03 rad/frame)

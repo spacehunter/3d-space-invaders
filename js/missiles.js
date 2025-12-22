@@ -14,6 +14,7 @@ let alienMissiles = [];
 let ufoMissiles = [];
 let webBombs = [];
 let webZones = [];
+let blasterBolts = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -436,6 +437,54 @@ function createWebZone(position, scene) {
     return group;
 }
 
+// Create Invader blaster bolt - fast straight-shooting projectile
+function createBlasterBolt(position) {
+    const group = new THREE.Group();
+
+    // Main bolt body - elongated bright red/white core
+    const boltGeometry = new THREE.BoxGeometry(0.12, 0.12, 0.6);
+    const boltMaterial = new THREE.MeshPhongMaterial({
+        color: 0xff2222,
+        emissive: 0xff2222,
+        emissiveIntensity: 5.0,
+        flatShading: true
+    });
+    const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
+    group.add(bolt);
+
+    // Inner white-hot core
+    const coreGeometry = new THREE.BoxGeometry(0.08, 0.08, 0.5);
+    const coreMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        emissive: 0xffaaaa,
+        emissiveIntensity: 6.0
+    });
+    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+    group.add(core);
+
+    // Front tip - brighter point
+    const tipGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.15);
+    const tipMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        emissive: 0xffffff,
+        emissiveIntensity: 8.0
+    });
+    const tip = new THREE.Mesh(tipGeometry, tipMaterial);
+    tip.position.z = 0.35;
+    group.add(tip);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z += 0.8; // Start from cannon tip
+
+    // Blaster bolt properties
+    group.userData.isBlasterBolt = true;
+    group.userData.speed = 0.4; // Fast - faster than regular missiles
+    group.userData.createdAt = Date.now();
+
+    return group;
+}
+
 // Aliens fire missiles
 export function alienFire(scene) {
     const aliens = getAliens();
@@ -456,6 +505,12 @@ export function alienFire(scene) {
                 // Beetle aliens fire web bombs
                 missile = createWebBombMissile(randomAlien.position);
                 webBombs.push(missile);
+                scene.add(missile);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 6) {
+                // Invader aliens fire fast blaster bolts
+                missile = createBlasterBolt(randomAlien.position);
+                blasterBolts.push(missile);
                 scene.add(missile);
                 continue; // Skip adding to alienMissiles
             } else {
@@ -861,6 +916,56 @@ export function updateWebBombs(player, scene, gameActive, livesCallback, gameOve
     }
 }
 
+// Update blaster bolts (Invader weapon)
+export function updateBlasterBolts(player, scene, gameActive, livesCallback, gameOverCallback) {
+    for (let i = blasterBolts.length - 1; i >= 0; i--) {
+        const bolt = blasterBolts[i];
+
+        // Move fast and straight toward player
+        bolt.position.z += bolt.userData.speed;
+
+        // Pulsing glow animation
+        const time = Date.now() * 0.01;
+        const pulseScale = 1 + Math.sin(time * 10) * 0.15;
+        bolt.scale.set(1, 1, pulseScale);
+
+        // Check collision with barriers
+        if (checkBarrierCollision(bolt.position, 0.15, scene)) {
+            createExplosion(bolt.position, scene);
+            scene.remove(bolt);
+            blasterBolts.splice(i, 1);
+            continue;
+        }
+
+        // Remove if off screen
+        if (bolt.position.z > 20) {
+            scene.remove(bolt);
+            blasterBolts.splice(i, 1);
+            continue;
+        }
+
+        // Check collision with player (only if game is active)
+        if (gameActive) {
+            const distance = bolt.position.distanceTo(player.position);
+            if (distance < 1.2) {
+                // Hit!
+                scene.remove(bolt);
+                blasterBolts.splice(i, 1);
+
+                // Create explosion at player
+                createExplosion(bolt.position, scene);
+                playExplosion(1.3);
+
+                // Decrease lives
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 // Check if aliens should fire
 export function checkAlienFire(scene) {
     const currentTime = Date.now();
@@ -877,15 +982,17 @@ export function resetMissiles(scene) {
     ufoMissiles.forEach(missile => scene.remove(missile));
     webBombs.forEach(bomb => scene.remove(bomb));
     webZones.forEach(zone => scene.remove(zone));
+    blasterBolts.forEach(bolt => scene.remove(bolt));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
     webBombs = [];
     webZones = [];
+    blasterBolts = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts };
 }
