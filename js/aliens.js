@@ -862,6 +862,20 @@ export function getAliens() {
     return aliens;
 }
 
+// Hide all aliens
+export function hideAliens() {
+    aliens.forEach(alien => {
+        alien.visible = false;
+    });
+}
+
+// Show all aliens
+export function showAliens() {
+    aliens.forEach(alien => {
+        alien.visible = true;
+    });
+}
+
 import { spawnPowerUp } from './powerups.js';
 
 // Remove alien from array

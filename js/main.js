@@ -108,6 +108,10 @@ let lastTime = performance.now();
 let frameCount = 0;
 const fpsElement = document.getElementById('fps');
 
+// Version display
+const versionElement = document.getElementById('version');
+versionElement.textContent = `v${__APP_VERSION__}`;
+
 // Animation loop
 function animate() {
     requestAnimationFrame(animate);

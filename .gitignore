@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+assets/
+
+# Release artifacts
+*.zip
+
+# OS files
+.DS_Store
+
+# IDE
+.idea/
+.vscode/

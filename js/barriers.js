@@ -152,3 +152,21 @@ export function resetBarriers(scene) {
 export function getBarriers() {
     return barriers;
 }
+
+/**
+ * Hide all barriers
+ */
+export function hideBarriers() {
+    barriers.forEach(barrier => {
+        barrier.visible = false;
+    });
+}
+
+/**
+ * Show all barriers
+ */
+export function showBarriers() {
+    barriers.forEach(barrier => {
+        barrier.visible = true;
+    });
+}

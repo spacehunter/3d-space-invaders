@@ -265,11 +265,38 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
   - Gain values tuned for maximum impact (2.0-2.5x for bass layers)
   - Multi-second decay times for realistic rumble
 
+## Development & Deployment
+
+### Quick Start
+```bash
+npm install        # Install dependencies
+npm run dev        # Start dev server with hot reload (http://localhost:5173)
+```
+
+### Build Commands
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Development server with hot reload |
+| `npm run build` | Production build to `dist/` |
+| `npm run preview` | Preview production build locally |
+| `npm run package` | Build + bump version + create `3d-space-invaders.zip` for itch.io |
+
+### Deploying to itch.io
+1. Run `npm run package`
+2. Upload `3d-space-invaders.zip` to itch.io
+3. The zip contains `index.html` at root with bundled assets
+
+### Version Display
+- Version number shown in bottom-right corner (e.g., `v1.0.5`)
+- Auto-increments on each `npm run package`
+
 ## File Structure
 
 ```
 3d-space-invaders/
 ├── index.html          # Main HTML file with game UI
+├── package.json        # Dependencies and build scripts
+├── vite.config.js      # Vite build configuration
 ├── js/                 # Modular JavaScript game code
 │   ├── main.js         # Entry point and initialization
 │   ├── game.js         # Game state and main update loop
@@ -284,6 +311,7 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 │   ├── barriers.js     # Destructible barrier system
 │   ├── powerups.js     # Power-up system (drops and effects)
 │   └── constants.js    # Game constants and configuration
+├── dist/               # Production build output (generated)
 └── README.md           # This file
 ```
 

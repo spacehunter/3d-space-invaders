@@ -97,10 +97,21 @@
             z-index: 100;
             pointer-events: none;
         }
+        #version {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #0f0;
+            font-size: 14px;
+            font-family: monospace;
+            z-index: 100;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div id="fps">FPS: 60</div>
+    <div id="version"></div>
     <div id="ui">
         <div>SCORE: <span id="score">0</span></div>
         <div>LIVES: <span id="lives">3</span></div>
@@ -120,15 +131,6 @@
         <label for="glowSlider">GLOW INTENSITY: <span id="glowValue">1.50</span></label>
         <input type="range" id="glowSlider" min="0" max="3" step="0.05" value="1.5">
     </div>
-
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
-        }
-    }
-    </script>
 
     <script type="module" src="js/main.js"></script>
 </body>

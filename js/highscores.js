@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { hidePlayer, showPlayer } from './player.js';
+import { hideBarriers, showBarriers } from './barriers.js';
 
 const HIGHSCORE_KEY = 'spaceInvaders3D_highscores';
 const MAX_HIGHSCORES = 10;
@@ -94,8 +95,9 @@ export function showInitialEntry(sceneRef, cameraRef, score, onComplete) {
 
     createInitialEntryUI();
 
-    // Hide player so it doesn't block the high score panel
+    // Hide player and barriers so they don't block the high score panel
     hidePlayer();
+    hideBarriers();
 
     // Delay before accepting input to prevent accidental clicks from gameplay
     setTimeout(() => {
@@ -548,8 +550,9 @@ export function hideInitialEntry() {
     window.removeEventListener('wheel', handleWheel);
     window.removeEventListener('click', handleClick);
 
-    // Show player again
+    // Show player and barriers again
     showPlayer();
+    showBarriers();
 }
 
 // Update animations
