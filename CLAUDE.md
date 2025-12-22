@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-3D Space Invaders is a browser-based game built with THREE.js featuring a third-person camera, blocky/voxel aesthetic, and procedural audio. Uses Vite for production builds with minification for itch.io deployment.
+3D Space Invaders is a browser-based game built with THREE.js featuring a third-person camera, blocky/voxel aesthetic, and procedural audio. Uses Vite for production builds with minification.
 
 ## Development
 
@@ -13,7 +13,7 @@ npm install        # Install dependencies
 npm run dev        # Start dev server with hot reload (http://localhost:5173)
 npm run build      # Production build to dist/
 npm run preview    # Preview production build
-npm run package    # Build + bump version + create zip for itch.io
+npm run package    # Build + bump version + create zip for distribution
 ```
 
 ## Running the Game
@@ -81,7 +81,7 @@ On game restart, each module exposes a `reset*()` function called from `resetGam
 - Geometries: BoxGeometry for blocky aesthetic, CylinderGeometry/ConeGeometry for missiles
 
 ### Build System (Vite)
-- `vite.config.js` - Build configuration with relative paths for itch.io
+- `vite.config.js` - Build configuration with relative paths for web deployment
 - `package.json` - Scripts and dependencies (THREE.js, Vite)
 - Version in `package.json` auto-increments on `npm run package`
 - `__APP_VERSION__` injected at build time, displayed in bottom-right corner

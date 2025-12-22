@@ -279,11 +279,11 @@ npm run dev        # Start dev server with hot reload (http://localhost:5173)
 | `npm run dev` | Development server with hot reload |
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Preview production build locally |
-| `npm run package` | Build + bump version + create `3d-space-invaders.zip` for itch.io |
+| `npm run package` | Build + bump version + create `3d-space-invaders.zip` for distribution |
 
-### Deploying to itch.io
+### Distribution
 1. Run `npm run package`
-2. Upload `3d-space-invaders.zip` to itch.io
+2. Upload `3d-space-invaders.zip` to your hosting platform
 3. The zip contains `index.html` at root with bundled assets
 
 ### Version Display
