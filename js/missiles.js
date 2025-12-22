@@ -12,6 +12,8 @@ import { getActivePowerUp, POWERUP_TYPES } from './powerups.js';
 let missiles = [];
 let alienMissiles = [];
 let ufoMissiles = [];
+let webBombs = [];
+let webZones = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -213,8 +215,8 @@ function checkMissileCollision(missile, missileIndex, scene, scoreCallback, game
             createExplosion(alien.position, scene);
             playExplosion(1.0);
 
-            // Update score
-            const points = (5 - alien.userData.row) * 10;
+            // Update score (6 rows: row 0 = 60pts down to row 5 = 10pts)
+            const points = (6 - alien.userData.row) * 10;
             scoreCallback(points);
 
             // Remove alien
@@ -307,6 +309,133 @@ function createTankMissile(position) {
     return group;
 }
 
+// Create Beetle web bomb - slower projectile that creates danger zone
+function createWebBombMissile(position) {
+    const group = new THREE.Group();
+
+    // Main web glob - sticky greenish appearance
+    const globGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+    const globMaterial = new THREE.MeshPhongMaterial({
+        color: 0x88ff44,
+        emissive: 0x44aa22,
+        emissiveIntensity: 2.0,
+        flatShading: true,
+        transparent: true,
+        opacity: 0.9
+    });
+    const glob = new THREE.Mesh(globGeometry, globMaterial);
+    group.add(glob);
+
+    // Inner core - brighter
+    const coreGeometry = new THREE.SphereGeometry(0.12, 6, 6);
+    const coreMaterial = new THREE.MeshPhongMaterial({
+        color: 0xccff88,
+        emissive: 0xaaff44,
+        emissiveIntensity: 4.0
+    });
+    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+    group.add(core);
+
+    // Dripping strands effect (4 hanging strands)
+    const strandMaterial = new THREE.MeshPhongMaterial({
+        color: 0x66cc33,
+        emissive: 0x44aa22,
+        emissiveIntensity: 1.5,
+        flatShading: true
+    });
+
+    group.userData.strands = [];
+    for (let i = 0; i < 4; i++) {
+        const strand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.05, 0.3, 0.05),
+            strandMaterial
+        );
+        const angle = (i / 4) * Math.PI * 2;
+        strand.position.set(
+            Math.cos(angle) * 0.15,
+            -0.25,
+            Math.sin(angle) * 0.15
+        );
+        strand.userData.baseY = -0.25;
+        strand.userData.phase = i * (Math.PI / 2);
+        group.add(strand);
+        group.userData.strands.push(strand);
+    }
+
+    group.position.copy(position);
+    group.position.y = 0;
+
+    // Mark as web bomb for special behavior
+    group.userData.isWebBomb = true;
+    group.userData.speed = 0.15; // Slower than regular missiles
+    group.userData.wobbleOffset = Math.random() * Math.PI * 2;
+
+    return group;
+}
+
+// Create web zone (danger area left by web bomb)
+function createWebZone(position, scene) {
+    const group = new THREE.Group();
+
+    // Main web pattern - flat disc on the ground plane
+    const webGeometry = new THREE.CylinderGeometry(1.5, 1.5, 0.05, 8);
+    const webMaterial = new THREE.MeshPhongMaterial({
+        color: 0x88ff44,
+        emissive: 0x44aa22,
+        emissiveIntensity: 2.5,
+        flatShading: true,
+        transparent: true,
+        opacity: 0.7
+    });
+    const web = new THREE.Mesh(webGeometry, webMaterial);
+    group.add(web);
+
+    // Web strands radiating outward
+    const strandMaterial = new THREE.MeshPhongMaterial({
+        color: 0x66cc33,
+        emissive: 0x44aa22,
+        emissiveIntensity: 2.0,
+        transparent: true,
+        opacity: 0.8
+    });
+
+    for (let i = 0; i < 8; i++) {
+        const strand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.08, 0.02, 1.2),
+            strandMaterial
+        );
+        strand.rotation.y = (i / 8) * Math.PI * 2;
+        strand.position.y = 0.03;
+        group.add(strand);
+    }
+
+    // Center glow
+    const centerGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+    const centerMaterial = new THREE.MeshPhongMaterial({
+        color: 0xccff88,
+        emissive: 0xaaff44,
+        emissiveIntensity: 4.0,
+        transparent: true,
+        opacity: 0.9
+    });
+    const center = new THREE.Mesh(centerGeometry, centerMaterial);
+    center.position.y = 0.1;
+    group.add(center);
+
+    group.position.set(position.x, 0, position.z);
+
+    // Zone properties
+    group.userData.isWebZone = true;
+    group.userData.createdAt = Date.now();
+    group.userData.duration = 2500; // 2.5 seconds
+    group.userData.radius = 1.5;
+
+    webZones.push(group);
+    scene.add(group);
+
+    return group;
+}
+
 // Aliens fire missiles
 export function alienFire(scene) {
     const aliens = getAliens();
@@ -323,6 +452,12 @@ export function alienFire(scene) {
             // Tank aliens (row 4) fire special homing missiles
             if (randomAlien.userData.row === 4) {
                 missile = createTankMissile(randomAlien.position);
+            } else if (randomAlien.userData.row === 5) {
+                // Beetle aliens fire web bombs
+                missile = createWebBombMissile(randomAlien.position);
+                webBombs.push(missile);
+                scene.add(missile);
+                continue; // Skip adding to alienMissiles
             } else {
                 // Regular missiles for other aliens
                 const missileGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.4);  // Elongated in Z to point forward
@@ -621,6 +756,111 @@ export function updateAlienMissiles(player, scene, gameActive, livesCallback, ga
     }
 }
 
+// Update web bombs and web zones
+export function updateWebBombs(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const currentTime = Date.now();
+
+    // Update web bombs in flight
+    for (let i = webBombs.length - 1; i >= 0; i--) {
+        const bomb = webBombs[i];
+        const time = currentTime * 0.001 + bomb.userData.wobbleOffset;
+
+        // Move forward (slower than regular missiles)
+        bomb.position.z += bomb.userData.speed;
+
+        // Wobble animation
+        bomb.rotation.x = Math.sin(time * 4) * 0.3;
+        bomb.rotation.z = Math.sin(time * 3) * 0.2;
+
+        // Pulsing scale
+        const pulseScale = 1 + Math.sin(time * 5) * 0.1;
+        bomb.scale.set(pulseScale, pulseScale, pulseScale);
+
+        // Animate dripping strands
+        if (bomb.userData.strands) {
+            bomb.userData.strands.forEach((strand) => {
+                strand.position.y = strand.userData.baseY + Math.sin(time * 6 + strand.userData.phase) * 0.08;
+                strand.scale.y = 1 + Math.sin(time * 4 + strand.userData.phase) * 0.3;
+            });
+        }
+
+        // Check collision with barriers
+        if (checkBarrierCollision(bomb.position, 0.25, scene)) {
+            createExplosion(bomb.position, scene);
+            scene.remove(bomb);
+            webBombs.splice(i, 1);
+            continue;
+        }
+
+        // Create web zone when reaching player area (Z >= 9)
+        if (bomb.position.z >= 9) {
+            createWebZone(bomb.position, scene);
+            scene.remove(bomb);
+            webBombs.splice(i, 1);
+            continue;
+        }
+
+        // Remove if way off screen
+        if (bomb.position.z > 20) {
+            scene.remove(bomb);
+            webBombs.splice(i, 1);
+        }
+    }
+
+    // Update web zones
+    for (let i = webZones.length - 1; i >= 0; i--) {
+        const zone = webZones[i];
+        const elapsed = currentTime - zone.userData.createdAt;
+        const progress = elapsed / zone.userData.duration;
+
+        // Fade out over time
+        const opacity = Math.max(0, 1 - progress);
+        zone.children.forEach(child => {
+            if (child.material.transparent) {
+                child.material.opacity = opacity * (child.material === zone.children[0].material ? 0.7 : 0.9);
+            }
+        });
+
+        // Pulsing animation
+        const time = currentTime * 0.003;
+        const pulseScale = 1 + Math.sin(time * 4) * 0.05;
+        zone.scale.set(pulseScale, 1, pulseScale);
+
+        // Rotate strands
+        zone.rotation.y = time * 0.5;
+
+        // Check player collision with zone (only if game is active)
+        if (gameActive && progress < 1) {
+            const dx = player.position.x - zone.position.x;
+            const dz = player.position.z - zone.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            if (distance < zone.userData.radius) {
+                // Player caught in web!
+                createExplosion(player.position, scene);
+                playExplosion(1.5);
+
+                // Remove the zone that hit the player
+                scene.remove(zone);
+                webZones.splice(i, 1);
+
+                // Decrease lives
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+                continue;
+            }
+        }
+
+        // Remove expired zones
+        if (progress >= 1) {
+            scene.remove(zone);
+            webZones.splice(i, 1);
+        }
+    }
+}
+
 // Check if aliens should fire
 export function checkAlienFire(scene) {
     const currentTime = Date.now();
@@ -635,13 +875,17 @@ export function resetMissiles(scene) {
     missiles.forEach(missile => scene.remove(missile));
     alienMissiles.forEach(missile => scene.remove(missile));
     ufoMissiles.forEach(missile => scene.remove(missile));
+    webBombs.forEach(bomb => scene.remove(bomb));
+    webZones.forEach(zone => scene.remove(zone));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
+    webBombs = [];
+    webZones = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones };
 }

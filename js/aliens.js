@@ -51,6 +51,9 @@ function createAlien(row) {
         case 4: // Tank style
             createTankAlien(group);
             break;
+        case 5: // Beetle style - classic 70s arcade insect
+            createBeetleAlien(group);
+            break;
     }
 
     return group;
@@ -257,6 +260,112 @@ function createTankAlien(group) {
     group.add(treadRight);
 }
 
+function createBeetleAlien(group) {
+    // Classic 70s arcade orange/amber color
+    const material = new THREE.MeshPhongMaterial({
+        color: 0xff8800,
+        emissive: 0xff8800,
+        emissiveIntensity: 1.6,
+        flatShading: true
+    });
+
+    // Shell body (rounded appearance using stacked boxes)
+    const shellTop = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.4, 0.9), material);
+    shellTop.position.y = 0.3;
+    shellTop.castShadow = true;
+    group.add(shellTop);
+
+    const shellMiddle = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.4, 1.1), material);
+    shellMiddle.position.y = 0;
+    shellMiddle.castShadow = true;
+    group.add(shellMiddle);
+
+    const shellBottom = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.3, 1.0), material);
+    shellBottom.position.y = -0.3;
+    shellBottom.castShadow = true;
+    group.add(shellBottom);
+
+    // Head
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.4), material);
+    head.position.set(0, 0, 0.7);
+    head.castShadow = true;
+    group.add(head);
+
+    // Eyes - classic arcade style
+    const eyeMaterial = new THREE.MeshPhongMaterial({
+        color: 0x00ff00,
+        emissive: 0x00ff00,
+        emissiveIntensity: 3.5
+    });
+    const eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.1), eyeMaterial);
+    eyeLeft.position.set(-0.15, 0.1, 0.9);
+    group.add(eyeLeft);
+
+    const eyeRight = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.1), eyeMaterial);
+    eyeRight.position.set(0.15, 0.1, 0.9);
+    group.add(eyeRight);
+
+    // Antennae with glowing tips
+    const antennaMaterial = new THREE.MeshPhongMaterial({
+        color: 0xcc6600,
+        emissive: 0xcc6600,
+        emissiveIntensity: 1.0,
+        flatShading: true
+    });
+
+    const antennaLeft = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.08), antennaMaterial);
+    antennaLeft.position.set(-0.15, 0.55, 0.6);
+    antennaLeft.rotation.x = -0.3;
+    group.add(antennaLeft);
+    group.userData.antennaLeft = antennaLeft;
+
+    const antennaRight = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.08), antennaMaterial);
+    antennaRight.position.set(0.15, 0.55, 0.6);
+    antennaRight.rotation.x = -0.3;
+    group.add(antennaRight);
+    group.userData.antennaRight = antennaRight;
+
+    // Glowing antenna tips
+    const tipMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffff00,
+        emissive: 0xffff00,
+        emissiveIntensity: 4.0
+    });
+    const tipLeft = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), tipMaterial);
+    tipLeft.position.set(-0.15, 0.85, 0.45);
+    group.add(tipLeft);
+    group.userData.tipLeft = tipLeft;
+
+    const tipRight = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), tipMaterial);
+    tipRight.position.set(0.15, 0.85, 0.45);
+    group.add(tipRight);
+    group.userData.tipRight = tipRight;
+
+    // Six legs for scuttling motion
+    const legMaterial = new THREE.MeshPhongMaterial({
+        color: 0xcc6600,
+        emissive: 0xcc6600,
+        emissiveIntensity: 1.2,
+        flatShading: true
+    });
+
+    group.userData.legs = [];
+    for (let i = 0; i < 6; i++) {
+        const side = i < 3 ? -1 : 1;
+        const legIndex = i % 3;
+        const zOffset = -0.3 + legIndex * 0.3;
+
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), legMaterial);
+        leg.position.set(side * 0.6, -0.5, zOffset);
+        leg.rotation.z = side * 0.4;
+        leg.userData.baseY = -0.5;
+        leg.userData.side = side;
+        leg.userData.legIndex = legIndex;
+        group.add(leg);
+        group.userData.legs.push(leg);
+    }
+}
+
 // Animate a single alien
 export function animateAlien(alien) {
     const time = Date.now() * 0.001 + alien.userData.animationOffset;
@@ -347,6 +456,44 @@ export function animateAlien(alien) {
             alien.rotation.x = Math.sin(time * 3.5) * 0.08;
             // Slight forward-back rocking
             alien.position.y = 0 + Math.abs(Math.sin(time * 8)) * 0.05;
+            break;
+
+        case 5: // Beetle - scuttling motion with antenna waggle
+            // Scuttling leg animation - alternating tripod gait
+            if (alien.userData.legs) {
+                alien.userData.legs.forEach((leg, i) => {
+                    const phase = leg.userData.legIndex * (Math.PI / 1.5);
+                    const sidePhase = leg.userData.side > 0 ? Math.PI : 0;
+                    // Scuttling up/down motion
+                    leg.position.y = leg.userData.baseY + Math.abs(Math.sin(time * 10 + phase + sidePhase)) * 0.15;
+                    // Leg rotation for walking effect
+                    leg.rotation.x = Math.sin(time * 10 + phase + sidePhase) * 0.3;
+                });
+            }
+            // Antenna waggle
+            if (alien.userData.antennaLeft) {
+                alien.userData.antennaLeft.rotation.z = Math.sin(time * 5) * 0.25;
+                alien.userData.antennaLeft.rotation.x = -0.3 + Math.sin(time * 4) * 0.15;
+            }
+            if (alien.userData.antennaRight) {
+                alien.userData.antennaRight.rotation.z = Math.sin(time * 5 + Math.PI) * 0.25;
+                alien.userData.antennaRight.rotation.x = -0.3 + Math.sin(time * 4 + Math.PI * 0.5) * 0.15;
+            }
+            // Pulsing antenna tips
+            if (alien.userData.tipLeft && alien.userData.tipRight) {
+                const pulse = (Math.sin(time * 6) + 1) / 2;
+                const tipScale = 1 + pulse * 0.4;
+                alien.userData.tipLeft.scale.set(tipScale, tipScale, tipScale);
+                alien.userData.tipRight.scale.set(tipScale, tipScale, tipScale);
+                // Follow antenna positions
+                alien.userData.tipLeft.position.set(-0.15 + Math.sin(time * 5) * 0.05, 0.85 + Math.sin(time * 4) * 0.05, 0.45);
+                alien.userData.tipRight.position.set(0.15 + Math.sin(time * 5 + Math.PI) * 0.05, 0.85 + Math.sin(time * 4 + Math.PI * 0.5) * 0.05, 0.45);
+            }
+            // Body scuttle - slight side-to-side rock
+            alien.rotation.z = Math.sin(time * 8) * 0.08;
+            alien.rotation.x = Math.sin(time * 6) * 0.05;
+            // Forward creeping motion
+            alien.position.y = 0 + Math.abs(Math.sin(time * 10)) * 0.03;
             break;
     }
 }
