@@ -6,19 +6,57 @@ let aliens = [];
 let alienDirection = 1;
 let alienSpeed = 0.02;
 
+// Dynamic level configuration
+let levelConfig = {
+    rows: ALIEN_ROWS,
+    cols: ALIEN_COLS,
+    baseSpeed: 0.02,
+    fireInterval: 1500,
+    swoopThreshold: 5
+};
+
+/**
+ * Set alien configuration from level config
+ * @param {Object} config - Level configuration object
+ */
+export function setAlienConfig(config) {
+    levelConfig = {
+        rows: config.alienRows || ALIEN_ROWS,
+        cols: config.alienCols || ALIEN_COLS,
+        baseSpeed: config.alienSpeed || 0.02,
+        fireInterval: config.alienFireInterval || 1500,
+        swoopThreshold: config.swoopThreshold || 5
+    };
+    alienSpeed = levelConfig.baseSpeed;
+}
+
+/**
+ * Get current alien fire interval
+ */
+export function getAlienFireInterval() {
+    return levelConfig.fireInterval;
+}
+
 // Create all aliens in formation
-export function createAliens(scene) {
-    const startX = -10;
+export function createAliens(scene, customRows = null, customCols = null) {
+    const rows = customRows !== null ? customRows : levelConfig.rows;
+    const cols = customCols !== null ? customCols : levelConfig.cols;
+
+    // Center the formation based on column count
+    const startX = -((cols - 1) * ALIEN_SPACING) / 2;
     const startZ = -15;
 
-    for (let row = 0; row < ALIEN_ROWS; row++) {
-        for (let col = 0; col < ALIEN_COLS; col++) {
-            const alien = createAlien(row);
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            // Cycle through 7 alien types based on row
+            const alienType = row % 7;
+            const alien = createAlien(alienType);
             alien.position.x = startX + col * ALIEN_SPACING;
             alien.position.z = startZ - row * ALIEN_SPACING;
             alien.position.y = 0;  // On same plane as player
             alien.userData = {
-                row: row,
+                row: alienType,  // Use alien type for scoring/behavior
+                actualRow: row,  // Keep track of actual grid row
                 col: col,
                 animationOffset: Math.random() * Math.PI * 2,
                 destroyed: false
@@ -687,12 +725,12 @@ export function updateAliens(gameOverCallback) {
 
     // Dynamic speed calculation based on remaining aliens
     // As aliens are destroyed, they speed up significantly
-    const totalAliens = ALIEN_ROWS * ALIEN_COLS;
+    const totalAliens = levelConfig.rows * levelConfig.cols;
     const remainingRatio = aliens.length / totalAliens;
 
-    // Base speed is 0.02, max speed is 0.12 (6x faster at the end)
-    const minSpeed = 0.02;
-    const maxSpeed = 0.12;
+    // Use level config base speed, scale up to 6x at the end
+    const minSpeed = levelConfig.baseSpeed;
+    const maxSpeed = levelConfig.baseSpeed * 6;
 
     // Non-linear speed curve (gets faster more quickly at the end)
     alienSpeed = minSpeed + (maxSpeed - minSpeed) * Math.pow(1 - remainingRatio, 1.5);
@@ -752,8 +790,8 @@ const SWOOP_INTERVAL_MAX = 10000; // 10 seconds
 let nextSwoopInterval = 5000;
 
 function checkSwoopTrigger() {
-    // Only swoop if few aliens remain
-    if (aliens.length >= 5) return;
+    // Only swoop if few aliens remain (based on level config)
+    if (aliens.length >= levelConfig.swoopThreshold) return;
 
     const now = Date.now();
     if (now - lastSwoopTime > nextSwoopInterval) {
@@ -899,7 +937,9 @@ export function resetAliens(scene) {
     aliens.forEach(alien => scene.remove(alien));
     aliens = [];
     alienDirection = 1;
-    alienSpeed = 0.02;
+    alienSpeed = levelConfig.baseSpeed;
+    lastSwoopTime = 0;
+    nextSwoopInterval = 5000;
 }
 
 // Get alien state for reset
