@@ -72,6 +72,43 @@ The game features 7 rows of aliens, each with distinctive 3D designs and dramati
    - **Fires fast Blaster Bolts** - straight-shooting high-speed projectiles!
    - Worth 0 points (bonus row)
 
+### Level Progression System
+- **Infinite levels** with formula-based scaling difficulty
+- **Progressive challenge**: More aliens, faster speed, quicker fire rate each level
+- **Level announcements** with hyperspace warp effect between waves
+- **Bonus points** for completing levels
+- **Perfect round bonus** for no-damage clears
+- **Difficulty tiers**: RECRUIT, SOLDIER, VETERAN, ELITE, COMMANDER, LEGENDARY, IMPOSSIBLE
+
+### Boss Battles
+Every 5 levels, face a unique boss instead of alien waves:
+
+1. **Mothership** (Level 5, 25, 45...)
+   - Classic UFO boss with rotating lights
+   - Multi-phase health system
+
+2. **Hive Queen** (Level 10, 30, 50...)
+   - Insectoid swarm leader
+   - Spawns minions during battle
+
+3. **Dreadnought** (Level 15, 35, 55...)
+   - Heavy armored warship
+   - Devastating firepower
+
+4. **Phantom** (Level 20, 40, 60...)
+   - Stealth/phasing abilities
+   - Unpredictable attack patterns
+
+5. **Titan** (Level 25, 45, 65...)
+   - Massive final boss of each cycle
+   - Ultimate challenge
+
+**Boss features:**
+- **Health bar UI** with boss name display
+- **Multi-phase damage system** - bosses get harder as health drops
+- **Bosses scale up** each time they reappear (enhanced versions)
+- **Full barrier repair** before each boss fight
+
 ### Kamikaze Swoop Attack
 When fewer than 5 aliens remain, they become desperate and aggressive:
 
@@ -139,6 +176,12 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
   - **Missile Interception**: Quieter explosion (0.4x intensity) when shooting down enemy missiles
 
 - **MISSILE FIRING**: Quick laser-like "pewpew" sound when firing
+
+- **LEVEL SYSTEM AUDIO**:
+  - **Level Complete Fanfare**: Triumphant multi-tone celebration
+  - **Hyperspace Warp**: Whooshing sound during level transitions
+  - **Boss Warning Alarm**: Ominous alert when boss appears
+  - **Boss Phase Transition**: Sound cue when boss enters new damage phase
 
 - **TECHNICAL**:
   - All sounds procedurally generated in real-time (no audio files needed)
@@ -287,7 +330,7 @@ npm run dev        # Start dev server with hot reload (http://localhost:5173)
 3. The zip contains `index.html` at root with bundled assets
 
 ### Version Display
-- Version number shown in bottom-right corner (e.g., `v1.0.5`)
+- Version number shown in bottom-right corner (e.g., `v1.0.7`)
 - Auto-increments on each `npm run package`
 
 ## File Structure
@@ -310,6 +353,9 @@ npm run dev        # Start dev server with hot reload (http://localhost:5173)
 │   ├── highscores.js   # High score system with 3D UI and localStorage
 │   ├── barriers.js     # Destructible barrier system
 │   ├── powerups.js     # Power-up system (drops and effects)
+│   ├── levels.js       # Level configuration and scaling system
+│   ├── boss.js         # Boss entities and battle mechanics
+│   ├── transitions.js  # Level transition effects and UI
 │   └── constants.js    # Game constants and configuration
 ├── dist/               # Production build output (generated)
 └── README.md           # This file
@@ -343,6 +389,16 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
+- ✅ **Level Progression System** - Infinite scaling difficulty!
+  - Formula-based difficulty scaling (speed, fire rate, alien count)
+  - Hyperspace warp transitions between levels
+  - Bonus points and perfect round rewards
+  - Difficulty tiers from RECRUIT to IMPOSSIBLE
+- ✅ **Boss Battles** - Epic encounters every 5 levels!
+  - 5 unique boss types: Mothership, Hive Queen, Dreadnought, Phantom, Titan
+  - Multi-phase health systems with scaling difficulty
+  - Boss health bar UI with dramatic warning effects
+  - Bosses get stronger each time they reappear
 - ✅ **Power-Up System** - Collect drops for enhanced abilities!
   - **Rapid Fire (Red)**: Hold to unleash a stream of missiles (100ms delay)
   - **Spread Shot (Yellow)**: Fire 3 missiles at once to clear wide areas
@@ -393,11 +449,10 @@ Tested on:
 ## Future Enhancements
 
 Potential features to add:
-- Background music and additional sound effects
+- Background music
 - Mobile touch controls
 - More alien types and formations
-- Boss battles
-- Multiple difficulty levels
+- Multiplayer support
 
 ## Credits
 
