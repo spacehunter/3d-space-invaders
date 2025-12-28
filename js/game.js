@@ -203,6 +203,7 @@ function startWaveLevel() {
     resetPowerUps(scene);
     resetBonusUFO(scene);
     resetBoss(scene);
+    resetAliens(scene);  // Clear any leftover alien state
 
     // Apply level configuration
     setAlienConfig(levelConfig);
