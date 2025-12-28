@@ -726,7 +726,7 @@ export function updateAliens(gameOverCallback) {
     // Dynamic speed calculation based on remaining aliens
     // As aliens are destroyed, they speed up significantly
     const totalAliens = levelConfig.rows * levelConfig.cols;
-    const remainingRatio = aliens.length / totalAliens;
+    const remainingRatio = Math.min(aliens.length / totalAliens, 1.0);  // Clamp to prevent NaN
 
     // Use level config base speed, scale up to 6x at the end
     const minSpeed = levelConfig.baseSpeed;

@@ -58,11 +58,13 @@ function init() {
 
     // Create game entities
     createPlayer(scene);
-    createAliens(scene);
     createStarfield(scene);
 
-    // Initialize game state
+    // Initialize game state (must be before createAliens so levelConfig is set)
     initGame(scene, camera);
+
+    // Create aliens after initGame so they use Level 1 config (5x7)
+    createAliens(scene);
 
     // Initialize input
     initInput(handleFire);

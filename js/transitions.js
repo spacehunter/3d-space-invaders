@@ -15,17 +15,76 @@ let transitionGroup = null;
 let currentScene = null;
 let transitionCallback = null;
 
+// HTML elements
+let overlay = null;
+let mainText = null;
+let subText = null;
+
 // Transition timing constants
 const TIMING = {
     LEVEL_COMPLETE_DURATION: 2000,
-    BONUS_DISPLAY_DURATION: 2000,
+    BONUS_DISPLAY_DURATION: 1500,
     HYPERSPACE_DURATION: 1500,
     LEVEL_ANNOUNCE_DURATION: 2000,
-    REST_DURATION: 1000
+    REST_DURATION: 800
 };
 
 // Warp line objects for hyperspace effect
 let warpLines = [];
+
+/**
+ * Initialize HTML overlay references
+ */
+function initOverlay() {
+    overlay = document.getElementById('transitionOverlay');
+    mainText = overlay?.querySelector('.main-text');
+    subText = overlay?.querySelector('.sub-text');
+}
+
+/**
+ * Show text on the overlay
+ */
+function showOverlayText(main, sub, mainClass, subClass) {
+    if (!overlay) initOverlay();
+    if (!overlay || !mainText || !subText) return;
+
+    // Reset classes
+    mainText.className = 'main-text ' + (mainClass || 'text-green');
+    subText.className = 'sub-text ' + (subClass || 'text-cyan');
+
+    // Set text
+    mainText.textContent = main;
+    subText.textContent = sub || '';
+
+    // Show overlay
+    overlay.classList.add('active');
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+        mainText.classList.add('show');
+        if (sub) subText.classList.add('show');
+    });
+}
+
+/**
+ * Hide the overlay
+ */
+function hideOverlayText(callback) {
+    if (!overlay || !mainText || !subText) {
+        if (callback) callback();
+        return;
+    }
+
+    mainText.classList.remove('show');
+    subText.classList.remove('show');
+
+    setTimeout(() => {
+        overlay.classList.remove('active');
+        mainText.textContent = '';
+        subText.textContent = '';
+        if (callback) callback();
+    }, 400);
+}
 
 /**
  * Check if a transition is currently in progress
@@ -37,12 +96,6 @@ export function isInTransition() {
 
 /**
  * Start the level completion transition sequence
- * @param {number} completedLevel - Level just completed
- * @param {number} currentScore - Current player score
- * @param {boolean} noDamageTaken - True if player took no damage
- * @param {number} lives - Remaining lives
- * @param {THREE.Scene} scene - Scene reference
- * @param {Function} onComplete - Callback when transition finishes (nextLevel, bonusPoints)
  */
 export function startLevelTransition(completedLevel, currentScore, noDamageTaken, lives, scene, onComplete) {
     if (isTransitioning) return;
@@ -51,7 +104,10 @@ export function startLevelTransition(completedLevel, currentScore, noDamageTaken
     currentScene = scene;
     transitionCallback = onComplete;
 
-    // Create transition container group
+    // Initialize overlay
+    initOverlay();
+
+    // Create transition container group for 3D effects
     transitionGroup = new THREE.Group();
     transitionGroup.position.set(0, 0, 0);
     scene.add(transitionGroup);
@@ -77,146 +133,27 @@ export function startLevelTransition(completedLevel, currentScore, noDamageTaken
 }
 
 /**
- * Create a 3D text banner using box geometries
- * @param {string} text - Text to display
- * @param {Object} options - Style options
- * @returns {THREE.Group}
- */
-function createTextBanner(text, options = {}) {
-    const {
-        color = 0x00ff00,
-        scale = 1.0,
-        emissiveIntensity = 3.0
-    } = options;
-
-    const group = new THREE.Group();
-
-    // Create a glowing backdrop
-    const backdropGeometry = new THREE.PlaneGeometry(text.length * 0.8 * scale, 1.5 * scale);
-    const backdropMaterial = new THREE.MeshBasicMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.15,
-        side: THREE.DoubleSide
-    });
-    const backdrop = new THREE.Mesh(backdropGeometry, backdropMaterial);
-    backdrop.position.z = -0.1;
-    group.add(backdrop);
-
-    // Create letter blocks (simplified 3D text)
-    const letterWidth = 0.6 * scale;
-    const startX = -(text.length * letterWidth) / 2 + letterWidth / 2;
-
-    for (let i = 0; i < text.length; i++) {
-        if (text[i] === ' ') continue;
-
-        const letterGeometry = new THREE.BoxGeometry(
-            letterWidth * 0.8,
-            scale,
-            0.2
-        );
-        const letterMaterial = new THREE.MeshPhongMaterial({
-            color: color,
-            emissive: color,
-            emissiveIntensity: emissiveIntensity,
-            flatShading: true
-        });
-        const letter = new THREE.Mesh(letterGeometry, letterMaterial);
-        letter.position.x = startX + i * letterWidth;
-        letter.userData.originalY = 0;
-        letter.userData.index = i;
-        group.add(letter);
-    }
-
-    return group;
-}
-
-/**
- * Show "LEVEL COMPLETE" banner with celebration
+ * Show "LEVEL COMPLETE" message
  */
 function showLevelComplete(level, onDone) {
     playLevelComplete();
 
-    const banner = createTextBanner('LEVEL COMPLETE', {
-        color: 0x00ff00,
-        scale: 1.2,
-        emissiveIntensity: 4.0
-    });
-    banner.position.set(0, 2, -5);
-    banner.scale.set(0, 0, 0);
-    transitionGroup.add(banner);
+    showOverlayText('LEVEL COMPLETE!', `Wave ${level} cleared`, 'text-green', 'text-cyan');
 
-    // Create celebration particles
+    // Create celebration particles in 3D
     createCelebrationParticles();
 
-    // Animate in
-    const startTime = Date.now();
-    const animateIn = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / 500, 1);
-
-        // Bounce easing
-        const bounce = progress < 0.5
-            ? 4 * progress * progress * progress
-            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-        banner.scale.set(bounce, bounce, bounce);
-
-        // Wave animation for letters
-        banner.children.forEach((child, index) => {
-            if (child.userData.index !== undefined) {
-                child.position.y = Math.sin(elapsed * 0.005 + index * 0.3) * 0.15;
-            }
-        });
-
-        if (progress < 1) {
-            requestAnimationFrame(animateIn);
-        } else {
-            // Hold for a moment then fade out
-            setTimeout(() => {
-                animateBannerOut(banner, onDone);
-            }, TIMING.LEVEL_COMPLETE_DURATION - 500);
-        }
-    };
-
-    requestAnimationFrame(animateIn);
-}
-
-/**
- * Animate banner fading out
- */
-function animateBannerOut(banner, onDone) {
-    const startTime = Date.now();
-    const duration = 400;
-
-    const animateOut = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        banner.scale.set(1 - progress, 1 - progress, 1 - progress);
-        banner.position.y += 0.05;
-
-        banner.children.forEach(child => {
-            if (child.material) {
-                child.material.opacity = 1 - progress;
-            }
-        });
-
-        if (progress < 1) {
-            requestAnimationFrame(animateOut);
-        } else {
-            transitionGroup.remove(banner);
-            if (onDone) onDone();
-        }
-    };
-
-    requestAnimationFrame(animateOut);
+    setTimeout(() => {
+        hideOverlayText(onDone);
+    }, TIMING.LEVEL_COMPLETE_DURATION);
 }
 
 /**
  * Create celebration particles
  */
 function createCelebrationParticles() {
+    if (!transitionGroup || !currentScene) return;
+
     const colors = [0x00ff00, 0xffff00, 0x00ffff, 0xff00ff];
 
     for (let i = 0; i < 50; i++) {
@@ -249,6 +186,8 @@ function createCelebrationParticles() {
 
         // Animate particle
         const animateParticle = () => {
+            if (!particle.userData || particle.userData.life <= 0) return;
+
             particle.position.add(particle.userData.velocity);
             particle.userData.velocity.y -= 0.01; // Gravity
             particle.rotation.x += particle.userData.rotSpeed.x;
@@ -256,14 +195,18 @@ function createCelebrationParticles() {
             particle.rotation.z += particle.userData.rotSpeed.z;
 
             particle.userData.life -= 0.02;
-            particle.material.opacity = particle.userData.life;
+            if (particle.material) {
+                particle.material.opacity = particle.userData.life;
+            }
 
             if (particle.userData.life > 0) {
                 requestAnimationFrame(animateParticle);
             } else {
-                transitionGroup.remove(particle);
-                particle.geometry.dispose();
-                particle.material.dispose();
+                if (transitionGroup) {
+                    transitionGroup.remove(particle);
+                }
+                particle.geometry?.dispose();
+                particle.material?.dispose();
             }
         };
 
@@ -272,64 +215,15 @@ function createCelebrationParticles() {
 }
 
 /**
- * Show bonus display with animated counter
+ * Show bonus display
  */
 function showBonusDisplay(bonus, currentScore, onDone) {
-    const bonusText = createTextBanner(`+${bonus.total}`, {
-        color: 0xffff00,
-        scale: 1.5,
-        emissiveIntensity: 4.0
-    });
-    bonusText.position.set(0, 1, -5);
-    bonusText.scale.set(0, 0, 0);
-    transitionGroup.add(bonusText);
+    const perfectText = bonus.perfectBonus > 0 ? 'PERFECT ROUND!' : '';
+    showOverlayText(`+${bonus.total} POINTS`, perfectText, 'text-yellow', 'text-magenta');
 
-    // If perfect round, add extra text
-    let perfectText = null;
-    if (bonus.perfectBonus > 0) {
-        perfectText = createTextBanner('PERFECT', {
-            color: 0xff00ff,
-            scale: 0.8,
-            emissiveIntensity: 5.0
-        });
-        perfectText.position.set(0, 3, -5);
-        perfectText.scale.set(0, 0, 0);
-        transitionGroup.add(perfectText);
-    }
-
-    // Animate in
-    const startTime = Date.now();
-    const animateBonus = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / 400, 1);
-
-        const scale = progress * (2 - progress); // Ease out
-        bonusText.scale.set(scale, scale, scale);
-
-        if (perfectText) {
-            const perfectProgress = Math.max(0, (elapsed - 200) / 400);
-            const perfectScale = Math.min(perfectProgress, 1) * (2 - Math.min(perfectProgress, 1));
-            perfectText.scale.set(perfectScale, perfectScale, perfectScale);
-        }
-
-        // Pulse effect
-        const pulse = 1 + Math.sin(elapsed * 0.01) * 0.05;
-        bonusText.scale.multiplyScalar(pulse);
-
-        if (elapsed < TIMING.BONUS_DISPLAY_DURATION) {
-            requestAnimationFrame(animateBonus);
-        } else {
-            // Fade out
-            animateBannerOut(bonusText, () => {
-                if (perfectText) {
-                    transitionGroup.remove(perfectText);
-                }
-                onDone();
-            });
-        }
-    };
-
-    requestAnimationFrame(animateBonus);
+    setTimeout(() => {
+        hideOverlayText(onDone);
+    }, TIMING.BONUS_DISPLAY_DURATION);
 }
 
 /**
@@ -339,50 +233,81 @@ function playHyperspaceEffect(onDone) {
     playWarpSound();
     setStarfieldSpeed(15.0); // Super fast stars
 
-    // Create warp lines
+    // Hide any text during warp
+    hideOverlayText();
+
+    if (!transitionGroup || !currentScene) {
+        setTimeout(() => {
+            setStarfieldSpeed(0.5);
+            if (onDone) onDone();
+        }, TIMING.HYPERSPACE_DURATION);
+        return;
+    }
+
+    // Create warp lines - tunnel effect streaming toward camera
+    // Camera is at approx (0, 8, 15) looking toward (0, 0, -10)
     warpLines = [];
-    for (let i = 0; i < 80; i++) {
-        const geometry = new THREE.BoxGeometry(0.03, 0.03, 25);
+    for (let i = 0; i < 100; i++) {
+        // Create elongated line along Z-axis
+        const geometry = new THREE.BoxGeometry(0.05, 0.05, 30);
         const material = new THREE.MeshPhongMaterial({
             color: 0x00ffff,
             emissive: 0x00ffff,
             emissiveIntensity: 4.0,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.9
         });
         const line = new THREE.Mesh(geometry, material);
 
-        // Random positions in a cylinder around camera view
+        // Position in a tunnel/cylinder around the camera's forward view
+        // Spread lines in a ring pattern
         const angle = Math.random() * Math.PI * 2;
-        const radius = 3 + Math.random() * 15;
-        line.position.x = Math.cos(angle) * radius;
-        line.position.y = Math.sin(angle) * radius - 5;
-        line.position.z = -50 + Math.random() * 30;
+        const radius = 2 + Math.random() * 12;
 
-        // Stretch toward viewer
-        line.lookAt(0, 0, 10);
+        // Center the tunnel around camera position (0, 8, 15)
+        // Lines start far ahead and stream toward/past the camera
+        line.position.x = Math.cos(angle) * radius;
+        line.position.y = 8 + Math.sin(angle) * radius;  // Centered on camera Y
+        line.position.z = -60 + Math.random() * 40;  // Start far in front
+
+        // Lines are already aligned with Z-axis (no rotation needed)
+        // This makes them stream straight toward the camera
+
+        // Store initial position for animation
+        line.userData.startZ = line.position.z;
 
         warpLines.push(line);
         transitionGroup.add(line);
     }
 
-    // Animate warp
+    // Animate warp - lines rush toward and past the camera
     const startTime = Date.now();
     const animateWarp = () => {
         const elapsed = Date.now() - startTime;
         const progress = elapsed / TIMING.HYPERSPACE_DURATION;
 
-        // Move lines toward camera
+        // Move lines toward camera (increasing Z)
         warpLines.forEach(line => {
-            line.position.z += 2;
+            if (!line) return;
 
-            // Stretch effect
-            const stretch = 1 + progress * 2;
+            // Fast movement toward camera
+            line.position.z += 3;
+
+            // Stretch effect - lines get longer as they approach
+            const stretch = 1 + progress * 3;
             line.scale.z = stretch;
 
-            // Fade based on position
-            if (line.position.z > 5) {
-                line.material.opacity = Math.max(0, 1 - (line.position.z - 5) / 10);
+            // Fade out as lines pass the camera
+            if (line.position.z > 10 && line.material) {
+                line.material.opacity = Math.max(0, 1 - (line.position.z - 10) / 15);
+            }
+
+            // Wrap lines that go too far past camera back to the front
+            if (line.position.z > 30) {
+                line.position.z = -60;
+                if (line.material) {
+                    line.material.opacity = 0.9;
+                }
             }
         });
 
@@ -391,16 +316,19 @@ function playHyperspaceEffect(onDone) {
         } else {
             // Cleanup warp lines
             warpLines.forEach(line => {
-                transitionGroup.remove(line);
-                line.geometry.dispose();
-                line.material.dispose();
+                if (!line) return;
+                if (transitionGroup) {
+                    transitionGroup.remove(line);
+                }
+                line.geometry?.dispose();
+                line.material?.dispose();
             });
             warpLines = [];
 
             // Reset starfield speed
             setStarfieldSpeed(0.5);
 
-            onDone();
+            if (onDone) onDone();
         }
     };
 
@@ -416,63 +344,15 @@ function showLevelAnnounce(level, onDone) {
     if (announcement.isBoss) {
         playBossWarning();
         createBossWarningEffect();
+        showOverlayText('⚠ WARNING ⚠', announcement.subtitle, 'text-red', 'text-red');
     } else {
         playLevelStart();
+        showOverlayText(`LEVEL ${level}`, announcement.subtitle, 'text-cyan', 'text-green');
     }
 
-    // Main title
-    const titleBanner = createTextBanner(announcement.title, {
-        color: announcement.color,
-        scale: 2.0,
-        emissiveIntensity: 5.0
-    });
-    titleBanner.position.set(0, 2, -5);
-    titleBanner.scale.set(0, 0, 0);
-    transitionGroup.add(titleBanner);
-
-    // Subtitle
-    const subtitleBanner = createTextBanner(announcement.subtitle, {
-        color: announcement.isBoss ? 0xff4444 : 0x88ffff,
-        scale: 0.7,
-        emissiveIntensity: 3.0
-    });
-    subtitleBanner.position.set(0, 0.5, -5);
-    subtitleBanner.scale.set(0, 0, 0);
-    transitionGroup.add(subtitleBanner);
-
-    // Animate in with dramatic effect
-    const startTime = Date.now();
-    const animateAnnounce = () => {
-        const elapsed = Date.now() - startTime;
-
-        // Title animation
-        const titleProgress = Math.min(elapsed / 500, 1);
-        const titleScale = titleProgress < 0.8
-            ? titleProgress / 0.8 * 1.2
-            : 1.2 - (titleProgress - 0.8) / 0.2 * 0.2;
-        titleBanner.scale.set(titleScale, titleScale, titleScale);
-
-        // Subtitle animation (delayed)
-        const subtitleProgress = Math.max(0, Math.min((elapsed - 300) / 400, 1));
-        subtitleBanner.scale.set(subtitleProgress, subtitleProgress, subtitleProgress);
-
-        // Boss pulsing effect
-        if (announcement.isBoss) {
-            const pulse = 1 + Math.sin(elapsed * 0.02) * 0.1;
-            titleBanner.scale.multiplyScalar(pulse);
-        }
-
-        if (elapsed < TIMING.LEVEL_ANNOUNCE_DURATION) {
-            requestAnimationFrame(animateAnnounce);
-        } else {
-            animateBannerOut(titleBanner, () => {
-                transitionGroup.remove(subtitleBanner);
-                onDone();
-            });
-        }
-    };
-
-    requestAnimationFrame(animateAnnounce);
+    setTimeout(() => {
+        hideOverlayText(onDone);
+    }, TIMING.LEVEL_ANNOUNCE_DURATION);
 }
 
 /**
@@ -480,9 +360,9 @@ function showLevelAnnounce(level, onDone) {
  */
 function createBossWarningEffect() {
     // Create red overlay flashes
-    const overlay = document.createElement('div');
-    overlay.id = 'bossWarningOverlay';
-    overlay.style.cssText = `
+    const flashOverlay = document.createElement('div');
+    flashOverlay.id = 'bossWarningOverlay';
+    flashOverlay.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
@@ -492,20 +372,21 @@ function createBossWarningEffect() {
         pointer-events: none;
         z-index: 150;
     `;
-    document.body.appendChild(overlay);
+    document.body.appendChild(flashOverlay);
 
     let flashCount = 0;
     const maxFlashes = 3;
 
     const flash = () => {
         if (flashCount >= maxFlashes) {
-            document.body.removeChild(overlay);
+            const el = document.getElementById('bossWarningOverlay');
+            if (el) document.body.removeChild(el);
             return;
         }
 
-        overlay.style.background = 'rgba(255, 0, 0, 0.3)';
+        flashOverlay.style.background = 'rgba(255, 0, 0, 0.3)';
         setTimeout(() => {
-            overlay.style.background = 'rgba(255, 0, 0, 0)';
+            flashOverlay.style.background = 'rgba(255, 0, 0, 0)';
             flashCount++;
             setTimeout(flash, 300);
         }, 150);
@@ -518,36 +399,18 @@ function createBossWarningEffect() {
  * Show "GET READY" message
  */
 function showGetReady(onDone) {
-    const readyBanner = createTextBanner('GET READY', {
-        color: 0x00ff00,
-        scale: 1.0,
-        emissiveIntensity: 4.0
-    });
-    readyBanner.position.set(0, 1, -5);
-    transitionGroup.add(readyBanner);
+    showOverlayText('GET READY!', '', 'text-green', '');
 
-    // Pulsing animation
-    const startTime = Date.now();
-    const animateReady = () => {
-        const elapsed = Date.now() - startTime;
-        const pulse = 1 + Math.sin(elapsed * 0.015) * 0.15;
-        readyBanner.scale.set(pulse, pulse, pulse);
-
-        if (elapsed < TIMING.REST_DURATION) {
-            requestAnimationFrame(animateReady);
-        } else {
-            transitionGroup.remove(readyBanner);
-            onDone();
-        }
-    };
-
-    requestAnimationFrame(animateReady);
+    setTimeout(() => {
+        hideOverlayText(onDone);
+    }, TIMING.REST_DURATION);
 }
 
 /**
  * Clean up transition resources
  */
 function cleanupTransition() {
+    // Clean up 3D objects
     if (transitionGroup && currentScene) {
         // Dispose all children
         transitionGroup.traverse((child) => {
@@ -564,10 +427,21 @@ function cleanupTransition() {
         currentScene.remove(transitionGroup);
     }
 
+    // Clean up warp lines
+    warpLines.forEach(line => {
+        if (line) {
+            line.geometry?.dispose();
+            line.material?.dispose();
+        }
+    });
+    warpLines = [];
+
+    // Hide overlay
+    hideOverlayText();
+
     transitionGroup = null;
     currentScene = null;
     isTransitioning = false;
-    warpLines = [];
 }
 
 /**
@@ -578,9 +452,14 @@ export function forceEndTransition() {
     setStarfieldSpeed(0.5);
 
     // Remove any overlay
-    const overlay = document.getElementById('bossWarningOverlay');
+    const bossOverlay = document.getElementById('bossWarningOverlay');
+    if (bossOverlay && bossOverlay.parentNode) {
+        bossOverlay.parentNode.removeChild(bossOverlay);
+    }
+
+    // Hide transition overlay
     if (overlay) {
-        document.body.removeChild(overlay);
+        overlay.classList.remove('active');
     }
 }
 

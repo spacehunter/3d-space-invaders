@@ -158,6 +158,74 @@
             transition: width 0.3s ease-out;
             box-shadow: 0 0 10px currentColor inset;
         }
+        /* Level transition overlay */
+        #transitionOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: flex-start;
+            align-items: center;
+            flex-direction: column;
+            padding-top: 18%;
+            z-index: 200;
+            pointer-events: none;
+            background: transparent;
+        }
+        #transitionOverlay.active {
+            display: flex;
+        }
+        #transitionOverlay .main-text {
+            font-size: 72px;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 8px;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.5s ease-out;
+        }
+        #transitionOverlay .main-text.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+        #transitionOverlay .sub-text {
+            font-size: 36px;
+            text-align: center;
+            letter-spacing: 4px;
+            margin-top: 20px;
+            opacity: 0;
+            transition: all 0.4s ease-out 0.2s;
+        }
+        #transitionOverlay .sub-text.show {
+            opacity: 1;
+        }
+        .text-green {
+            color: #00ff00;
+            text-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00, 0 0 60px #00ff00;
+        }
+        .text-yellow {
+            color: #ffff00;
+            text-shadow: 0 0 20px #ffff00, 0 0 40px #ffff00, 0 0 60px #ffff00;
+        }
+        .text-cyan {
+            color: #00ffff;
+            text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff, 0 0 60px #00ffff;
+        }
+        .text-red {
+            color: #ff0000;
+            text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
+            animation: bossTextPulse 0.5s ease-in-out infinite;
+        }
+        .text-magenta {
+            color: #ff00ff;
+            text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff, 0 0 60px #ff00ff;
+        }
+        @keyframes bossTextPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
     </style>
 </head>
 <body>
@@ -182,6 +250,10 @@
     <div id="settings">
         <label for="glowSlider">GLOW INTENSITY: <span id="glowValue">1.50</span></label>
         <input type="range" id="glowSlider" min="0" max="3" step="0.05" value="1.5">
+    </div>
+    <div id="transitionOverlay">
+        <div class="main-text"></div>
+        <div class="sub-text"></div>
     </div>
 
     <script type="module" src="js/main.js"></script>
