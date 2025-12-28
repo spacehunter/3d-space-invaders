@@ -21,7 +21,6 @@ let lastPlayerFireTime = 0;
 
 // Level complete callback (set by game.js)
 let levelCompleteCallback = null;
-let levelCompleteTriggered = false;  // Guard against multiple triggers
 
 /**
  * Set the callback for when a level is completed
@@ -29,7 +28,6 @@ let levelCompleteTriggered = false;  // Guard against multiple triggers
  */
 export function setLevelCompleteCallback(callback) {
     levelCompleteCallback = callback;
-    levelCompleteTriggered = false;  // Reset flag when callback is set
 }
 
 // Initialize UFO missile callback
@@ -214,8 +212,7 @@ function checkBossCollision(missile, missileIndex, scene, scoreCallback) {
         const wasDefeated = damageBoss(1, scene);
         scoreCallback(50);  // Points per boss hit
 
-        if (wasDefeated && !levelCompleteTriggered) {
-            levelCompleteTriggered = true;  // Prevent multiple triggers
+        if (wasDefeated) {
             // Boss defeated - trigger level complete
             scoreCallback(1000);  // Bonus for defeating boss
             if (levelCompleteCallback) {
@@ -280,8 +277,7 @@ function checkMissileCollision(missile, missileIndex, scene, scoreCallback, game
             removeAlien(alien, scene);
 
             // Check win condition - trigger level complete instead of game over
-            if (getAliens().length === 0 && !levelCompleteTriggered) {
-                levelCompleteTriggered = true;  // Prevent multiple triggers
+            if (getAliens().length === 0) {
                 if (levelCompleteCallback) {
                     levelCompleteCallback();
                 } else {
@@ -1052,7 +1048,6 @@ export function resetMissiles(scene) {
     webZones = [];
     blasterBolts = [];
     lastAlienFireTime = 0;
-    levelCompleteTriggered = false;  // Reset for new level
 }
 
 // Get missile arrays
