@@ -111,6 +111,11 @@ export function handleFire() {
         return;
     }
 
+    // Don't allow reset during level transition
+    if (isInTransition()) {
+        return;
+    }
+
     if (!gameActive) {
         resetGame();
         return;
@@ -164,6 +169,7 @@ export function handleLevelComplete() {
 
     gameActive = false;  // Pause gameplay during transition
 
+    const expectedLevel = currentLevel;  // Capture current level for callback validation
     startLevelTransition(
         currentLevel,
         score,
@@ -171,6 +177,11 @@ export function handleLevelComplete() {
         lives,
         scene,
         (nextLevel, bonusPoints) => {
+            // Ignore callback if game was reset during transition
+            if (currentLevel !== expectedLevel) {
+                return;
+            }
+
             // Update score with bonus
             score += bonusPoints;
             updateUI();
