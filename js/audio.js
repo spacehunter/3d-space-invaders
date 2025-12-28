@@ -447,3 +447,288 @@ export function playSwoopWarning() {
     osc.stop(now + 1.0);
     lfo.stop(now + 1.0);
 }
+
+// ============== LEVEL SYSTEM AUDIO ==============
+
+// Play level completion fanfare
+export function playLevelComplete() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Ascending arpeggio - C, E, G, C (octave)
+    const notes = [261.63, 329.63, 392.00, 523.25];
+
+    notes.forEach((freq, i) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.12);
+
+        gain.gain.setValueAtTime(0, now + i * 0.12);
+        gain.gain.linearRampToValueAtTime(0.4, now + i * 0.12 + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.5);
+
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.5);
+    });
+
+    // Add a final triumphant chord
+    setTimeout(() => {
+        if (!audioContext) return;
+        const chordNow = audioContext.currentTime;
+
+        [523.25, 659.25, 783.99].forEach(freq => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, chordNow);
+
+            gain.gain.setValueAtTime(0.3, chordNow);
+            gain.gain.exponentialRampToValueAtTime(0.01, chordNow + 0.8);
+
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            osc.start(chordNow);
+            osc.stop(chordNow + 0.8);
+        });
+    }, 500);
+}
+
+// Play hyperspace warp sound
+export function playWarpSound() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Rising frequency sweep with noise
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(50, now);
+    osc.frequency.exponentialRampToValueAtTime(2000, now + 1.5);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(500, now);
+    filter.frequency.exponentialRampToValueAtTime(5000, now + 1.5);
+
+    gain.gain.setValueAtTime(0.5, now);
+    gain.gain.linearRampToValueAtTime(0.3, now + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(now);
+    osc.stop(now + 1.5);
+
+    // Add white noise layer for "whoosh"
+    const bufferSize = audioContext.sampleRate * 1.5;
+    const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        noiseData[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = audioContext.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = audioContext.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(1000, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(4000, now + 1.5);
+    noiseFilter.Q.value = 1.0;
+
+    const noiseGain = audioContext.createGain();
+    noiseGain.gain.setValueAtTime(0.3, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(audioContext.destination);
+
+    noise.start(now);
+    noise.stop(now + 1.5);
+}
+
+// Play boss warning sound
+export function playBossWarning() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Ominous low rumble building up
+    const bass = audioContext.createOscillator();
+    const bassGain = audioContext.createGain();
+
+    bass.type = 'sine';
+    bass.frequency.setValueAtTime(30, now);
+    bass.frequency.linearRampToValueAtTime(60, now + 2);
+
+    bassGain.gain.setValueAtTime(0.1, now);
+    bassGain.gain.linearRampToValueAtTime(0.8, now + 1.5);
+    bassGain.gain.exponentialRampToValueAtTime(0.01, now + 2);
+
+    bass.connect(bassGain);
+    bassGain.connect(audioContext.destination);
+
+    bass.start(now);
+    bass.stop(now + 2);
+
+    // Warning beeps
+    for (let i = 0; i < 3; i++) {
+        const beep = audioContext.createOscillator();
+        const beepGain = audioContext.createGain();
+
+        beep.type = 'square';
+        beep.frequency.setValueAtTime(800, now + i * 0.5);
+
+        beepGain.gain.setValueAtTime(0.4, now + i * 0.5);
+        beepGain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.5 + 0.15);
+
+        beep.connect(beepGain);
+        beepGain.connect(audioContext.destination);
+
+        beep.start(now + i * 0.5);
+        beep.stop(now + i * 0.5 + 0.15);
+    }
+}
+
+// Play level start sound
+export function playLevelStart() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Quick ascending tone
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.3);
+
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.4);
+}
+
+// Play boss hit sound
+export function playBossHit() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+
+    gain.gain.setValueAtTime(0.5, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.2);
+}
+
+// Play boss phase transition sound
+export function playBossPhaseTransition() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Dramatic power-up sweep
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(100, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.5);
+    osc.frequency.exponentialRampToValueAtTime(400, now + 1.0);
+
+    gain.gain.setValueAtTime(0.6, now);
+    gain.gain.linearRampToValueAtTime(0.4, now + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(now);
+    osc.stop(now + 1.0);
+
+    // Add shimmer effect
+    const shimmer = audioContext.createOscillator();
+    const shimmerGain = audioContext.createGain();
+
+    shimmer.type = 'sine';
+    shimmer.frequency.setValueAtTime(2000, now);
+
+    const lfo = audioContext.createOscillator();
+    const lfoGain = audioContext.createGain();
+    lfo.frequency.setValueAtTime(20, now);
+    lfoGain.gain.setValueAtTime(500, now);
+    lfo.connect(lfoGain);
+    lfoGain.connect(shimmer.frequency);
+
+    shimmerGain.gain.setValueAtTime(0.2, now);
+    shimmerGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+
+    shimmer.connect(shimmerGain);
+    shimmerGain.connect(audioContext.destination);
+
+    shimmer.start(now);
+    lfo.start(now);
+    shimmer.stop(now + 1.0);
+    lfo.stop(now + 1.0);
+}
+
+// Play boss defeat sound (massive victory)
+export function playBossDefeat() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Multiple descending booms
+    for (let i = 0; i < 3; i++) {
+        const boom = audioContext.createOscillator();
+        const boomGain = audioContext.createGain();
+
+        boom.type = 'sine';
+        boom.frequency.setValueAtTime(100 - i * 20, now + i * 0.3);
+        boom.frequency.exponentialRampToValueAtTime(20, now + i * 0.3 + 0.5);
+
+        boomGain.gain.setValueAtTime(0.8, now + i * 0.3);
+        boomGain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.3 + 0.6);
+
+        boom.connect(boomGain);
+        boomGain.connect(audioContext.destination);
+
+        boom.start(now + i * 0.3);
+        boom.stop(now + i * 0.3 + 0.6);
+    }
+
+    // Victory fanfare after explosions
+    setTimeout(() => {
+        if (!audioContext) return;
+        playLevelComplete();
+    }, 1000);
+}

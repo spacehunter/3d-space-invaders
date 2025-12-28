@@ -6,6 +6,7 @@ import { playExplosion } from './audio.js';
 import { getAliens, removeAlien } from './aliens.js';
 import { getBonusUFO, removeBonusUFO, setUFOMissileFireCallback } from './bonus-ufo.js';
 import { checkBarrierCollision } from './barriers.js';
+import { getCurrentBoss, damageBoss, getBossHitRadius } from './boss.js';
 
 import { getActivePowerUp, POWERUP_TYPES } from './powerups.js';
 
@@ -17,6 +18,17 @@ let webZones = [];
 let blasterBolts = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
+
+// Level complete callback (set by game.js)
+let levelCompleteCallback = null;
+
+/**
+ * Set the callback for when a level is completed
+ * @param {Function} callback - Function to call when level is complete
+ */
+export function setLevelCompleteCallback(callback) {
+    levelCompleteCallback = callback;
+}
 
 // Initialize UFO missile callback
 export function initUFOMissiles() {
@@ -114,7 +126,7 @@ function checkMissileToMissileCollision(missile, missileIndex, scene) {
 }
 
 // Update player missiles
-export function updateMissiles(scene, scoreCallback, gameOverCallback) {
+export function updateMissiles(scene, scoreCallback, gameOverCallback, isBossLevel = false) {
     const bonusUFO = getBonusUFO();
 
     for (let i = missiles.length - 1; i >= 0; i--) {
@@ -171,9 +183,50 @@ export function updateMissiles(scene, scoreCallback, gameOverCallback) {
             continue;
         }
 
-        // Check collision with aliens
-        checkMissileCollision(missile, i, scene, scoreCallback, gameOverCallback);
+        // Check collision with boss if in boss level
+        if (isBossLevel) {
+            if (checkBossCollision(missile, i, scene, scoreCallback)) {
+                continue;  // Missile hit boss
+            }
+        } else {
+            // Check collision with aliens
+            checkMissileCollision(missile, i, scene, scoreCallback, gameOverCallback);
+        }
     }
+}
+
+// Check missile collision with boss
+function checkBossCollision(missile, missileIndex, scene, scoreCallback) {
+    const boss = getCurrentBoss();
+    if (!boss) return false;
+
+    const distance = missile.position.distanceTo(boss.position);
+    const hitRadius = getBossHitRadius();
+
+    if (distance < hitRadius) {
+        // Hit the boss!
+        scene.remove(missile);
+        missiles.splice(missileIndex, 1);
+
+        // Damage boss and check if defeated
+        const wasDefeated = damageBoss(1, scene);
+        scoreCallback(50);  // Points per boss hit
+
+        if (wasDefeated) {
+            // Boss defeated - trigger level complete
+            scoreCallback(1000);  // Bonus for defeating boss
+            if (levelCompleteCallback) {
+                // Small delay to let defeat animation play
+                setTimeout(() => {
+                    levelCompleteCallback();
+                }, 1500);
+            }
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 // Check missile collision with aliens
@@ -223,9 +276,14 @@ function checkMissileCollision(missile, missileIndex, scene, scoreCallback, game
             // Remove alien
             removeAlien(alien, scene);
 
-            // Check win condition
+            // Check win condition - trigger level complete instead of game over
             if (getAliens().length === 0) {
-                gameOverCallback(true);
+                if (levelCompleteCallback) {
+                    levelCompleteCallback();
+                } else {
+                    // Fallback to game over if no callback set
+                    gameOverCallback(true);
+                }
             }
 
             break;

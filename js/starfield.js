@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 let starfield;
 let starPositions;
+let starSpeed = 0.5;  // Default speed
 
 // Create the animated starfield background
 export function createStarfield(scene) {
@@ -26,6 +27,16 @@ export function createStarfield(scene) {
     scene.add(starfield);
 }
 
+// Set starfield speed (for hyperspace effect)
+export function setStarfieldSpeed(speed) {
+    starSpeed = speed;
+}
+
+// Get current starfield speed
+export function getStarfieldSpeed() {
+    return starSpeed;
+}
+
 // Update starfield animation
 export function updateStarfield() {
     if (!starfield) return;
@@ -33,8 +44,8 @@ export function updateStarfield() {
     const positions = starfield.geometry.attributes.position.array;
 
     for (let i = 0; i < positions.length; i += 3) {
-        // Move stars toward player (increase Z)
-        positions[i + 2] += 0.5;  // Z coordinate
+        // Move stars toward player (increase Z) at current speed
+        positions[i + 2] += starSpeed;
 
         // Reset star to far distance if it passes the player
         if (positions[i + 2] > 20) {

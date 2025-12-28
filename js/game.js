@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { initAudio } from './audio.js';
 import { getPlayer, updatePlayer, showPlayer } from './player.js';
-import { updateStarfield } from './starfield.js';
-import { createAliens, updateAliens, animateAlien, getAliens, resetAliens } from './aliens.js';
-import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, updateWebBombs, updateBlasterBolts, checkAlienFire, resetMissiles, initUFOMissiles } from './missiles.js';
+import { updateStarfield, setStarfieldSpeed } from './starfield.js';
+import { createAliens, updateAliens, animateAlien, getAliens, resetAliens, setAlienConfig } from './aliens.js';
+import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, updateWebBombs, updateBlasterBolts, checkAlienFire, resetMissiles, initUFOMissiles, setLevelCompleteCallback } from './missiles.js';
 import { updateParticles, updateShrapnelParticles, resetParticles } from './particles.js';
 import { getMousePosition } from './input.js';
 import { isHighScore, showInitialEntry, updateHighScoreUI, hideInitialEntry, isInitialEntryActive } from './highscores.js';
@@ -11,6 +11,9 @@ import { spawnBonusUFO, updateBonusUFO, resetBonusUFO } from './bonus-ufo.js';
 import { createBarriers, resetBarriers } from './barriers.js';
 import { updatePowerUps, resetPowerUps } from './powerups.js';
 import { getIsMouseDown } from './input.js';
+import { getLevelConfig } from './levels.js';
+import { startLevelTransition, isInTransition, forceEndTransition, updateTransition } from './transitions.js';
+import { spawnBoss, updateBoss, getCurrentBoss, resetBoss, damageBoss, getBossHitRadius } from './boss.js';
 
 // Game state
 let scene;
@@ -18,6 +21,13 @@ let camera;
 let score = 0;
 let lives = 3;
 let gameActive = true;
+
+// Level state
+let currentLevel = 1;
+let levelConfig = null;
+let damageTakenThisLevel = false;
+let livesAtLevelStart = 3;
+let isBossLevel = false;
 
 // Initialize game state
 export function initGame(sceneRef, cameraRef) {
@@ -27,13 +37,29 @@ export function initGame(sceneRef, cameraRef) {
     lives = 3;
     gameActive = true;
 
+    // Initialize level system
+    currentLevel = 1;
+    damageTakenThisLevel = false;
+    livesAtLevelStart = lives;
+
+    // Get level 1 configuration
+    levelConfig = getLevelConfig(currentLevel);
+    isBossLevel = levelConfig.isBossLevel;
+
+    // Apply level config to aliens
+    setAlienConfig(levelConfig);
+
     // Initialize UFO missile system
     initUFOMissiles();
+
+    // Set up level complete callback
+    setLevelCompleteCallback(handleLevelComplete);
 
     // Create barriers
     createBarriers(scene);
 
     updateUI();
+    updateLevelDisplay();
 }
 
 // Update camera position based on player and mouse
@@ -105,6 +131,7 @@ function updateScore(points) {
 // Decrease lives and return new life count
 function decreaseLives() {
     lives--;
+    damageTakenThisLevel = true;  // Track for perfect bonus
     document.getElementById('lives').textContent = lives;
     return lives;
 }
@@ -113,6 +140,119 @@ function decreaseLives() {
 function updateUI() {
     document.getElementById('score').textContent = score;
     document.getElementById('lives').textContent = lives;
+}
+
+// Update level display
+function updateLevelDisplay() {
+    const levelElement = document.getElementById('levelIndicator');
+    if (levelElement) {
+        if (isBossLevel) {
+            levelElement.textContent = `BOSS - ${levelConfig.bossType.toUpperCase()}`;
+            levelElement.style.color = '#ff0000';
+            levelElement.style.textShadow = '0 0 10px #ff0000, 0 0 20px #ff0000';
+        } else {
+            levelElement.textContent = `LEVEL ${currentLevel}`;
+            levelElement.style.color = '#00ffff';
+            levelElement.style.textShadow = '0 0 10px #00ffff, 0 0 20px #00ffff';
+        }
+    }
+}
+
+// Handle level completion (called when all aliens destroyed or boss defeated)
+export function handleLevelComplete() {
+    if (isInTransition()) return;
+
+    gameActive = false;  // Pause gameplay during transition
+
+    startLevelTransition(
+        currentLevel,
+        score,
+        !damageTakenThisLevel,
+        lives,
+        scene,
+        (nextLevel, bonusPoints) => {
+            // Update score with bonus
+            score += bonusPoints;
+            updateUI();
+
+            // Advance to next level
+            currentLevel = nextLevel;
+            levelConfig = getLevelConfig(currentLevel);
+            isBossLevel = levelConfig.isBossLevel;
+            damageTakenThisLevel = false;
+            livesAtLevelStart = lives;
+
+            // Start next level
+            if (isBossLevel) {
+                startBossLevel();
+            } else {
+                startWaveLevel();
+            }
+
+            gameActive = true;
+            updateLevelDisplay();
+        }
+    );
+}
+
+// Start a regular wave level
+function startWaveLevel() {
+    // Reset systems for new level
+    resetMissiles(scene);
+    resetParticles(scene);
+    resetPowerUps(scene);
+    resetBonusUFO(scene);
+    resetBoss(scene);
+
+    // Apply level configuration
+    setAlienConfig(levelConfig);
+
+    // Create new alien wave
+    createAliens(scene);
+
+    // Partial barrier repair (50% of damage)
+    partialBarrierRepair(0.5);
+}
+
+// Start a boss level
+function startBossLevel() {
+    // Reset systems
+    resetMissiles(scene);
+    resetParticles(scene);
+    resetPowerUps(scene);
+    resetBonusUFO(scene);
+    resetAliens(scene);
+
+    // Spawn boss
+    spawnBoss(levelConfig.bossType, levelConfig.bossEnhancement, scene);
+
+    // Full barrier repair for boss fight
+    partialBarrierRepair(1.0);
+}
+
+// Partial barrier repair between levels
+function partialBarrierRepair(repairRatio) {
+    // For now, just recreate barriers if heavily damaged
+    // A more sophisticated version could track and partially heal
+    if (repairRatio >= 0.8) {
+        createBarriers(scene);
+    }
+    // Could be enhanced to partially repair existing barriers
+}
+
+// Get current level (for external access)
+export function getCurrentLevel() {
+    return currentLevel;
+}
+
+// Get level configuration (for external access)
+export function getLevelConfiguration() {
+    return levelConfig;
+}
+
+// Check if currently in a boss level
+export function isCurrentlyBossLevel() {
+    return isBossLevel;
 }
 
 // Game over handler
@@ -157,21 +297,36 @@ function resetGame() {
     // Hide initial entry if active
     hideInitialEntry();
 
+    // Force end any transitions
+    forceEndTransition();
+    setStarfieldSpeed(0.5);
+
     // Reset game state
     resetAliens(scene);
     resetMissiles(scene);
     resetParticles(scene);
-    resetParticles(scene);
     resetBonusUFO(scene);
     resetPowerUps(scene);
+    resetBoss(scene);
+
+    // Reset level state
+    currentLevel = 1;
+    levelConfig = getLevelConfig(currentLevel);
+    isBossLevel = levelConfig.isBossLevel;
+    damageTakenThisLevel = false;
+
+    // Apply level config
+    setAlienConfig(levelConfig);
 
     // Reset and recreate barriers
     createBarriers(scene);
 
     score = 0;
     lives = 3;
+    livesAtLevelStart = 3;
 
     updateUI();
+    updateLevelDisplay();
 
     // Hide and clear game over screen
     const gameOverDiv = document.getElementById('gameOver');
@@ -192,6 +347,17 @@ export function update() {
 
     if (!player) return;
 
+    // Handle transitions
+    if (isInTransition()) {
+        updateTransition();
+        // Still update camera, starfield, and particles during transitions
+        updateCamera(player, mouse.x, mouse.y);
+        updateParticles(scene);
+        updateShrapnelParticles(scene);
+        updateStarfield();
+        return;
+    }
+
     // Ensure game over screen is hidden during active gameplay (defensive)
     if (gameActive) {
         const gameOverDiv = document.getElementById('gameOver');
@@ -203,14 +369,20 @@ export function update() {
 
     if (gameActive) {
         updatePlayer(mouse.x);
-        updateAliens(gameOver);
-        checkAlienFire(scene);
 
-        // Spawn and update bonus UFO
-        spawnBonusUFO(scene, Date.now());
-        // Spawn and update bonus UFO
-        spawnBonusUFO(scene, Date.now());
-        updateBonusUFO();
+        // Update based on level type
+        if (isBossLevel) {
+            // Boss level - update boss instead of aliens
+            updateBoss(scene, player, 16.67);  // ~60fps delta
+        } else {
+            // Normal wave level
+            updateAliens(gameOver);
+            checkAlienFire(scene);
+
+            // Spawn and update bonus UFO (only in wave levels)
+            spawnBonusUFO(scene, Date.now());
+            updateBonusUFO();
+        }
 
         // Update power-ups
         updatePowerUps(scene, player);
@@ -222,7 +394,7 @@ export function update() {
     }
 
     // Always update missiles, camera, particles, and starfield (even after game over)
-    updateMissiles(scene, updateScore, gameOver);
+    updateMissiles(scene, updateScore, gameOver, isBossLevel);
     updateAlienMissiles(player, scene, gameActive, decreaseLives, gameOver);
     updateUFOMissiles(player, scene, gameActive, decreaseLives, gameOver);
     updateWebBombs(player, scene, gameActive, decreaseLives, gameOver);
@@ -241,6 +413,12 @@ export function update() {
         if (!alien.userData.destroyed) {
             animateAlien(alien);
         }
+    }
+
+    // Animate boss if present
+    const boss = getCurrentBoss();
+    if (boss) {
+        // Boss animation is handled in updateBoss
     }
 }
 
