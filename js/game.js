@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { initAudio } from './audio.js';
+import { initAudio, playWeaponUnlock, playWeaponSwitch } from './audio.js';
 import { getPlayer, updatePlayer, showPlayer } from './player.js';
 import { updateStarfield, setStarfieldSpeed } from './starfield.js';
 import { createAliens, updateAliens, animateAlien, getAliens, resetAliens, setAlienConfig } from './aliens.js';
@@ -14,6 +14,7 @@ import { getIsMouseDown } from './input.js';
 import { getLevelConfig } from './levels.js';
 import { startLevelTransition, isInTransition, forceEndTransition, updateTransition } from './transitions.js';
 import { spawnBoss, updateBoss, getCurrentBoss, resetBoss, damageBoss, getBossHitRadius } from './boss.js';
+import { checkForUnlock, getNextUnlock, getCurrentWeaponConfig, resetWeapons, setWeaponSwitchCallback } from './weapons.js';
 
 // Game state
 let scene;
@@ -55,11 +56,15 @@ export function initGame(sceneRef, cameraRef) {
     // Set up level complete callback
     setLevelCompleteCallback(handleLevelComplete);
 
+    // Set up weapon switch callback
+    setWeaponSwitchCallback(onWeaponSwitch);
+
     // Create barriers
     createBarriers(scene);
 
     updateUI();
     updateLevelDisplay();
+    updateWeaponHUD();
 }
 
 // Update camera position based on player and mouse
@@ -163,6 +168,67 @@ function updateLevelDisplay() {
     }
 }
 
+// Update weapon HUD
+function updateWeaponHUD() {
+    const weapon = getCurrentWeaponConfig();
+    const nextUnlock = getNextUnlock(currentLevel);
+
+    // Update current weapon display
+    const weaponNameEl = document.getElementById('currentWeaponName');
+    const weaponKeyEl = document.getElementById('currentWeaponKey');
+    if (weaponNameEl) weaponNameEl.textContent = weapon.name;
+    if (weaponKeyEl) weaponKeyEl.textContent = weapon.hotkey;
+
+    // Update next unlock info
+    const nextUnlockInfo = document.getElementById('nextUnlockInfo');
+    const nextWeaponName = document.getElementById('nextWeaponName');
+    const unlockProgressFill = document.getElementById('unlockProgressFill');
+
+    if (nextUnlock) {
+        if (nextUnlockInfo) nextUnlockInfo.style.display = 'block';
+        if (nextWeaponName) nextWeaponName.textContent = nextUnlock.weapon.name;
+
+        // Calculate progress percentage
+        const levelsToUnlock = nextUnlock.weapon.unlockLevel - 1;
+        const progress = Math.min(100, ((currentLevel - 1) / levelsToUnlock) * 100);
+        if (unlockProgressFill) unlockProgressFill.style.width = `${progress}%`;
+    } else {
+        // All weapons unlocked
+        if (nextUnlockInfo) nextUnlockInfo.style.display = 'none';
+    }
+}
+
+// Handle weapon switch
+function onWeaponSwitch(weapon) {
+    playWeaponSwitch();
+    updateWeaponHUD();
+}
+
+// Show weapon unlock celebration
+function showWeaponUnlock(weapon) {
+    playWeaponUnlock();
+
+    const unlockOverlay = document.getElementById('weaponUnlock');
+    const unlockedName = document.getElementById('unlockedWeaponName');
+    const unlockedTagline = document.getElementById('unlockedWeaponTagline');
+    const unlockedKey = document.getElementById('unlockedWeaponKey');
+
+    if (unlockedName) unlockedName.textContent = weapon.name;
+    if (unlockedTagline) unlockedTagline.textContent = `"${weapon.tagline}"`;
+    if (unlockedKey) unlockedKey.textContent = weapon.hotkey;
+
+    if (unlockOverlay) {
+        unlockOverlay.classList.add('active');
+
+        // Hide after 3 seconds
+        setTimeout(() => {
+            unlockOverlay.classList.remove('active');
+        }, 3000);
+    }
+
+    updateWeaponHUD();
+}
+
 // Handle level completion (called when all aliens destroyed or boss defeated)
 export function handleLevelComplete() {
     if (isInTransition()) return;
@@ -193,6 +259,12 @@ export function handleLevelComplete() {
             damageTakenThisLevel = false;
             livesAtLevelStart = lives;
 
+            // Check for weapon unlock at new level
+            const unlockedWeapon = checkForUnlock(currentLevel);
+            if (unlockedWeapon) {
+                showWeaponUnlock(unlockedWeapon);
+            }
+
             // Start next level
             if (isBossLevel) {
                 startBossLevel();
@@ -202,6 +274,7 @@ export function handleLevelComplete() {
 
             gameActive = true;
             updateLevelDisplay();
+            updateWeaponHUD();
         }
     );
 }
@@ -320,6 +393,7 @@ function resetGame() {
     resetBonusUFO(scene);
     resetPowerUps(scene);
     resetBoss(scene);
+    resetWeapons();  // Reset weapon unlocks
 
     // Reset level state
     currentLevel = 1;
@@ -339,11 +413,16 @@ function resetGame() {
 
     updateUI();
     updateLevelDisplay();
+    updateWeaponHUD();  // Update weapon display
 
     // Hide and clear game over screen
     const gameOverDiv = document.getElementById('gameOver');
     gameOverDiv.style.display = 'none';
     gameOverDiv.innerHTML = '';  // Clear old content
+
+    // Hide weapon unlock overlay if visible
+    const unlockOverlay = document.getElementById('weaponUnlock');
+    if (unlockOverlay) unlockOverlay.classList.remove('active');
 
     // Ensure player is visible for new game
     showPlayer();

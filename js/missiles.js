@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MISSILE_SPEED } from './constants.js';
-import { playMissileFire, playUFOMissileLaunch } from './audio.js';
+import { playMissileFire, playUFOMissileLaunch, playPlasmaFire, playScatterFire, playHomingFire, playRailgunFire, playNovaFire } from './audio.js';
 import { createExplosion, createShrapnelExplosion, getParticles } from './particles.js';
 import { playExplosion } from './audio.js';
 import { getAliens, removeAlien } from './aliens.js';
@@ -9,6 +9,7 @@ import { checkBarrierCollision } from './barriers.js';
 import { getCurrentBoss, damageBoss, getBossHitRadius } from './boss.js';
 
 import { getActivePowerUp, POWERUP_TYPES } from './powerups.js';
+import { getCurrentWeaponConfig, WEAPONS } from './weapons.js';
 
 let missiles = [];
 let alienMissiles = [];
@@ -35,15 +36,16 @@ export function initUFOMissiles() {
     setUFOMissileFireCallback(fireUFOMissile);
 }
 
-// Fire a player missile
+// Fire a player missile based on current weapon
 export function fireMissile(player, scene) {
     const now = Date.now();
     const activePowerUp = getActivePowerUp();
+    const weapon = getCurrentWeaponConfig();
 
-    // Determine fire rate
-    let fireDelay = 400; // Default 400ms
+    // Determine fire rate from weapon, modified by power-up
+    let fireDelay = weapon.fireRate;
     if (activePowerUp === POWERUP_TYPES.RAPID_FIRE) {
-        fireDelay = 100; // Rapid fire 100ms
+        fireDelay = Math.floor(weapon.fireRate * 0.25); // 75% faster
     }
 
     // Check cooldown
@@ -52,21 +54,175 @@ export function fireMissile(player, scene) {
     }
     lastPlayerFireTime = now;
 
-    // Fire logic
+    // Calculate projectile count (weapon base + spread shot bonus)
+    let projectileCount = weapon.projectileCount;
+    let extraSpread = 0;
     if (activePowerUp === POWERUP_TYPES.SPREAD_SHOT) {
-        // Fire 3 missiles
-        createMissile(player.position, 0, scene);
-        createMissile(player.position, -0.2, scene); // Left angle
-        createMissile(player.position, 0.2, scene);  // Right angle
-    } else {
-        // Normal single shot
-        createMissile(player.position, 0, scene);
+        projectileCount += 2;
+        extraSpread = 0.15; // Add extra spread angle when power-up active
     }
 
-    playMissileFire();
+    // Fire based on weapon type
+    switch (weapon.special) {
+        case 'piercing':
+            firePiercingShot(player, scene, weapon, projectileCount, extraSpread);
+            playPlasmaFire();
+            break;
+        case 'homing':
+            fireHomingMissiles(player, scene, weapon, projectileCount);
+            playHomingFire();
+            break;
+        case 'instant':
+            fireRailgun(player, scene, weapon);
+            playRailgunFire();
+            break;
+        case 'aoe':
+            fireNovaBurst(player, scene, weapon);
+            playNovaFire();
+            break;
+        default:
+            fireStandardShots(player, scene, weapon, projectileCount, extraSpread);
+            if (weapon.id === 'SCATTER_CANNON') {
+                playScatterFire();
+            } else {
+                playMissileFire();
+            }
+    }
 }
 
-// Helper to create a single missile
+// Fire standard projectile shots (Pulse, Twin, Scatter)
+function fireStandardShots(player, scene, weapon, projectileCount, extraSpread) {
+    const baseSpread = weapon.spread + extraSpread;
+
+    if (projectileCount === 1) {
+        // Single shot
+        createWeaponMissile(player.position, 0, scene, weapon);
+    } else if (weapon.projectileSpacing > 0) {
+        // Parallel shots (Twin Blasters style)
+        const spacing = weapon.projectileSpacing;
+        const halfCount = Math.floor(projectileCount / 2);
+
+        for (let i = 0; i < projectileCount; i++) {
+            const offset = (i - halfCount) * spacing + (projectileCount % 2 === 0 ? spacing / 2 : 0);
+            createWeaponMissile(player.position, 0, scene, weapon, offset);
+        }
+    } else {
+        // Spread shots (Scatter Cannon style)
+        const angleStep = baseSpread / (projectileCount - 1);
+        const startAngle = -baseSpread / 2;
+
+        for (let i = 0; i < projectileCount; i++) {
+            const angle = startAngle + (angleStep * i);
+            createWeaponMissile(player.position, angle, scene, weapon);
+        }
+    }
+}
+
+// Fire piercing plasma shots
+function firePiercingShot(player, scene, weapon, projectileCount, extraSpread) {
+    if (projectileCount === 1) {
+        createPlasmaMissile(player.position, 0, scene, weapon);
+    } else {
+        const spread = 0.2 + extraSpread;
+        const angleStep = spread / (projectileCount - 1);
+        const startAngle = -spread / 2;
+
+        for (let i = 0; i < projectileCount; i++) {
+            const angle = startAngle + (angleStep * i);
+            createPlasmaMissile(player.position, angle, scene, weapon);
+        }
+    }
+}
+
+// Fire homing missiles
+function fireHomingMissiles(player, scene, weapon, projectileCount) {
+    for (let i = 0; i < projectileCount; i++) {
+        createHomingMissile(player.position, scene, weapon, i * 0.1);
+    }
+}
+
+// Fire railgun instant beam
+function fireRailgun(player, scene, weapon) {
+    // Create visual beam effect
+    createRailgunBeamEffect(player, scene, weapon);
+
+    // Instant hit detection along the beam path
+    const beamStart = player.position.clone();
+    beamStart.z -= 1;
+
+    // Check all aliens in a line
+    const aliens = getAliens();
+    const hitAliens = [];
+
+    for (const alien of aliens) {
+        if (alien.userData.destroyed) continue;
+
+        // Check if alien is roughly in line with player (X within threshold)
+        if (Math.abs(alien.position.x - player.position.x) < 1.5) {
+            // Check if alien is in front of player
+            if (alien.position.z < player.position.z) {
+                hitAliens.push(alien);
+            }
+        }
+    }
+
+    // Damage all aliens hit by the beam
+    for (const alien of hitAliens) {
+        createExplosion(alien.position, scene);
+        playExplosion(0.8);
+
+        const points = (6 - alien.userData.row) * 10 * weapon.damage;
+        // Score callback will be handled by game.js
+        removeAlien(alien, scene);
+    }
+
+    // Check boss hit
+    const boss = getCurrentBoss();
+    if (boss) {
+        if (Math.abs(boss.position.x - player.position.x) < getBossHitRadius()) {
+            damageBoss(weapon.damage, scene);
+            createExplosion(boss.position, scene);
+        }
+    }
+
+    // Check bonus UFO
+    const bonusUFO = getBonusUFO();
+    if (bonusUFO) {
+        if (Math.abs(bonusUFO.position.x - player.position.x) < 2.0) {
+            createExplosion(bonusUFO.position, scene);
+            playExplosion(1.5);
+            removeBonusUFO(scene);
+        }
+    }
+}
+
+// Fire nova burst AOE
+function fireNovaBurst(player, scene, weapon) {
+    // Create expanding shockwave visual
+    createNovaExplosionEffect(player.position, scene, weapon);
+
+    // Damage all enemies within AOE radius
+    const aliens = getAliens();
+    const hitAliens = [];
+
+    for (const alien of aliens) {
+        if (alien.userData.destroyed) continue;
+
+        const distance = player.position.distanceTo(alien.position);
+        if (distance < weapon.aoeRadius) {
+            hitAliens.push(alien);
+        }
+    }
+
+    // Damage and remove hit aliens
+    for (const alien of hitAliens) {
+        createExplosion(alien.position, scene);
+        playExplosion(0.6);
+        removeAlien(alien, scene);
+    }
+}
+
+// Helper to create a single missile (legacy - kept for compatibility)
 function createMissile(position, angleOffset, scene) {
     const missileGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.5);
     const missileMaterial = new THREE.MeshPhongMaterial({
@@ -91,11 +247,267 @@ function createMissile(position, angleOffset, scene) {
             Math.sin(angleOffset) * MISSILE_SPEED,
             0,
             -Math.cos(angleOffset) * MISSILE_SPEED
-        )
+        ),
+        damage: 1
     };
 
     missiles.push(missile);
     scene.add(missile);
+}
+
+// Create weapon-based missile with custom color and properties
+function createWeaponMissile(position, angleOffset, scene, weapon, xOffset = 0) {
+    const missileGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.5);
+    const missileMaterial = new THREE.MeshPhongMaterial({
+        color: weapon.color,
+        emissive: weapon.color,
+        emissiveIntensity: weapon.emissiveIntensity
+    });
+    const missile = new THREE.Mesh(missileGeometry, missileMaterial);
+
+    missile.position.copy(position);
+    missile.position.x += xOffset;
+    missile.position.y = 0;
+    missile.position.z -= 1;
+
+    if (angleOffset !== 0) {
+        missile.rotation.y = angleOffset;
+    }
+
+    missile.userData = {
+        velocity: new THREE.Vector3(
+            Math.sin(angleOffset) * MISSILE_SPEED,
+            0,
+            -Math.cos(angleOffset) * MISSILE_SPEED
+        ),
+        damage: weapon.damage,
+        weaponId: weapon.id
+    };
+
+    missiles.push(missile);
+    scene.add(missile);
+}
+
+// Create piercing plasma missile
+function createPlasmaMissile(position, angleOffset, scene, weapon) {
+    const group = new THREE.Group();
+
+    // Core plasma bolt
+    const coreGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.8);
+    const coreMaterial = new THREE.MeshPhongMaterial({
+        color: weapon.color,
+        emissive: weapon.color,
+        emissiveIntensity: weapon.emissiveIntensity,
+        transparent: true,
+        opacity: 0.9
+    });
+    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+    group.add(core);
+
+    // Outer glow
+    const glowGeometry = new THREE.BoxGeometry(0.25, 0.25, 0.7);
+    const glowMaterial = new THREE.MeshPhongMaterial({
+        color: weapon.color,
+        emissive: weapon.color,
+        emissiveIntensity: weapon.emissiveIntensity * 0.5,
+        transparent: true,
+        opacity: 0.4
+    });
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    group.add(glow);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z -= 1;
+
+    if (angleOffset !== 0) {
+        group.rotation.y = angleOffset;
+    }
+
+    group.userData = {
+        velocity: new THREE.Vector3(
+            Math.sin(angleOffset) * MISSILE_SPEED * 0.8,
+            0,
+            -Math.cos(angleOffset) * MISSILE_SPEED * 0.8
+        ),
+        damage: weapon.damage,
+        weaponId: weapon.id,
+        isPiercing: true,
+        lastTrailTime: Date.now()
+    };
+
+    missiles.push(group);
+    scene.add(group);
+}
+
+// Create player homing missile
+function createHomingMissile(position, scene, weapon, delay = 0) {
+    const group = new THREE.Group();
+
+    // Missile body
+    const bodyGeometry = new THREE.ConeGeometry(0.1, 0.5, 6);
+    const bodyMaterial = new THREE.MeshPhongMaterial({
+        color: weapon.color,
+        emissive: weapon.color,
+        emissiveIntensity: weapon.emissiveIntensity
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.rotation.x = -Math.PI / 2;
+    group.add(body);
+
+    // Fins
+    const finGeometry = new THREE.BoxGeometry(0.2, 0.05, 0.15);
+    const finMaterial = new THREE.MeshPhongMaterial({
+        color: 0x00aa00,
+        emissive: 0x00aa00,
+        emissiveIntensity: 2.0
+    });
+
+    for (let i = 0; i < 4; i++) {
+        const fin = new THREE.Mesh(finGeometry, finMaterial);
+        const angle = (i / 4) * Math.PI * 2;
+        fin.position.x = Math.cos(angle) * 0.08;
+        fin.position.y = Math.sin(angle) * 0.08;
+        fin.position.z = 0.15;
+        fin.rotation.z = angle;
+        group.add(fin);
+    }
+
+    // Engine glow
+    const engineGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+    const engineMaterial = new THREE.MeshPhongMaterial({
+        color: 0x44ff44,
+        emissive: 0x44ff44,
+        emissiveIntensity: 6.0
+    });
+    const engine = new THREE.Mesh(engineGeometry, engineMaterial);
+    engine.position.z = 0.25;
+    group.add(engine);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z -= 1;
+
+    group.userData = {
+        velocity: new THREE.Vector3(0, 0, -MISSILE_SPEED * 0.7),
+        damage: weapon.damage,
+        weaponId: weapon.id,
+        isHoming: true,
+        target: null,
+        launchTime: Date.now() + delay * 100,
+        lastTrailTime: Date.now()
+    };
+
+    missiles.push(group);
+    scene.add(group);
+}
+
+// Create railgun beam visual effect
+function createRailgunBeamEffect(player, scene, weapon) {
+    const beamLength = 70;
+
+    // Main beam
+    const beamGeometry = new THREE.BoxGeometry(0.3, 0.3, beamLength);
+    const beamMaterial = new THREE.MeshPhongMaterial({
+        color: weapon.color,
+        emissive: weapon.color,
+        emissiveIntensity: weapon.emissiveIntensity,
+        transparent: true,
+        opacity: 0.8
+    });
+    const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+
+    beam.position.copy(player.position);
+    beam.position.z -= beamLength / 2;
+
+    // Inner bright core
+    const coreGeometry = new THREE.BoxGeometry(0.15, 0.15, beamLength);
+    const coreMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        emissive: 0xffffff,
+        emissiveIntensity: 10.0,
+        transparent: true,
+        opacity: 0.9
+    });
+    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+    beam.add(core);
+
+    scene.add(beam);
+
+    // Fade out and remove beam
+    let opacity = 0.8;
+    const fadeInterval = setInterval(() => {
+        opacity -= 0.1;
+        beamMaterial.opacity = opacity;
+        coreMaterial.opacity = opacity + 0.1;
+
+        if (opacity <= 0) {
+            clearInterval(fadeInterval);
+            scene.remove(beam);
+        }
+    }, 30);
+}
+
+// Create nova burst explosion effect
+function createNovaExplosionEffect(position, scene, weapon) {
+    const particles = getParticles();
+
+    // Create expanding ring
+    const ringGeometry = new THREE.RingGeometry(0.5, 1, 32);
+    const ringMaterial = new THREE.MeshPhongMaterial({
+        color: weapon.color,
+        emissive: weapon.color,
+        emissiveIntensity: weapon.emissiveIntensity,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.0
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.position.copy(position);
+    ring.rotation.x = -Math.PI / 2;
+    scene.add(ring);
+
+    // Animate ring expansion
+    let scale = 1;
+    let opacity = 1.0;
+    const expandInterval = setInterval(() => {
+        scale += 0.8;
+        opacity -= 0.05;
+        ring.scale.set(scale, scale, 1);
+        ringMaterial.opacity = opacity;
+
+        if (opacity <= 0) {
+            clearInterval(expandInterval);
+            scene.remove(ring);
+        }
+    }, 30);
+
+    // Create burst particles
+    for (let i = 0; i < 20; i++) {
+        const angle = (i / 20) * Math.PI * 2;
+        const particleGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const particleMaterial = new THREE.MeshPhongMaterial({
+            color: weapon.color,
+            emissive: weapon.color,
+            emissiveIntensity: weapon.emissiveIntensity,
+            transparent: true
+        });
+        const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+
+        particle.position.copy(position);
+        particle.userData = {
+            velocity: new THREE.Vector3(
+                Math.cos(angle) * 0.3,
+                0.1,
+                Math.sin(angle) * 0.3
+            ),
+            life: 1.0,
+            rotationSpeed: new THREE.Vector3(0.1, 0.1, 0.1)
+        };
+
+        particles.push(particle);
+        scene.add(particle);
+    }
 }
 
 // Check missile-to-missile collision (player missile vs alien missile)
@@ -128,9 +540,98 @@ function checkMissileToMissileCollision(missile, missileIndex, scene) {
 // Update player missiles
 export function updateMissiles(scene, scoreCallback, gameOverCallback, isBossLevel = false) {
     const bonusUFO = getBonusUFO();
+    const aliens = getAliens();
+    const particles = getParticles();
 
     for (let i = missiles.length - 1; i >= 0; i--) {
         const missile = missiles[i];
+        const isPiercing = missile.userData.isPiercing;
+        const isHoming = missile.userData.isHoming;
+
+        // Homing missile behavior
+        if (isHoming && Date.now() > missile.userData.launchTime) {
+            // Find nearest target
+            let nearestTarget = null;
+            let nearestDistance = Infinity;
+
+            for (const alien of aliens) {
+                if (alien.userData.destroyed) continue;
+                const distance = missile.position.distanceTo(alien.position);
+                if (distance < nearestDistance && alien.position.z < missile.position.z) {
+                    nearestDistance = distance;
+                    nearestTarget = alien;
+                }
+            }
+
+            // Also check boss
+            const boss = getCurrentBoss();
+            if (boss) {
+                const bossDistance = missile.position.distanceTo(boss.position);
+                if (bossDistance < nearestDistance) {
+                    nearestTarget = boss;
+                }
+            }
+
+            if (nearestTarget) {
+                // Calculate direction to target
+                const direction = new THREE.Vector3();
+                direction.subVectors(nearestTarget.position, missile.position).normalize();
+
+                // Smoothly adjust velocity toward target
+                const turnRate = 0.08;
+                missile.userData.velocity.x += (direction.x * MISSILE_SPEED * 0.7 - missile.userData.velocity.x) * turnRate;
+                missile.userData.velocity.z += (direction.z * MISSILE_SPEED * 0.7 - missile.userData.velocity.z) * turnRate;
+
+                // Point missile toward velocity direction
+                missile.rotation.y = Math.atan2(missile.userData.velocity.x, -missile.userData.velocity.z);
+            }
+
+            // Create smoke trail for homing missiles
+            const currentTime = Date.now();
+            if (currentTime - missile.userData.lastTrailTime > 50) {
+                missile.userData.lastTrailTime = currentTime;
+                const trailGeometry = new THREE.SphereGeometry(0.06, 6, 6);
+                const trailMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x88ff88,
+                    emissive: 0x44aa44,
+                    emissiveIntensity: 2.0,
+                    transparent: true
+                });
+                const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+                trail.position.copy(missile.position);
+                trail.userData = {
+                    velocity: new THREE.Vector3(0, 0.02, 0),
+                    life: 0.5,
+                    rotationSpeed: new THREE.Vector3(0, 0, 0)
+                };
+                particles.push(trail);
+                scene.add(trail);
+            }
+        }
+
+        // Create plasma trail for piercing missiles
+        if (isPiercing) {
+            const currentTime = Date.now();
+            if (currentTime - missile.userData.lastTrailTime > 40) {
+                missile.userData.lastTrailTime = currentTime;
+                const trailGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.2);
+                const trailMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xff00ff,
+                    emissive: 0xff00ff,
+                    emissiveIntensity: 3.0,
+                    transparent: true
+                });
+                const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+                trail.position.copy(missile.position);
+                trail.userData = {
+                    velocity: new THREE.Vector3(0, 0, 0.02),
+                    life: 0.4,
+                    rotationSpeed: new THREE.Vector3(0.1, 0.1, 0.1)
+                };
+                particles.push(trail);
+                scene.add(trail);
+            }
+        }
 
         // Move missile
         if (missile.userData.velocity) {
@@ -139,8 +640,8 @@ export function updateMissiles(scene, scoreCallback, gameOverCallback, isBossLev
             missile.position.z -= MISSILE_SPEED;
         }
 
-        // Smart Missile Logic: Climb if aligned with Bonus UFO
-        if (bonusUFO) {
+        // Smart Missile Logic: Climb if aligned with Bonus UFO (not for homing - they have their own logic)
+        if (bonusUFO && !isHoming) {
             // Check horizontal alignment (within 2 units)
             if (Math.abs(missile.position.x - bonusUFO.position.x) < 2.0) {
                 // Check if UFO is ahead (in -Z direction)
@@ -171,13 +672,13 @@ export function updateMissiles(scene, scoreCallback, gameOverCallback, isBossLev
             continue;
         }
 
-        // Check collision with alien missiles first (defensive play)
-        if (checkMissileToMissileCollision(missile, i, scene)) {
+        // Check collision with alien missiles first (defensive play) - piercing missiles don't intercept
+        if (!isPiercing && checkMissileToMissileCollision(missile, i, scene)) {
             continue;  // Missile was destroyed, skip alien collision check
         }
 
-        // Check collision with barriers
-        if (checkBarrierCollision(missile.position, 0.1, scene)) {
+        // Check collision with barriers - piercing missiles pass through
+        if (!isPiercing && checkBarrierCollision(missile.position, 0.1, scene)) {
             scene.remove(missile);
             missiles.splice(i, 1);
             continue;
@@ -185,18 +686,19 @@ export function updateMissiles(scene, scoreCallback, gameOverCallback, isBossLev
 
         // Check collision with boss if in boss level
         if (isBossLevel) {
-            if (checkBossCollision(missile, i, scene, scoreCallback)) {
-                continue;  // Missile hit boss
+            if (checkBossCollision(missile, i, scene, scoreCallback, isPiercing)) {
+                if (!isPiercing) continue;  // Piercing missiles continue after hitting
             }
         } else {
             // Check collision with aliens
-            checkMissileCollision(missile, i, scene, scoreCallback, gameOverCallback);
+            const wasDestroyed = checkMissileCollision(missile, i, scene, scoreCallback, gameOverCallback, isPiercing);
+            if (wasDestroyed && !isPiercing) continue;
         }
     }
 }
 
 // Check missile collision with boss
-function checkBossCollision(missile, missileIndex, scene, scoreCallback) {
+function checkBossCollision(missile, missileIndex, scene, scoreCallback, isPiercing = false) {
     const boss = getCurrentBoss();
     if (!boss) return false;
 
@@ -205,12 +707,15 @@ function checkBossCollision(missile, missileIndex, scene, scoreCallback) {
 
     if (distance < hitRadius) {
         // Hit the boss!
-        scene.remove(missile);
-        missiles.splice(missileIndex, 1);
+        if (!isPiercing) {
+            scene.remove(missile);
+            missiles.splice(missileIndex, 1);
+        }
 
-        // Damage boss and check if defeated
-        const wasDefeated = damageBoss(1, scene);
-        scoreCallback(50);  // Points per boss hit
+        // Damage boss based on weapon damage
+        const damage = missile.userData.damage || 1;
+        const wasDefeated = damageBoss(damage, scene);
+        scoreCallback(50 * damage);  // Points per boss hit, scaled by damage
 
         if (wasDefeated) {
             // Boss defeated - trigger level complete
@@ -230,65 +735,86 @@ function checkBossCollision(missile, missileIndex, scene, scoreCallback) {
 }
 
 // Check missile collision with aliens
-function checkMissileCollision(missile, missileIndex, scene, scoreCallback, gameOverCallback) {
+function checkMissileCollision(missile, missileIndex, scene, scoreCallback, gameOverCallback, isPiercing = false) {
+    let hitSomething = false;
+
     // First check collision with bonus UFO
     const bonusUFO = getBonusUFO();
     if (bonusUFO) {
         const distance = missile.position.distanceTo(bonusUFO.position);
         if (distance < 2.0) { // Larger collision radius for the bigger bonus UFO
             // Hit the bonus UFO!
-            scene.remove(missile);
-            missiles.splice(missileIndex, 1);
+            if (!isPiercing) {
+                scene.remove(missile);
+                missiles.splice(missileIndex, 1);
+            }
 
             // Big explosion effect
             createExplosion(bonusUFO.position, scene);
             playExplosion(1.5); // Louder explosion for bonus
 
-            // Award 500 points
-            scoreCallback(500);
+            // Award 500 points (scaled by damage)
+            const damage = missile.userData.damage || 1;
+            scoreCallback(500 * damage);
 
             // Remove the bonus UFO
             removeBonusUFO(scene);
 
-            return; // Early return, don't check regular aliens
+            if (!isPiercing) return true; // Early return for non-piercing
+            hitSomething = true;
         }
     }
 
     // Check collision with regular aliens
     const aliens = getAliens();
+    const aliensToRemove = [];
+
     for (let alien of aliens) {
         if (alien.userData.destroyed) continue;
 
         const distance = missile.position.distanceTo(alien.position);
         if (distance < 1.2) { // Increased collision radius from 1.0 to 1.2 for easier hits
             // Hit!
-            scene.remove(missile);
-            missiles.splice(missileIndex, 1);
+            aliensToRemove.push(alien);
 
-            // Explosion effect
-            createExplosion(alien.position, scene);
-            playExplosion(1.0);
-
-            // Update score (6 rows: row 0 = 60pts down to row 5 = 10pts)
-            const points = (6 - alien.userData.row) * 10;
-            scoreCallback(points);
-
-            // Remove alien
-            removeAlien(alien, scene);
-
-            // Check win condition - trigger level complete instead of game over
-            if (getAliens().length === 0) {
-                if (levelCompleteCallback) {
-                    levelCompleteCallback();
-                } else {
-                    // Fallback to game over if no callback set
-                    gameOverCallback(true);
-                }
-            }
-
-            break;
+            // For non-piercing missiles, only hit one target
+            if (!isPiercing) break;
         }
     }
+
+    // Process hits
+    for (const alien of aliensToRemove) {
+        // Explosion effect
+        createExplosion(alien.position, scene);
+        playExplosion(isPiercing ? 0.7 : 1.0);
+
+        // Update score (6 rows: row 0 = 60pts down to row 5 = 10pts)
+        const damage = missile.userData.damage || 1;
+        const points = (6 - alien.userData.row) * 10 * damage;
+        scoreCallback(points);
+
+        // Remove alien
+        removeAlien(alien, scene);
+        hitSomething = true;
+    }
+
+    // Remove missile if not piercing and hit something
+    if (hitSomething && !isPiercing) {
+        scene.remove(missile);
+        missiles.splice(missileIndex, 1);
+    }
+
+    // Check win condition - trigger level complete instead of game over
+    if (getAliens().length === 0) {
+        if (levelCompleteCallback) {
+            levelCompleteCallback();
+        } else {
+            // Fallback to game over if no callback set
+            gameOverCallback(true);
+        }
+    }
+
+    return hitSomething;
 }
 
 // Create tank missile with homing capabilities

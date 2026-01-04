@@ -732,3 +732,314 @@ export function playBossDefeat() {
         playLevelComplete();
     }, 1000);
 }
+
+// ============== WEAPON SYSTEM AUDIO ==============
+
+// Play plasma lance fire sound (energy beam charging)
+export function playPlasmaFire() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Energy charge-up and release
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 0.25);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.Q.value = 2.0;
+
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.25);
+
+    // Add shimmer overtone
+    const shimmer = audioContext.createOscillator();
+    const shimmerGain = audioContext.createGain();
+    shimmer.type = 'sine';
+    shimmer.frequency.setValueAtTime(1200, now);
+    shimmer.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+    shimmerGain.gain.setValueAtTime(0.2, now);
+    shimmerGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    shimmer.connect(shimmerGain);
+    shimmerGain.connect(audioContext.destination);
+    shimmer.start(now);
+    shimmer.stop(now + 0.2);
+}
+
+// Play scatter cannon fire sound (shotgun blast)
+export function playScatterFire() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Punchy blast with multiple frequencies
+    const osc1 = audioContext.createOscillator();
+    const osc2 = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc1.type = 'square';
+    osc1.frequency.setValueAtTime(300, now);
+    osc1.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+
+    osc2.type = 'sawtooth';
+    osc2.frequency.setValueAtTime(500, now);
+    osc2.frequency.exponentialRampToValueAtTime(150, now + 0.1);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.12);
+    osc2.stop(now + 0.12);
+
+    // Add noise burst for scatter effect
+    const bufferSize = audioContext.sampleRate * 0.15;
+    const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        noiseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+    }
+
+    const noise = audioContext.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const noiseGain = audioContext.createGain();
+    noiseGain.gain.setValueAtTime(0.25, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    noise.connect(noiseGain);
+    noiseGain.connect(audioContext.destination);
+    noise.start(now);
+    noise.stop(now + 0.15);
+}
+
+// Play homing missile fire sound (lock-on beep + launch)
+export function playHomingFire() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Lock-on beep
+    const beep = audioContext.createOscillator();
+    const beepGain = audioContext.createGain();
+    beep.type = 'sine';
+    beep.frequency.setValueAtTime(1000, now);
+    beepGain.gain.setValueAtTime(0.3, now);
+    beepGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+    beep.connect(beepGain);
+    beepGain.connect(audioContext.destination);
+    beep.start(now);
+    beep.stop(now + 0.08);
+
+    // Missile launch whoosh
+    const launch = audioContext.createOscillator();
+    const launchGain = audioContext.createGain();
+    launch.type = 'sawtooth';
+    launch.frequency.setValueAtTime(300, now + 0.1);
+    launch.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+    launchGain.gain.setValueAtTime(0.3, now + 0.1);
+    launchGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    launch.connect(launchGain);
+    launchGain.connect(audioContext.destination);
+    launch.start(now + 0.1);
+    launch.stop(now + 0.25);
+}
+
+// Play railgun fire sound (electric discharge)
+export function playRailgunFire() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Initial crack
+    const crack = audioContext.createOscillator();
+    const crackGain = audioContext.createGain();
+    crack.type = 'square';
+    crack.frequency.setValueAtTime(2000, now);
+    crack.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+    crackGain.gain.setValueAtTime(0.5, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+    crack.connect(crackGain);
+    crackGain.connect(audioContext.destination);
+    crack.start(now);
+    crack.stop(now + 0.05);
+
+    // Electric zap with modulation
+    const zap = audioContext.createOscillator();
+    const zapGain = audioContext.createGain();
+    const lfo = audioContext.createOscillator();
+    const lfoGain = audioContext.createGain();
+
+    zap.type = 'sawtooth';
+    zap.frequency.setValueAtTime(800, now);
+    zap.frequency.exponentialRampToValueAtTime(200, now + 0.3);
+
+    lfo.type = 'square';
+    lfo.frequency.setValueAtTime(30, now);
+    lfoGain.gain.setValueAtTime(200, now);
+    lfo.connect(lfoGain);
+    lfoGain.connect(zap.frequency);
+
+    zapGain.gain.setValueAtTime(0.4, now);
+    zapGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+    zap.connect(zapGain);
+    zapGain.connect(audioContext.destination);
+
+    zap.start(now);
+    lfo.start(now);
+    zap.stop(now + 0.3);
+    lfo.stop(now + 0.3);
+
+    // Low bass thump
+    const bass = audioContext.createOscillator();
+    const bassGain = audioContext.createGain();
+    bass.type = 'sine';
+    bass.frequency.setValueAtTime(80, now);
+    bass.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+    bassGain.gain.setValueAtTime(0.6, now);
+    bassGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    bass.connect(bassGain);
+    bassGain.connect(audioContext.destination);
+    bass.start(now);
+    bass.stop(now + 0.3);
+}
+
+// Play nova burst fire sound (charging explosion)
+export function playNovaFire() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Build-up sweep
+    const sweep = audioContext.createOscillator();
+    const sweepGain = audioContext.createGain();
+    sweep.type = 'sine';
+    sweep.frequency.setValueAtTime(100, now);
+    sweep.frequency.exponentialRampToValueAtTime(1000, now + 0.2);
+    sweepGain.gain.setValueAtTime(0.3, now);
+    sweepGain.gain.linearRampToValueAtTime(0.5, now + 0.2);
+    sweepGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    sweep.connect(sweepGain);
+    sweepGain.connect(audioContext.destination);
+    sweep.start(now);
+    sweep.stop(now + 0.25);
+
+    // Massive bass explosion
+    const boom = audioContext.createOscillator();
+    const boomGain = audioContext.createGain();
+    boom.type = 'sine';
+    boom.frequency.setValueAtTime(60, now + 0.2);
+    boom.frequency.exponentialRampToValueAtTime(20, now + 0.8);
+    boomGain.gain.setValueAtTime(0.8, now + 0.2);
+    boomGain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+    boom.connect(boomGain);
+    boomGain.connect(audioContext.destination);
+    boom.start(now + 0.2);
+    boom.stop(now + 0.8);
+
+    // Shockwave noise
+    const bufferSize = audioContext.sampleRate * 0.6;
+    const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        noiseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.2));
+    }
+
+    const noise = audioContext.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const noiseFilter = audioContext.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(2000, now + 0.2);
+    noiseFilter.frequency.exponentialRampToValueAtTime(200, now + 0.6);
+    const noiseGain = audioContext.createGain();
+    noiseGain.gain.setValueAtTime(0.5, now + 0.2);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(audioContext.destination);
+    noise.start(now + 0.2);
+    noise.stop(now + 0.8);
+}
+
+// Play weapon unlock fanfare
+export function playWeaponUnlock() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Triumphant ascending arpeggio
+    const notes = [392.00, 493.88, 587.33, 783.99]; // G, B, D, G (octave)
+
+    notes.forEach((freq, i) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.1);
+
+        gain.gain.setValueAtTime(0, now + i * 0.1);
+        gain.gain.linearRampToValueAtTime(0.4, now + i * 0.1 + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.4);
+
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+
+        osc.start(now + i * 0.1);
+        osc.stop(now + i * 0.1 + 0.4);
+    });
+
+    // Sparkle effect
+    for (let i = 0; i < 5; i++) {
+        const sparkle = audioContext.createOscillator();
+        const sparkleGain = audioContext.createGain();
+        sparkle.type = 'sine';
+        sparkle.frequency.setValueAtTime(2000 + i * 200, now + 0.4 + i * 0.05);
+        sparkleGain.gain.setValueAtTime(0.15, now + 0.4 + i * 0.05);
+        sparkleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4 + i * 0.05 + 0.1);
+        sparkle.connect(sparkleGain);
+        sparkleGain.connect(audioContext.destination);
+        sparkle.start(now + 0.4 + i * 0.05);
+        sparkle.stop(now + 0.4 + i * 0.05 + 0.1);
+    }
+}
+
+// Play weapon switch sound
+export function playWeaponSwitch() {
+    if (!audioContext) return;
+
+    const now = audioContext.currentTime;
+
+    // Quick click/beep
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.05);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.05);
+}
