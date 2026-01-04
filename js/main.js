@@ -139,7 +139,10 @@ function init() {
         if (isOpen) {
             pauseGame();
         } else {
-            resumeGame();
+            // Only resume if we're not on the landing page
+            if (!isLandingActive()) {
+                resumeGame();
+            }
         }
     });
 
