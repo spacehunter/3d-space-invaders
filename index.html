@@ -310,7 +310,7 @@
 
         @keyframes scanline {
             0% { transform: translateY(0); }
-            100% { transform: translateY(100vh); }
+            100% { transform: translateY(calc(100vh - 4px)); }  /* Account for element height */
         }
 
         /* Grid pattern overlay */
@@ -332,6 +332,61 @@
         @keyframes gridScroll {
             0% { background-position: 0 0; }
             100% { background-position: 0 40px; }
+        }
+
+        /* Additional scanlines */
+        .scanline {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Scanline 1: Cyan, moving down, slow (12s) */
+        .scanline-1 {
+            background: linear-gradient(transparent, rgba(0, 255, 255, 0.5), transparent);
+            animation: scanlineDown 12s linear infinite;
+            animation-delay: 0s;
+        }
+
+        /* Scanline 2: Cyan, moving up, medium speed (10s) */
+        .scanline-2 {
+            background: linear-gradient(transparent, rgba(0, 255, 255, 0.4), transparent);
+            animation: scanlineUp 10s linear infinite;
+            animation-delay: 3s;
+        }
+
+        /* Scanline 3: Cyan, moving down, fast (5s) */
+        .scanline-3 {
+            background: linear-gradient(transparent, rgba(0, 255, 255, 0.45), transparent);
+            animation: scanlineDown 5s linear infinite;
+            animation-delay: 1.5s;
+        }
+
+        /* Downward animation */
+        @keyframes scanlineDown {
+            0% {
+                transform: translateY(0);
+                top: 0;
+            }
+            100% {
+                transform: translateY(calc(100vh - 3px));
+                top: 0;
+            }
+        }
+
+        /* Upward animation */
+        @keyframes scanlineUp {
+            0% {
+                transform: translateY(0);
+                top: 100vh;
+            }
+            100% {
+                transform: translateY(calc(-100vh + 3px));
+                top: 100vh;
+            }
         }
 
         /* Settings Header */
@@ -861,6 +916,9 @@
 
     <!-- Settings Panel -->
     <div id="settingsPanel" class="settings-panel">
+        <div class="scanline scanline-1"></div>
+        <div class="scanline scanline-2"></div>
+        <div class="scanline scanline-3"></div>
         <div class="settings-header">
             <h2>⚙ SETTINGS</h2>
             <button id="closeSettings" class="close-btn">✕</button>

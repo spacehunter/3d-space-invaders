@@ -74,15 +74,41 @@ export function startGame() {
 
 // Start from a specific level (for continue feature)
 export function startFromLevel(targetLevel) {
-    if (gameStarted) return;  // Prevent double start
+    // Allow restart by setting flag
     gameStarted = true;
+
+    // Reset game state for fresh start at target level
+    resetMissiles(scene);
+    resetParticles(scene);
+    resetBonusUFO(scene);
+    resetPowerUps(scene);
+    resetBoss(scene);
+
+    // Reset barriers to full health
+    createBarriers(scene);
+
+    // Reset lives and score for fresh start
+    score = 0;
+    lives = 3;
+    livesAtLevelStart = 3;
+    damageTakenThisLevel = false;
+
+    updateUI();  // Update the UI to show 3 lives
+
+    // Hide and clear game over screen (if visible)
+    const gameOverDiv = document.getElementById('gameOver');
+    if (gameOverDiv) {
+        gameOverDiv.style.display = 'none';
+        gameOverDiv.innerHTML = '';
+    }
+
+    // Ensure player is visible for new game
+    showPlayer();
 
     // Set up the target level
     currentLevel = targetLevel;
     levelConfig = getLevelConfig(currentLevel);
     isBossLevel = levelConfig.isBossLevel;
-    damageTakenThisLevel = false;
-    livesAtLevelStart = lives;
 
     // Apply level config
     setAlienConfig(levelConfig);
@@ -189,7 +215,7 @@ function updateScore(points) {
 
 // Decrease lives and return new life count
 function decreaseLives() {
-    lives--;
+    lives = Math.max(0, lives - 1);  // Clamp at 0 to prevent negative lives
     damageTakenThisLevel = true;  // Track for perfect bonus
     document.getElementById('lives').textContent = lives;
     return lives;
