@@ -1,5 +1,6 @@
 // Landing page management
 import { getSavedProgress } from './game.js';
+import { settingsManager } from './settings.js';
 
 let landingElement = null;
 let isLandingVisible = true;
@@ -41,6 +42,15 @@ export function initLanding(onNewGame, onContinue) {
             });
         }
 
+        // Handle settings click
+        const settingsBtn = document.getElementById('openSettings');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleOpenSettings();
+            });
+        }
+
         // Handle key press to start (defaults to new game)
         document.addEventListener('keydown', handleKeyStart);
     }
@@ -68,6 +78,14 @@ function handleContinue() {
     }
 }
 
+// Handle settings open action
+function handleOpenSettings() {
+    if (!isLandingVisible) return;
+
+    // Open settings panel without hiding landing page
+    settingsManager.open();
+}
+
 // Handle key press to start
 function handleKeyStart(e) {
     if (!isLandingVisible) return;
@@ -81,6 +99,11 @@ function handleKeyStart(e) {
     if (e.code === 'KeyC' && savedLevel > 1) {
         e.preventDefault();
         handleContinue();
+    }
+    // Open settings on 'S' key
+    if (e.code === 'KeyS') {
+        e.preventDefault();
+        handleOpenSettings();
     }
 }
 
