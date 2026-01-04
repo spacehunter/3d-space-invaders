@@ -14,6 +14,7 @@ import { getIsMouseDown } from './input.js';
 import { getLevelConfig } from './levels.js';
 import { startLevelTransition, isInTransition, forceEndTransition, updateTransition } from './transitions.js';
 import { spawnBoss, updateBoss, getCurrentBoss, resetBoss, damageBoss, getBossHitRadius } from './boss.js';
+import { showLanding } from './landing.js';
 
 // Game state
 let scene;
@@ -169,7 +170,8 @@ export function handleFire() {
     }
 
     if (!gameActive) {
-        resetGame();
+        // Return to landing page instead of restarting directly
+        returnToLanding();
         return;
     }
 
@@ -359,8 +361,22 @@ function showGameOverScreen(won, initials) {
     gameOverDiv.innerHTML = message;
 }
 
-// Reset game
-function resetGame() {
+// Return to landing page after game over
+function returnToLanding() {
+    // Hide game over screen
+    const gameOverDiv = document.getElementById('gameOver');
+    gameOverDiv.style.display = 'none';
+    gameOverDiv.innerHTML = '';
+
+    // Hide initial entry if active
+    hideInitialEntry();
+
+    // Show landing page
+    showLanding();
+}
+
+// Reset game - exported so landing page can call it
+export function resetGame() {
     // Hide initial entry if active
     hideInitialEntry();
 
@@ -391,6 +407,7 @@ function resetGame() {
     score = 0;
     lives = 3;
     livesAtLevelStart = 3;
+    gameStarted = false;  // Reset game started flag
 
     updateUI();
     updateLevelDisplay();

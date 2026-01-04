@@ -104,9 +104,23 @@ export function isLandingActive() {
     return isLandingVisible;
 }
 
-// Show landing page (for potential future use)
+// Show landing page (used when returning after game over)
 export function showLanding() {
     if (!landingElement) return;
+
+    // Update saved progress in case user just completed more levels
+    savedLevel = getSavedProgress();
+
+    const continueBtn = document.getElementById('continueGame');
+    const savedLevelSpan = document.getElementById('savedLevel');
+
+    // Update continue button visibility and level display
+    if (savedLevel > 1 && continueBtn && savedLevelSpan) {
+        savedLevelSpan.textContent = savedLevel;
+        continueBtn.style.display = 'block';
+    } else if (continueBtn) {
+        continueBtn.style.display = 'none';
+    }
 
     isLandingVisible = true;
     landingElement.style.display = 'flex';

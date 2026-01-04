@@ -6,7 +6,7 @@ import { createPlayer } from './player.js';
 import { createStarfield } from './starfield.js';
 import { createAliens } from './aliens.js';
 import { initInput } from './input.js';
-import { initGame, update, handleFire, startGame, startFromLevel } from './game.js';
+import { initGame, update, handleFire, startGame, startFromLevel, resetGame } from './game.js';
 import { updateHighScoresDisplay } from './highscores.js';
 import { initLanding, isLandingActive } from './landing.js';
 import { initAudio } from './audio.js';
@@ -79,7 +79,7 @@ function init() {
         // New game callback
         () => {
             initAudio();
-            startGame();
+            resetGame();  // Reset everything and start from level 1
         },
         // Continue from level callback
         (level) => {
