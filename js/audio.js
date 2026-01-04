@@ -4,11 +4,41 @@ let ufoTravelOscillator = null;
 let ufoTravelGain = null;
 let ufoTravelPanner = null;
 
+// Volume controls
+let masterVolume = 1.0;   // 0.0 - 1.0
+let sfxVolume = 1.0;       // 0.0 - 1.0
+let musicVolume = 1.0;     // 0.0 - 1.0
+let isMuted = false;
+
 // Initialize audio on first user interaction
 export function initAudio() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
+}
+
+// Volume control functions
+export function setMasterVolume(volume) {
+    masterVolume = Math.max(0, Math.min(1, volume / 100)); // Convert 0-100 to 0-1
+}
+
+export function setSFXVolume(volume) {
+    sfxVolume = Math.max(0, Math.min(1, volume / 100)); // Convert 0-100 to 0-1
+}
+
+export function setMusicVolume(volume) {
+    musicVolume = Math.max(0, Math.min(1, volume / 100)); // Convert 0-100 to 0-1
+}
+
+export function setMute(muted) {
+    isMuted = muted;
+}
+
+// Helper function to calculate final volume
+function getFinalVolume(baseVolume = 1.0, type = 'sfx') {
+    if (isMuted) return 0;
+    const typeVolume = type === 'music' ? musicVolume : sfxVolume;
+    return baseVolume * typeVolume * masterVolume;
 }
 
 // Play MASSIVE asteroid-impact BOOOOOM explosion sound
@@ -17,14 +47,17 @@ export function playExplosion(intensity = 1.0) {
 
     const now = audioContext.currentTime;
 
+    // Apply volume control
+    const volume = getFinalVolume(intensity, 'sfx');
+
     // LAYER 1: SUB-BASS IMPACT - The earth-shaking BOOM you feel in your chest
     const subBass = audioContext.createOscillator();
     const subBassGain = audioContext.createGain();
     subBass.type = 'sine';
     subBass.frequency.setValueAtTime(25, now);  // Ultra-low frequency
     subBass.frequency.exponentialRampToValueAtTime(10, now + 1.2);
-    subBassGain.gain.setValueAtTime(2.5 * intensity, now);  // MASSIVE gain
-    subBassGain.gain.exponentialRampToValueAtTime(0.8 * intensity, now + 0.3);
+    subBassGain.gain.setValueAtTime(2.5 * volume, now);  // MASSIVE gain
+    subBassGain.gain.exponentialRampToValueAtTime(0.8 * volume, now + 0.3);
     subBassGain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
     subBass.connect(subBassGain);
     subBassGain.connect(audioContext.destination);
@@ -37,7 +70,7 @@ export function playExplosion(intensity = 1.0) {
     bass.type = 'sine';
     bass.frequency.setValueAtTime(60, now);
     bass.frequency.exponentialRampToValueAtTime(20, now + 1.0);
-    bassGain.gain.setValueAtTime(2.0 * intensity, now);  // Much louder
+    bassGain.gain.setValueAtTime(2.0 * volume, now);  // Much louder
     bassGain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
     bass.connect(bassGain);
     bassGain.connect(audioContext.destination);
@@ -62,8 +95,8 @@ export function playExplosion(intensity = 1.0) {
     noiseFilter.Q.value = 0.5;
 
     const noiseGain = audioContext.createGain();
-    noiseGain.gain.setValueAtTime(1.8 * intensity, now);  // VERY LOUD
-    noiseGain.gain.exponentialRampToValueAtTime(0.3 * intensity, now + 0.2);
+    noiseGain.gain.setValueAtTime(1.8 * volume, now);  // VERY LOUD
+    noiseGain.gain.exponentialRampToValueAtTime(0.3 * volume, now + 0.2);
     noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
 
     noise.connect(noiseFilter);
@@ -78,7 +111,7 @@ export function playExplosion(intensity = 1.0) {
     mid.type = 'sawtooth';
     mid.frequency.setValueAtTime(150, now);
     mid.frequency.exponentialRampToValueAtTime(30, now + 0.6);
-    midGain.gain.setValueAtTime(1.5 * intensity, now);  // Much louder
+    midGain.gain.setValueAtTime(1.5 * volume, now);  // Much louder
     midGain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
     mid.connect(midGain);
     midGain.connect(audioContext.destination);
@@ -91,7 +124,7 @@ export function playExplosion(intensity = 1.0) {
     crack.type = 'square';
     crack.frequency.setValueAtTime(1200, now);
     crack.frequency.exponentialRampToValueAtTime(80, now + 0.15);
-    crackGain.gain.setValueAtTime(1.2 * intensity, now);
+    crackGain.gain.setValueAtTime(1.2 * volume, now);
     crackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
     crack.connect(crackGain);
     crackGain.connect(audioContext.destination);
@@ -104,7 +137,7 @@ export function playExplosion(intensity = 1.0) {
     distortion.type = 'sawtooth';
     distortion.frequency.setValueAtTime(45, now);
     distortion.frequency.exponentialRampToValueAtTime(15, now + 0.7);
-    distortionGain.gain.setValueAtTime(1.8 * intensity, now);
+    distortionGain.gain.setValueAtTime(1.8 * volume, now);
     distortionGain.gain.exponentialRampToValueAtTime(0.01, now + 0.9);
     distortion.connect(distortionGain);
     distortionGain.connect(audioContext.destination);
@@ -122,7 +155,7 @@ export function playExplosion(intensity = 1.0) {
     noise2.buffer = noise2Buffer;
 
     const noise2Gain = audioContext.createGain();
-    noise2Gain.gain.setValueAtTime(1.5 * intensity, now);
+    noise2Gain.gain.setValueAtTime(1.5 * volume, now);
     noise2Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
 
     noise2.connect(noise2Gain);
@@ -136,6 +169,7 @@ export function playMissileFire() {
     if (!audioContext) return;
 
     const now = audioContext.currentTime;
+    const volume = getFinalVolume(0.3, 'sfx');
 
     // Quick laser/missile launch sound
     const osc = audioContext.createOscillator();
@@ -145,7 +179,7 @@ export function playMissileFire() {
     osc.frequency.setValueAtTime(400, now);
     osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
 
-    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.setValueAtTime(volume, now);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
 
     osc.connect(gain);
@@ -226,8 +260,9 @@ export function playUFOTravel(ufo) {
     ufoTravelOscillator.frequency.setValueAtTime(200, now);
 
     // Volume
+    const volume = getFinalVolume(0.4, 'sfx');
     ufoTravelGain.gain.setValueAtTime(0.01, now);
-    ufoTravelGain.gain.exponentialRampToValueAtTime(0.4, now + 0.2);
+    ufoTravelGain.gain.exponentialRampToValueAtTime(volume, now + 0.2);
 
     // Connect everything
     ufoTravelOscillator.connect(ufoTravelGain);
