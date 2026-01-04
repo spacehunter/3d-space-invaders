@@ -1,243 +1,678 @@
 # Level-Based Weapon Progression System
 
-## Overview
+## Design Philosophy: The Hook Loop
 
-Introduce permanent weapon unlocks tied to level progression. Unlike temporary power-ups, these weapons persist once unlocked and can be switched between during gameplay.
+The weapon system creates a **"just one more level"** compulsion through:
 
----
-
-## Proposed Weapon Arsenal
-
-### Tier 1: Starting Weapons
-| Weapon | Unlocked | Fire Rate | Description |
-|--------|----------|-----------|-------------|
-| **Pulse Cannon** | Level 1 (default) | 400ms | Standard yellow missile, single shot |
-
-### Tier 2: Early Game Unlocks (Levels 3-8)
-| Weapon | Unlocked | Fire Rate | Description |
-|--------|----------|-----------|-------------|
-| **Twin Blasters** | Level 3 | 350ms | Two parallel missiles fired simultaneously |
-| **Plasma Lance** | Level 6 | 800ms | High-damage piercing shot (passes through enemies) |
-
-### Tier 3: Mid Game Unlocks (Levels 10-15)
-| Weapon | Unlocked | Fire Rate | Description |
-|--------|----------|-----------|-------------|
-| **Scatter Cannon** | Level 10 | 500ms | 5-way spread (wider than power-up spread shot) |
-| **Homing Missiles** | Level 13 | 600ms | Lock-on missiles that track nearest alien |
-
-### Tier 4: Late Game Unlocks (Levels 18-25)
-| Weapon | Unlocked | Fire Rate | Description |
-|--------|----------|-----------|-------------|
-| **Railgun** | Level 18 | 1200ms | Instant-hit beam weapon, hits all enemies in line |
-| **Nova Burst** | Level 22 | 2000ms | Charged AOE explosion around player position |
+1. **Anticipation** - Players see weapon unlocks coming (UI shows next unlock)
+2. **Reward** - Satisfying unlock moment with fanfare and immediate power boost
+3. **Mastery** - Learning new weapon mechanics keeps gameplay fresh
+4. **Synergy** - Power-ups amplify weapons differently, creating discovery moments
 
 ---
 
-## Implementation Plan
+## Integration with Existing Systems
 
-### Step 1: Create Weapons Module (`js/weapons.js`)
+### Current Power-Up System (powerups.js)
+The existing system provides **temporary** boosts:
+- `RAPID_FIRE` - 100ms fire rate (vs 400ms default) for 10 seconds
+- `SPREAD_SHOT` - 3 missiles in a spread for 10 seconds
+- `BARRIER_REPAIR` - Instant barrier restoration
 
-Create a new module to manage weapon definitions, unlocks, and selection.
+### New Weapon System Philosophy
+Permanent weapons that **stack** with power-ups:
 
-```javascript
-// Key exports:
-export const WEAPONS = { ... }           // Weapon definitions
-export function getUnlockedWeapons(level) // Returns array of available weapons
-export function getCurrentWeapon()        // Active weapon getter
-export function setCurrentWeapon(type)    // Active weapon setter
-export function isWeaponUnlocked(type, level) // Check unlock status
-export function getWeaponConfig(type)     // Get weapon stats
-export function resetWeapons()            // Reset to default weapon
+| Power-Up | Effect on New Weapons |
+|----------|----------------------|
+| **Rapid Fire** | Reduces ANY weapon's cooldown by 75% |
+| **Spread Shot** | Adds +2 projectiles to ANY weapon pattern |
+| **Barrier Repair** | Unchanged (works as before) |
+
+This creates exciting combinations:
+- Twin Blasters + Spread Shot = **5 parallel beams**
+- Railgun + Rapid Fire = **Continuous beam barrage**
+- Scatter Cannon + Spread Shot = **7-way devastation**
+
+---
+
+## Weapon Arsenal (7 Weapons)
+
+### Starting Weapon (Level 1)
+
+#### 🔹 Pulse Cannon (Default)
+The familiar single-shot weapon players start with.
+
+| Property | Value |
+|----------|-------|
+| Fire Rate | 400ms |
+| Projectiles | 1 |
+| Damage | 1 |
+| Special | Smart tracking for Bonus UFO |
+
+**Feeling**: Reliable, predictable, safe. The baseline experience.
+
+---
+
+### Early Unlocks (Wave Completion Rewards)
+
+#### 🔸 Twin Blasters (Level 3)
+*"Double your trouble"*
+
+Unlocked after completing Level 2 - the first taste of power.
+
+| Property | Value |
+|----------|-------|
+| Fire Rate | 350ms |
+| Projectiles | 2 (parallel, 0.8 units apart) |
+| Damage | 1 per shot |
+| Color | Cyan (0x00ffff) |
+
+**Why Level 3?**
+- Player has proven basic skill (survived 2 levels)
+- Early enough to feel the reward loop quickly
+- Simple upgrade that's immediately satisfying
+
+**Feeling**: "I'm getting stronger!" First power spike.
+
+---
+
+#### 🔸 Plasma Lance (Level 6)
+*"Pierce through the horde"*
+
+Unlocked after first boss (Level 5 Mothership) - boss kill reward!
+
+| Property | Value |
+|----------|-------|
+| Fire Rate | 800ms (slower, deliberate) |
+| Projectiles | 1 |
+| Damage | 2 |
+| Special | **Piercing** - passes through enemies |
+| Color | Purple (0xff00ff) with energy trail |
+
+**Why Level 6?**
+- Reward for defeating first boss
+- Introduces new mechanic (piercing) to master
+- Slower fire rate teaches timing/precision
+
+**Feeling**: "That boss fight was worth it!" Strategic weapon choice.
+
+---
+
+### Mid-Game Unlocks (Escalating Power)
+
+#### 🔶 Scatter Cannon (Level 10)
+*"Nowhere to hide"*
+
+Unlocked after Hive Queen boss - the crowd control weapon.
+
+| Property | Value |
+|----------|-------|
+| Fire Rate | 500ms |
+| Projectiles | 5 (spread pattern: -30°, -15°, 0°, +15°, +30°) |
+| Damage | 1 per shot |
+| Color | Orange (0xff8800) |
+
+**Why Level 10?**
+- Alien waves are now 6 rows × 8+ columns (bigger grids)
+- Scatter handles increased enemy density
+- With Spread Shot power-up: 7 projectiles = screen coverage
+
+**Feeling**: "The odds are evening out." Power fantasy moment.
+
+---
+
+#### 🔶 Homing Missiles (Level 13)
+*"Lock on, let go"*
+
+Strategic weapon for precise situations.
+
+| Property | Value |
+|----------|-------|
+| Fire Rate | 600ms |
+| Projectiles | 1 |
+| Damage | 1 |
+| Special | **Homing** - tracks nearest alien/boss |
+| Color | Green (0x00ff00) with smoke trail |
+| Lock Range | 15 units, 45° cone from player |
+
+**Why Level 13?**
+- Alien speed has increased significantly
+- Gives players a "reliable" option when overwhelmed
+- Creates tactical choice: accuracy vs raw damage
+
+**Feeling**: "I can breathe again." Stress relief weapon.
+
+---
+
+### Late-Game Unlocks (Mastery Weapons)
+
+#### 🔷 Railgun (Level 18)
+*"Instant devastation"*
+
+Unlocked after Phantom boss - the skill weapon.
+
+| Property | Value |
+|----------|-------|
+| Fire Rate | 1200ms (slow, punishing if missed) |
+| Projectiles | 1 (instant beam) |
+| Damage | 3 |
+| Special | **Instant hit** - raycast, hits ALL enemies in line |
+| Color | Electric blue (0x00aaff) with lightning effect |
+| Visual | Full-screen beam flash, screen shake |
+
+**Why Level 18?**
+- Rewards skilled players who've mastered timing
+- High risk/reward (miss = 1.2 seconds vulnerability)
+- Devastating against boss weak points
+
+**Feeling**: "I am the weapon." Mastery validation.
+
+---
+
+#### 🔷 Nova Burst (Level 22)
+*"Clear the field"*
+
+The ultimate weapon - for players who've proven themselves.
+
+| Property | Value |
+|----------|-------|
+| Fire Rate | 2000ms (charge time) |
+| Projectiles | AOE burst (8 unit radius from player) |
+| Damage | 2 to all enemies in range |
+| Special | **Charge mechanic** - hold to charge, release to fire |
+| Color | White core, rainbow shockwave |
+| Visual | Expanding ring, screen flash, massive particle burst |
+
+**Why Level 22?**
+- Titan boss (Level 20) is the ultimate test
+- Nova Burst is the congratulations prize
+- Changes gameplay entirely - defensive play enabled
+
+**Feeling**: "I've beaten the game's challenge." Ultimate reward.
+
+---
+
+## Player Journey Map
+
+```
+Level 1-2:   [Pulse Cannon only]
+             Learning basics, building confidence
+                    ↓
+Level 3:     ★ TWIN BLASTERS UNLOCKED ★
+             "I'm getting stronger!"
+                    ↓
+Level 4:     [Mastering twin shots]
+             Anticipating boss fight
+                    ↓
+Level 5:     ⚔️ MOTHERSHIP BOSS ⚔️
+             Major challenge, tension peak
+                    ↓
+Level 6:     ★ PLASMA LANCE UNLOCKED ★
+             Boss reward! "Worth the struggle!"
+                    ↓
+Level 7-9:   [Choosing between 3 weapons]
+             Discovery: "Which fits my style?"
+                    ↓
+Level 10:    ⚔️ HIVE QUEEN → ★ SCATTER CANNON ★
+             Power spike! Crowd control unlocked
+                    ↓
+Level 11-12: [4 weapons available]
+             Experimenting with loadouts
+                    ↓
+Level 13:    ★ HOMING MISSILES UNLOCKED ★
+             Relief weapon when overwhelmed
+                    ↓
+Level 14:    [Finding favorite weapon]
+             Preparing for Dreadnought
+                    ↓
+Level 15:    ⚔️ DREADNOUGHT BOSS ⚔️
+             Mid-game peak difficulty
+                    ↓
+Level 16-17: [Mastering 5 weapons]
+             Feeling powerful, confident
+                    ↓
+Level 18:    ★ RAILGUN UNLOCKED ★
+             Skill weapon! High risk, high reward
+                    ↓
+Level 19:    [Railgun practice]
+             Learning timing, precision
+                    ↓
+Level 20:    ⚔️ TITAN BOSS ⚔️
+             Ultimate challenge
+                    ↓
+Level 21:    [Victory lap feeling]
+             "I beat the Titan!"
+                    ↓
+Level 22:    ★ NOVA BURST UNLOCKED ★
+             Ultimate weapon! "I've mastered this!"
+                    ↓
+Level 23+:   [Full arsenal available]
+             Endless challenge, all tools unlocked
 ```
 
-**Weapon Definition Structure:**
+---
+
+## Engagement Mechanics
+
+### 1. Unlock Preview System
+Show players what's coming to build anticipation:
+
+```
+┌─────────────────────────────────┐
+│ CURRENT: Twin Blasters          │
+│                                 │
+│ NEXT UNLOCK: Plasma Lance       │
+│ ████████░░░░ Level 6 (2 to go)  │
+└─────────────────────────────────┘
+```
+
+### 2. Weapon Unlock Celebration
+When unlocking a new weapon:
+
+1. **Freeze gameplay** (0.5 seconds)
+2. **Fanfare sound** (triumphant jingle)
+3. **Full-screen announcement**:
+   ```
+   ╔═══════════════════════════════╗
+   ║    ★ NEW WEAPON UNLOCKED ★    ║
+   ║                               ║
+   ║       PLASMA LANCE            ║
+   ║   "Pierce through the horde"  ║
+   ║                               ║
+   ║   [Press 3 to equip]          ║
+   ╚═══════════════════════════════╝
+   ```
+4. **Auto-equip option** (player can try immediately)
+5. **Particle burst** from player ship
+
+### 3. Weapon Wheel (Quick Switch)
+Hold Tab/Shift to show available weapons:
+
+```
+        [2] Twin Blasters
+              ↑
+[1] Pulse ←   ●   → [3] Plasma
+              ↓
+        [4] Scatter
+```
+
+### 4. Combo Indicators
+When power-up + weapon creates a combo:
+
+```
+┌──────────────────────────┐
+│ ⚡ COMBO: RAPID SCATTER  │
+│    7 shots @ 125ms!      │
+└──────────────────────────┘
+```
+
+---
+
+## Technical Implementation
+
+### New Files
+
+#### `js/weapons.js` - Weapon System Core
+
 ```javascript
-{
-  type: 'TWIN_BLASTERS',
-  name: 'Twin Blasters',
-  unlockLevel: 3,
-  fireRate: 350,
-  damage: 1,
-  projectileCount: 2,
-  projectileSpacing: 0.8,
-  color: 0x00ffff,
-  description: 'Fires two parallel shots'
+// Weapon definitions with full metadata
+export const WEAPONS = {
+    PULSE_CANNON: {
+        id: 'PULSE_CANNON',
+        name: 'Pulse Cannon',
+        tagline: 'Reliable and true',
+        unlockLevel: 1,
+        fireRate: 400,
+        damage: 1,
+        projectileCount: 1,
+        projectileSpacing: 0,
+        spread: 0,
+        color: 0xffff00,
+        emissiveIntensity: 4.0,
+        special: null,
+        sound: 'pulse'
+    },
+    TWIN_BLASTERS: {
+        id: 'TWIN_BLASTERS',
+        name: 'Twin Blasters',
+        tagline: 'Double your trouble',
+        unlockLevel: 3,
+        fireRate: 350,
+        damage: 1,
+        projectileCount: 2,
+        projectileSpacing: 0.8,
+        spread: 0,
+        color: 0x00ffff,
+        emissiveIntensity: 4.5,
+        special: null,
+        sound: 'twin'
+    },
+    PLASMA_LANCE: {
+        id: 'PLASMA_LANCE',
+        name: 'Plasma Lance',
+        tagline: 'Pierce through the horde',
+        unlockLevel: 6,
+        fireRate: 800,
+        damage: 2,
+        projectileCount: 1,
+        projectileSpacing: 0,
+        spread: 0,
+        color: 0xff00ff,
+        emissiveIntensity: 5.0,
+        special: 'piercing',
+        sound: 'plasma'
+    },
+    SCATTER_CANNON: {
+        id: 'SCATTER_CANNON',
+        name: 'Scatter Cannon',
+        tagline: 'Nowhere to hide',
+        unlockLevel: 10,
+        fireRate: 500,
+        damage: 1,
+        projectileCount: 5,
+        projectileSpacing: 0,
+        spread: 0.52, // 30 degrees in radians
+        color: 0xff8800,
+        emissiveIntensity: 4.0,
+        special: null,
+        sound: 'scatter'
+    },
+    HOMING_MISSILES: {
+        id: 'HOMING_MISSILES',
+        name: 'Homing Missiles',
+        tagline: 'Lock on, let go',
+        unlockLevel: 13,
+        fireRate: 600,
+        damage: 1,
+        projectileCount: 1,
+        projectileSpacing: 0,
+        spread: 0,
+        color: 0x00ff00,
+        emissiveIntensity: 3.5,
+        special: 'homing',
+        sound: 'homing'
+    },
+    RAILGUN: {
+        id: 'RAILGUN',
+        name: 'Railgun',
+        tagline: 'Instant devastation',
+        unlockLevel: 18,
+        fireRate: 1200,
+        damage: 3,
+        projectileCount: 1,
+        projectileSpacing: 0,
+        spread: 0,
+        color: 0x00aaff,
+        emissiveIntensity: 8.0,
+        special: 'instant',
+        sound: 'railgun'
+    },
+    NOVA_BURST: {
+        id: 'NOVA_BURST',
+        name: 'Nova Burst',
+        tagline: 'Clear the field',
+        unlockLevel: 22,
+        fireRate: 2000,
+        damage: 2,
+        projectileCount: 0, // AOE, not projectiles
+        projectileSpacing: 0,
+        spread: 0,
+        color: 0xffffff,
+        emissiveIntensity: 10.0,
+        special: 'aoe',
+        aoeRadius: 8,
+        sound: 'nova'
+    }
+};
+
+// State
+let currentWeapon = 'PULSE_CANNON';
+let unlockedWeapons = ['PULSE_CANNON'];
+let pendingUnlock = null;
+
+// Core functions
+export function getCurrentWeapon() { ... }
+export function setCurrentWeapon(weaponId) { ... }
+export function getUnlockedWeapons() { ... }
+export function isWeaponUnlocked(weaponId) { ... }
+export function checkForUnlock(level) { ... }
+export function getNextUnlock(currentLevel) { ... }
+export function getWeaponConfig(weaponId) { ... }
+export function resetWeapons() { ... }
+```
+
+### Modified Files
+
+#### `js/missiles.js` Changes
+
+```javascript
+import { getCurrentWeapon, getWeaponConfig } from './weapons.js';
+
+export function fireMissile(player, scene) {
+    const now = Date.now();
+    const activePowerUp = getActivePowerUp();
+    const weapon = getWeaponConfig(getCurrentWeapon());
+
+    // Base fire rate from weapon, modified by power-up
+    let fireDelay = weapon.fireRate;
+    if (activePowerUp === POWERUP_TYPES.RAPID_FIRE) {
+        fireDelay = Math.floor(weapon.fireRate * 0.25); // 75% faster
+    }
+
+    if (now - lastPlayerFireTime < fireDelay) return;
+    lastPlayerFireTime = now;
+
+    // Calculate projectile count (weapon base + spread shot bonus)
+    let projectileCount = weapon.projectileCount;
+    if (activePowerUp === POWERUP_TYPES.SPREAD_SHOT) {
+        projectileCount += 2;
+    }
+
+    // Fire based on weapon type
+    switch (weapon.special) {
+        case 'piercing':
+            firePiercingShot(player, scene, weapon);
+            break;
+        case 'homing':
+            fireHomingMissile(player, scene, weapon);
+            break;
+        case 'instant':
+            fireRailgun(player, scene, weapon);
+            break;
+        case 'aoe':
+            fireNovaBurst(player, scene, weapon);
+            break;
+        default:
+            fireStandardShots(player, scene, weapon, projectileCount);
+    }
+
+    playWeaponSound(weapon.sound);
 }
 ```
 
-### Step 2: Modify Missile System (`js/missiles.js`)
-
-Update `fireMissile()` to support different weapon types:
-
-1. Import weapon configuration from `weapons.js`
-2. Create weapon-specific missile factories:
-   - `createPulseMissile()` - existing standard missile
-   - `createTwinMissile()` - parallel dual shots
-   - `createPlasmaMissile()` - piercing projectile (new pierce flag)
-   - `createScatterMissiles()` - 5-way spread pattern
-   - `createHomingMissile()` - player-side homing logic
-   - `createRailgunBeam()` - instant raycast damage
-   - `createNovaBurst()` - AOE damage zone
-
-3. Add missile properties:
-   - `piercing: boolean` - continues through enemies
-   - `homing: boolean` - tracks nearest target
-   - `damage: number` - damage per hit (default 1)
-   - `isBeam: boolean` - instant raycast vs projectile
-
-4. Update `updateMissiles()` collision detection:
-   - Check `piercing` flag to not destroy on hit
-   - Add homing update logic for player missiles
-   - Handle beam weapons with raycast
-
-### Step 3: Add Weapon Selection UI
-
-Create weapon selector in `index.html` and `js/ui.js`:
-
-1. **Weapon HUD** (bottom-left corner):
-   - Current weapon icon/name
-   - Weapon hotkey indicators (1-7)
-   - Cooldown indicator bar
-
-2. **Weapon Unlock Notification**:
-   - "NEW WEAPON UNLOCKED!" banner on level complete
-   - Weapon name and description
-   - Auto-dismiss after 3 seconds
-
-3. **Controls**:
-   - Number keys 1-7 to switch weapons
-   - Mouse wheel to cycle through unlocked weapons
-
-### Step 4: Integrate with Level System (`js/levels.js`, `js/game.js`)
-
-1. **On Level Complete**:
-   - Check if new weapons unlocked at new level
-   - Trigger unlock notification UI
-   - Play unlock sound effect
-
-2. **Track Unlocked Weapons**:
-   - Store unlocked weapons in game state
-   - Persist across level transitions
-   - Reset on game restart (back to level 1 = pulse cannon only)
-
-3. **Level Config Extension**:
-   ```javascript
-   getLevelConfig(level) {
-     return {
-       ...existingConfig,
-       newWeaponUnlock: getWeaponUnlockedAtLevel(level)
-     }
-   }
-   ```
-
-### Step 5: Integrate with Input System (`js/input.js`)
-
-Add keyboard handlers for weapon switching:
+#### `js/game.js` Changes
 
 ```javascript
-// Number keys 1-7 for direct weapon selection
-// Mouse wheel for cycling
-// Q/E for previous/next weapon (alternative)
+import { checkForUnlock, getNextUnlock, resetWeapons } from './weapons.js';
+
+export function handleLevelComplete() {
+    // ... existing code ...
+
+    // Check for weapon unlock at new level
+    const newWeapon = checkForUnlock(nextLevel);
+    if (newWeapon) {
+        showWeaponUnlock(newWeapon, scene);
+    }
+}
+
+function resetGame() {
+    // ... existing resets ...
+    resetWeapons(); // Reset to pulse cannon only
+}
 ```
 
-### Step 6: Add Weapon Audio (`js/audio.js`)
+#### `js/input.js` Changes
 
-Create distinct sounds for each weapon type:
+```javascript
+import { setCurrentWeapon, getUnlockedWeapons } from './weapons.js';
 
-- `playPulseSound()` - existing missile sound
-- `playTwinBlasterSound()` - dual shot effect
-- `playPlasmaSound()` - charging energy beam
-- `playScatterSound()` - shotgun-style blast
-- `playHomingSound()` - lock-on beep + launch
-- `playRailgunSound()` - electric discharge
-- `playNovaSound()` - explosion buildup + burst
-- `playWeaponUnlockSound()` - achievement fanfare
+// Number keys 1-7 for weapon selection
+document.addEventListener('keydown', (e) => {
+    const key = parseInt(e.key);
+    if (key >= 1 && key <= 7) {
+        const weapons = getUnlockedWeapons();
+        if (weapons[key - 1]) {
+            setCurrentWeapon(weapons[key - 1]);
+        }
+    }
+});
 
-### Step 7: Visual Effects (`js/particles.js`)
+// Mouse wheel for cycling
+document.addEventListener('wheel', (e) => {
+    cycleWeapon(e.deltaY > 0 ? 1 : -1);
+});
+```
 
-Add weapon-specific particle effects:
+#### `js/audio.js` Additions
 
-- **Plasma Lance**: Energy trail, glow aura
-- **Homing Missiles**: Smoke trail, target indicator
-- **Railgun**: Lightning effect, impact sparks
-- **Nova Burst**: Expanding shockwave ring
+```javascript
+// New weapon sounds
+export function playTwinBlasterSound() { ... }
+export function playPlasmaSound() { ... }
+export function playScatterSound() { ... }
+export function playHomingLockSound() { ... }
+export function playRailgunSound() { ... }
+export function playNovaChargeSound() { ... }
+export function playNovaBurstSound() { ... }
+export function playWeaponUnlockFanfare() { ... }
+```
 
----
+#### `index.html` UI Additions
 
-## File Changes Summary
+```html
+<!-- Weapon HUD (bottom-left) -->
+<div id="weaponHUD">
+    <div id="currentWeapon">
+        <span id="weaponName">Pulse Cannon</span>
+        <span id="weaponKey">[1]</span>
+    </div>
+    <div id="nextUnlock">
+        <span>Next: Twin Blasters</span>
+        <div id="unlockProgress"></div>
+    </div>
+</div>
 
-| File | Changes |
-|------|---------|
-| `js/weapons.js` | **NEW** - Weapon definitions and state management |
-| `js/missiles.js` | Weapon-specific missile creation and behavior |
-| `js/game.js` | Weapon unlock checks, state integration |
-| `js/levels.js` | Add weapon unlock info to level config |
-| `js/input.js` | Weapon switching keyboard/mouse handlers |
-| `js/audio.js` | New weapon sound effects |
-| `js/particles.js` | Weapon-specific visual effects |
-| `js/ui.js` | **NEW** - Weapon HUD and unlock notifications |
-| `index.html` | Weapon UI elements, CSS for HUD |
-| `js/main.js` | Initialize weapons system |
-
----
-
-## Implementation Order
-
-1. **Phase 1: Core Weapon System**
-   - [ ] Create `js/weapons.js` with weapon definitions
-   - [ ] Add weapon state management (current weapon, unlocks)
-   - [ ] Implement basic weapon switching logic
-
-2. **Phase 2: Missile Integration**
-   - [ ] Refactor `fireMissile()` to use weapon config
-   - [ ] Implement Twin Blasters (simplest new weapon)
-   - [ ] Implement Plasma Lance with piercing
-   - [ ] Implement Scatter Cannon with spread pattern
-
-3. **Phase 3: Advanced Weapons**
-   - [ ] Implement Homing Missiles with tracking
-   - [ ] Implement Railgun with raycast
-   - [ ] Implement Nova Burst with AOE
-
-4. **Phase 4: UI & Polish**
-   - [ ] Add weapon selection UI/HUD
-   - [ ] Add unlock notifications
-   - [ ] Implement keyboard weapon switching
-   - [ ] Add weapon-specific audio
-   - [ ] Add weapon-specific particles
-
-5. **Phase 5: Balance & Testing**
-   - [ ] Playtest weapon balance
-   - [ ] Adjust fire rates and damage
-   - [ ] Ensure boss battles work with all weapons
-   - [ ] Test power-up interaction with weapons
+<!-- Weapon unlock overlay -->
+<div id="weaponUnlock" style="display: none;">
+    <div class="unlock-content">
+        <div class="unlock-star">★</div>
+        <div class="unlock-title">NEW WEAPON UNLOCKED</div>
+        <div class="unlock-name"></div>
+        <div class="unlock-tagline"></div>
+        <div class="unlock-hint">Press [#] to equip</div>
+    </div>
+</div>
+```
 
 ---
 
-## Power-Up Interaction
+## Implementation Phases
 
-Existing power-ups should enhance the current weapon:
+### Phase 1: Foundation (Core Weapon System)
+- [ ] Create `js/weapons.js` with all weapon definitions
+- [ ] Add weapon state management (current, unlocked list)
+- [ ] Implement `checkForUnlock()` tied to level progression
+- [ ] Add weapon switching via keyboard (1-7 keys)
+- [ ] Integrate with `resetGame()` to clear unlocks
 
-| Power-Up | Effect on Weapons |
-|----------|-------------------|
-| **Rapid Fire** | Reduces current weapon's fire rate by 75% |
-| **Spread Shot** | Adds +2 projectiles to current weapon pattern |
-| **Barrier Repair** | No change (works as before) |
+### Phase 2: Basic Weapons (Twin + Plasma)
+- [ ] Refactor `fireMissile()` to use weapon config
+- [ ] Implement Twin Blasters (parallel shots)
+- [ ] Implement Plasma Lance with piercing flag
+- [ ] Update `updateMissiles()` collision to handle piercing
+- [ ] Add weapon-specific colors and emissive values
+
+### Phase 3: Spread Weapons (Scatter)
+- [ ] Implement Scatter Cannon with 5-way spread
+- [ ] Create spread pattern calculation function
+- [ ] Ensure power-up stacking works (+2 projectiles)
+
+### Phase 4: Homing System
+- [ ] Implement player-side homing logic
+- [ ] Add target acquisition (nearest alien in cone)
+- [ ] Create homing missile visual (smoke trail)
+- [ ] Add lock-on indicator particle
+
+### Phase 5: Advanced Weapons (Railgun + Nova)
+- [ ] Implement Railgun raycast instant-hit
+- [ ] Add screen shake and beam visual effect
+- [ ] Implement Nova Burst AOE with charge mechanic
+- [ ] Create expanding shockwave visual
+
+### Phase 6: UI & Polish
+- [ ] Add weapon HUD (current + next unlock)
+- [ ] Create unlock celebration overlay
+- [ ] Add combo notification when power-up + weapon synergize
+- [ ] Implement weapon wheel (Tab hold)
+- [ ] Add all weapon sounds
+
+### Phase 7: Balance & Tuning
+- [ ] Playtest each weapon at unlock level
+- [ ] Adjust fire rates and damage values
+- [ ] Ensure bosses remain challenging with all weapons
+- [ ] Test power-up + weapon combinations
+- [ ] Fine-tune unlock timing for maximum engagement
 
 ---
 
-## Balance Considerations
+## Balance Guidelines
 
-1. **Damage vs Fire Rate**: Higher damage weapons have slower fire rates
-2. **Skill Expression**: Railgun/Nova require timing, Homing is easier
-3. **Boss Effectiveness**: Some weapons better for bosses vs waves
-4. **Progression Pacing**: Major unlocks at boss clear milestones (5, 10, 15, 20)
+### Fire Rate vs Power
+| Weapon | Shots/Sec | Damage/Shot | DPS | Notes |
+|--------|-----------|-------------|-----|-------|
+| Pulse Cannon | 2.5 | 1 | 2.5 | Baseline |
+| Twin Blasters | 2.86 | 2 total | 5.7 | Early power spike |
+| Plasma Lance | 1.25 | 2 | 2.5 | Same DPS, piercing utility |
+| Scatter Cannon | 2.0 | 5 total | 10 | Crowd control king |
+| Homing Missiles | 1.67 | 1 | 1.67 | Accuracy > DPS |
+| Railgun | 0.83 | 3+ | 2.5+ | Multi-hit potential |
+| Nova Burst | 0.5 | Area 2 | Variable | Defensive/clutch |
+
+### Power-Up Multipliers
+With Rapid Fire (75% cooldown reduction):
+- Pulse: 10 shots/sec
+- Scatter: 8 shots/sec (40 projectiles/sec!)
+- Railgun: 3.3 shots/sec (constant beam feel)
+
+### Boss Effectiveness
+| Weapon | vs Bosses | Notes |
+|--------|-----------|-------|
+| Pulse | ★★☆☆☆ | Safe but slow |
+| Twin | ★★★☆☆ | Good sustained damage |
+| Plasma | ★★★★☆ | High damage per hit |
+| Scatter | ★★☆☆☆ | Wasted spread on single target |
+| Homing | ★★★☆☆ | Never misses weak points |
+| Railgun | ★★★★★ | Massive damage if timed right |
+| Nova | ★★☆☆☆ | Better for adds/defense |
 
 ---
 
-## Optional Enhancements
+## Success Metrics
 
-- **Weapon Upgrades**: Collect upgrades to enhance specific weapons
-- **Ammo System**: Limited ammo for powerful weapons, regenerating
-- **Weapon Combos**: Quick-switch bonuses for alternating weapons
-- **Challenge Modes**: Beat levels with specific weapons for bonuses
+The weapon system is successful if players:
+
+1. **Stay longer** - Average session length increases
+2. **Return more** - "Just one more level to unlock X"
+3. **Experiment** - Players try different weapon/power-up combos
+4. **Feel rewarded** - Unlock moments create genuine excitement
+5. **Master the game** - Skill ceiling raised by weapon choice
+
+---
+
+## Future Enhancements (Post-MVP)
+
+- **Weapon Skins** - Cosmetic variants earned through challenges
+- **Upgrade Paths** - Enhance specific weapons with pickups
+- **Challenge Modes** - "Beat Level 15 with Pulse Cannon only"
+- **Leaderboards** - Per-weapon high scores
+- **Dual Wield** - Late-game ability to use two weapons
