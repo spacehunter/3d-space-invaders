@@ -14,13 +14,15 @@ import { getIsMouseDown } from './input.js';
 import { getLevelConfig } from './levels.js';
 import { startLevelTransition, isInTransition, forceEndTransition, updateTransition } from './transitions.js';
 import { spawnBoss, updateBoss, getCurrentBoss, resetBoss, damageBoss, getBossHitRadius } from './boss.js';
+import { showLanding } from './landing.js';
 
 // Game state
 let scene;
 let camera;
 let score = 0;
 let lives = 3;
-let gameActive = true;
+let gameActive = false;  // Start inactive, wait for landing page
+let gameStarted = false;  // Track if game has been started from landing
 
 // Level state
 let currentLevel = 1;
@@ -35,7 +37,8 @@ export function initGame(sceneRef, cameraRef) {
     camera = cameraRef;
     score = 0;
     lives = 3;
-    gameActive = true;
+    gameActive = false;  // Wait for startGame() call
+    gameStarted = false;
 
     // Initialize level system
     currentLevel = 1;
@@ -60,6 +63,56 @@ export function initGame(sceneRef, cameraRef) {
 
     updateUI();
     updateLevelDisplay();
+}
+
+// Start the game (called from landing page)
+export function startGame() {
+    if (gameStarted) return;  // Prevent double start
+    gameStarted = true;
+    gameActive = true;
+}
+
+// Start from a specific level (for continue feature)
+export function startFromLevel(targetLevel) {
+    if (gameStarted) return;  // Prevent double start
+    gameStarted = true;
+
+    // Set up the target level
+    currentLevel = targetLevel;
+    levelConfig = getLevelConfig(currentLevel);
+    isBossLevel = levelConfig.isBossLevel;
+    damageTakenThisLevel = false;
+    livesAtLevelStart = lives;
+
+    // Apply level config
+    setAlienConfig(levelConfig);
+
+    // Clear existing aliens and create new ones for this level
+    resetAliens(scene);
+
+    if (isBossLevel) {
+        spawnBoss(levelConfig.bossType, levelConfig.bossEnhancement, scene);
+    } else {
+        createAliens(scene);
+    }
+
+    updateLevelDisplay();
+    gameActive = true;
+}
+
+// Save progress to localStorage
+function saveProgress(level) {
+    const savedLevel = getSavedProgress();
+    // Only save if this is a higher level than previously saved
+    if (level > savedLevel) {
+        localStorage.setItem('spaceInvaders3D_highestLevel', level.toString());
+    }
+}
+
+// Get saved progress from localStorage
+export function getSavedProgress() {
+    const saved = localStorage.getItem('spaceInvaders3D_highestLevel');
+    return saved ? parseInt(saved, 10) : 1;
 }
 
 // Update camera position based on player and mouse
@@ -117,7 +170,8 @@ export function handleFire() {
     }
 
     if (!gameActive) {
-        resetGame();
+        // Return to landing page instead of restarting directly
+        returnToLanding();
         return;
     }
 
@@ -192,6 +246,9 @@ export function handleLevelComplete() {
             isBossLevel = levelConfig.isBossLevel;
             damageTakenThisLevel = false;
             livesAtLevelStart = lives;
+
+            // Save progress - player has unlocked this level
+            saveProgress(currentLevel);
 
             // Start next level
             if (isBossLevel) {
@@ -304,8 +361,22 @@ function showGameOverScreen(won, initials) {
     gameOverDiv.innerHTML = message;
 }
 
-// Reset game
-function resetGame() {
+// Return to landing page after game over
+function returnToLanding() {
+    // Hide game over screen
+    const gameOverDiv = document.getElementById('gameOver');
+    gameOverDiv.style.display = 'none';
+    gameOverDiv.innerHTML = '';
+
+    // Hide initial entry if active
+    hideInitialEntry();
+
+    // Show landing page
+    showLanding();
+}
+
+// Reset game - exported so landing page can call it
+export function resetGame() {
     // Hide initial entry if active
     hideInitialEntry();
 
@@ -336,6 +407,7 @@ function resetGame() {
     score = 0;
     lives = 3;
     livesAtLevelStart = 3;
+    gameStarted = false;  // Reset game started flag
 
     updateUI();
     updateLevelDisplay();
