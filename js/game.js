@@ -511,6 +511,19 @@ export function isGameActive() {
     return gameActive;
 }
 
+// Pause the game (for settings panel, etc.)
+export function pauseGame() {
+    gameActive = false;
+}
+
+// Resume the game
+export function resumeGame() {
+    // Only resume if game has been started
+    if (gameStarted) {
+        gameActive = true;
+    }
+}
+
 // Get current score
 export function getScore() {
     return score;

@@ -6,7 +6,7 @@ import { createPlayer } from './player.js';
 import { createStarfield } from './starfield.js';
 import { createAliens } from './aliens.js';
 import { initInput, setMouseSensitivity } from './input.js';
-import { initGame, update, handleFire, startGame, startFromLevel, resetGame } from './game.js';
+import { initGame, update, handleFire, startGame, startFromLevel, resetGame, pauseGame, resumeGame } from './game.js';
 import { updateHighScoresDisplay } from './highscores.js';
 import { initLanding, isLandingActive } from './landing.js';
 import { initAudio, setMasterVolume, setSFXVolume, setMusicVolume, setMute } from './audio.js';
@@ -132,6 +132,15 @@ function init() {
     settingsManager.on('showHitboxes', (value) => {
         // Debug feature - will be implemented later
         console.log('Show hitboxes:', value);
+    });
+
+    // Pause/resume game when settings panel opens/closes
+    settingsManager.on('panelOpen', (isOpen) => {
+        if (isOpen) {
+            pauseGame();
+        } else {
+            resumeGame();
+        }
     });
 
     // Event listeners
