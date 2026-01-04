@@ -226,7 +226,420 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
-        /* Landing Page Styles */
+
+        /* ==================== SETTINGS PANEL STYLES ==================== */
+
+        /* Settings Toggle Button */
+        .settings-toggle {
+            position: fixed;
+            bottom: 40px;
+            left: 10px;
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            color: #00ffff;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 150;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .settings-toggle:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.6);
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        /* Settings Overlay */
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 190;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .settings-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 420px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            border-left: 3px solid #00ffff;
+            z-index: 200;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.6), inset 0 0 100px rgba(0, 255, 255, 0.05);
+        }
+
+        .settings-panel.open {
+            transform: translateX(0);
+        }
+
+        /* Scanline effect */
+        .settings-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(transparent, rgba(0, 255, 255, 0.3), transparent);
+            animation: scanline 8s linear infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100vh); }
+        }
+
+        /* Grid pattern overlay */
+        .settings-panel::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 255, 0.03) 2px,
+                rgba(0, 255, 255, 0.03) 4px
+            );
+            pointer-events: none;
+            animation: gridScroll 20s linear infinite;
+        }
+
+        @keyframes gridScroll {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 40px; }
+        }
+
+        /* Settings Header */
+        .settings-header {
+            position: sticky;
+            top: 0;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 20px;
+            border-bottom: 2px solid #00ffff;
+            z-index: 5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-header h2 {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 28px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00;
+            letter-spacing: 3px;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 0, 0, 0.3);
+            border-color: #ff0000;
+            color: #ff0000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+            transform: rotate(90deg);
+        }
+
+        /* Settings Content */
+        .settings-content {
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Settings Section */
+        .settings-section {
+            margin-bottom: 30px;
+            animation: slideInLeft 0.5s ease-out both;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .settings-section h3 {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+            margin: 0 0 20px 0;
+            letter-spacing: 2px;
+            text-align: center;
+            position: relative;
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% {
+                text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+            }
+            50% {
+                text-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00, 0 0 40px #00ff00;
+            }
+        }
+
+        /* Setting Item */
+        .setting-item {
+            margin-bottom: 25px;
+            animation: slideInLeft 0.5s ease-out both;
+        }
+
+        .setting-item label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff;
+            letter-spacing: 1px;
+        }
+
+        .value-display {
+            color: #ffff00;
+            font-weight: bold;
+            min-width: 50px;
+            text-align: right;
+            text-shadow: 0 0 5px #ffff00;
+            transition: filter 0.3s ease;
+        }
+
+        /* Slider Styling */
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            background: #111;
+            border: 1px solid #00ffff;
+            border-radius: 4px;
+            outline: none;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 0 5px rgba(0, 255, 255, 0.3);
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+
+        /* Slider Track */
+        input[type="range"]::-webkit-slider-track {
+            height: 8px;
+            background: transparent;
+        }
+
+        input[type="range"]::-moz-range-track {
+            height: 8px;
+            background: transparent;
+        }
+
+        /* Slider Thumb */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ffffff 0%, #00ffff 70%);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px #00ffff, 0 0 25px #00ffff, inset 0 0 5px #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ffffff 0%, #00ffff 70%);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px #00ffff, 0 0 25px #00ffff, inset 0 0 5px #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        /* Slider Thumb Hover */
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px #00ffff, 0 0 35px #00ffff, 0 0 50px #00ffff, inset 0 0 8px #ffffff;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px #00ffff, 0 0 35px #00ffff, 0 0 50px #00ffff, inset 0 0 8px #ffffff;
+        }
+
+        /* Toggle Switches */
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-item label {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            position: relative;
+            -webkit-appearance: none;
+            background: rgba(255, 0, 0, 0.3);
+            border: 2px solid #ff0000;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.4), inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .toggle-switch:checked {
+            background: rgba(0, 255, 0, 0.3);
+            border-color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.6), inset 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            background: radial-gradient(circle, #ff0000, #660000);
+            box-shadow: 0 0 8px #ff0000, inset 0 0 4px rgba(255, 255, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .toggle-switch:checked::before {
+            transform: translateX(24px);
+            background: radial-gradient(circle, #00ff00, #006600);
+            box-shadow: 0 0 12px #00ff00, inset 0 0 4px rgba(255, 255, 255, 0.3);
+        }
+
+        .toggle-state {
+            font-size: 12px;
+            min-width: 40px;
+            text-align: center;
+            color: #ff0000;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        .toggle-state.on {
+            color: #00ff00;
+            text-shadow: 0 0 5px #00ff00;
+        }
+
+        /* Settings Footer */
+        .settings-footer {
+            position: sticky;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 20px;
+            border-top: 2px solid #00ffff;
+            z-index: 5;
+        }
+
+        .btn-reset {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-reset::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-reset:hover::before {
+            left: 100%;
+        }
+
+        .btn-reset:hover {
+            background: rgba(0, 255, 255, 0.2);
+            color: #00ff00;
+            border-color: #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+            transform: scale(1.02);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .settings-panel {
+                width: 100%;
+                border-left: none;
+            }
+
+            .settings-toggle {
+                bottom: 20px;
+                left: 20px;
+            }
+        }
+
+        /* Hide body scroll when settings open */
+        body.settings-open {
+            overflow: hidden;
+        }
+
+        /* ==================== LANDING PAGE STYLES ==================== */
         #landingPage {
             position: fixed;
             top: 0;
@@ -371,42 +784,39 @@
             }
         }
         .landing-instructions {
+            margin-top: 60px;
             display: flex;
             justify-content: center;
-            gap: 60px;
-            margin-bottom: 40px;
+            gap: 40px;
         }
         .instruction-item {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            align-items: center;
+            gap: 10px;
         }
-        .instruction-item .key {
-            font-size: 20px;
-            color: #ff00ff;
-            text-shadow: 0 0 8px #ff00ff;
-            padding: 8px 20px;
-            border: 2px solid #ff00ff;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
-        }
-        .instruction-item .action {
+        .key {
+            color: #00ffff;
             font-size: 14px;
-            color: #aaaaaa;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00ffff;
+            padding: 5px 15px;
+            border: 1px solid #00ffff;
+            border-radius: 3px;
+        }
+        .action {
+            color: #888;
+            font-size: 12px;
         }
         .feature-list {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            font-size: 14px;
-            color: #888888;
-        }
-        .feature {
+            margin-top: 40px;
             color: #00ff00;
-            text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+            font-size: 12px;
+            text-shadow: 0 0 5px #00ff00;
         }
         .feature-divider {
-            color: #444444;
+            margin: 0 15px;
+            color: #00ffff;
         }
     </style>
 </head>
@@ -429,15 +839,119 @@
     <div id="instructions">
         Move Mouse: Control Ship | Click: Fire Missile
     </div>
-    <div id="settings">
-        <label for="glowSlider">GLOW INTENSITY: <span id="glowValue">1.50</span></label>
-        <input type="range" id="glowSlider" min="0" max="3" step="0.05" value="1.5">
-    </div>
     <div id="transitionOverlay">
         <div class="main-text"></div>
         <div class="sub-text"></div>
     </div>
 
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="settings-panel">
+        <div class="settings-header">
+            <h2>⚙ SETTINGS</h2>
+            <button id="closeSettings" class="close-btn">✕</button>
+        </div>
+
+        <div class="settings-content">
+            <!-- AUDIO Section -->
+            <div class="settings-section">
+                <h3>◄ AUDIO ═══════════════════►</h3>
+
+                <div class="setting-item">
+                    <label for="masterVolume">
+                        Master Volume
+                        <span class="value-display" id="masterVolumeValue">100%</span>
+                    </label>
+                    <input type="range" id="masterVolume" min="0" max="100" value="100">
+                </div>
+
+                <div class="setting-item">
+                    <label for="sfxVolume">
+                        SFX Volume
+                        <span class="value-display" id="sfxVolumeValue">80%</span>
+                    </label>
+                    <input type="range" id="sfxVolume" min="0" max="100" value="80">
+                </div>
+
+                <div class="setting-item">
+                    <label for="musicVolume">
+                        Music Volume
+                        <span class="value-display" id="musicVolumeValue">100%</span>
+                    </label>
+                    <input type="range" id="musicVolume" min="0" max="100" value="100">
+                </div>
+
+                <div class="setting-item toggle-item">
+                    <label for="muteAll">
+                        Mute All
+                        <span class="toggle-state">OFF</span>
+                    </label>
+                    <input type="checkbox" id="muteAll" class="toggle-switch">
+                </div>
+            </div>
+
+            <!-- VISUAL Section -->
+            <div class="settings-section">
+                <h3>◄ VISUAL ════════════════════►</h3>
+
+                <div class="setting-item">
+                    <label for="glowIntensity">
+                        Glow Intensity
+                        <span class="value-display" id="glowIntensityValue">1.50</span>
+                    </label>
+                    <input type="range" id="glowIntensity" min="0" max="3" step="0.05" value="1.5">
+                </div>
+
+                <div class="setting-item">
+                    <label for="particleDensity">
+                        Particle Density
+                        <span class="value-display" id="particleDensityValue">100%</span>
+                    </label>
+                    <input type="range" id="particleDensity" min="0" max="100" value="100">
+                </div>
+
+                <div class="setting-item toggle-item">
+                    <label for="showFPS">
+                        Show FPS
+                        <span class="toggle-state on">ON</span>
+                    </label>
+                    <input type="checkbox" id="showFPS" class="toggle-switch" checked>
+                </div>
+            </div>
+
+            <!-- GAMEPLAY Section -->
+            <div class="settings-section">
+                <h3>◄ GAMEPLAY ══════════════════►</h3>
+
+                <div class="setting-item">
+                    <label for="mouseSensitivity">
+                        Mouse Sensitivity
+                        <span class="value-display" id="mouseSensitivityValue">1.0x</span>
+                    </label>
+                    <input type="range" id="mouseSensitivity" min="0.5" max="2.0" step="0.1" value="1.0">
+                </div>
+
+                <div class="setting-item toggle-item">
+                    <label for="showHitboxes">
+                        Debug Hitboxes
+                        <span class="toggle-state">OFF</span>
+                    </label>
+                    <input type="checkbox" id="showHitboxes" class="toggle-switch">
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-footer">
+            <button id="resetDefaults" class="btn-reset">RESET DEFAULTS</button>
+        </div>
+    </div>
+
+    <!-- Settings Toggle Button -->
+    <button id="settingsToggle" class="settings-toggle" title="Settings (ESC)">⚙</button>
+
+    <!-- Overlay for when settings are open -->
+    <div id="settingsOverlay" class="settings-overlay"></div>
+
+    <!-- Landing Page -->
     <div id="landingPage">
         <div class="landing-content">
             <h1 class="game-title">3D SPACE</h1>
