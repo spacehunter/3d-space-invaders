@@ -71,6 +71,49 @@ export function startGame() {
     gameActive = true;
 }
 
+// Start from a specific level (for continue feature)
+export function startFromLevel(targetLevel) {
+    if (gameStarted) return;  // Prevent double start
+    gameStarted = true;
+
+    // Set up the target level
+    currentLevel = targetLevel;
+    levelConfig = getLevelConfig(currentLevel);
+    isBossLevel = levelConfig.isBossLevel;
+    damageTakenThisLevel = false;
+    livesAtLevelStart = lives;
+
+    // Apply level config
+    setAlienConfig(levelConfig);
+
+    // Clear existing aliens and create new ones for this level
+    resetAliens(scene);
+
+    if (isBossLevel) {
+        spawnBoss(levelConfig.bossType, levelConfig.bossEnhancement, scene);
+    } else {
+        createAliens(scene);
+    }
+
+    updateLevelDisplay();
+    gameActive = true;
+}
+
+// Save progress to localStorage
+function saveProgress(level) {
+    const savedLevel = getSavedProgress();
+    // Only save if this is a higher level than previously saved
+    if (level > savedLevel) {
+        localStorage.setItem('spaceInvaders3D_highestLevel', level.toString());
+    }
+}
+
+// Get saved progress from localStorage
+export function getSavedProgress() {
+    const saved = localStorage.getItem('spaceInvaders3D_highestLevel');
+    return saved ? parseInt(saved, 10) : 1;
+}
+
 // Update camera position based on player and mouse
 export function updateCamera(player, mouseX, mouseY) {
     // If high score entry is active, lock camera to face the panel
@@ -201,6 +244,9 @@ export function handleLevelComplete() {
             isBossLevel = levelConfig.isBossLevel;
             damageTakenThisLevel = false;
             livesAtLevelStart = lives;
+
+            // Save progress - player has unlocked this level
+            saveProgress(currentLevel);
 
             // Start next level
             if (isBossLevel) {

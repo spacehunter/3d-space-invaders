@@ -1,33 +1,70 @@
 // Landing page management
+import { getSavedProgress } from './game.js';
+
 let landingElement = null;
 let isLandingVisible = true;
-let onStartCallback = null;
+let onNewGameCallback = null;
+let onContinueCallback = null;
+let savedLevel = 1;
 
 // Initialize the landing page
-export function initLanding(onStart) {
+export function initLanding(onNewGame, onContinue) {
     landingElement = document.getElementById('landingPage');
-    onStartCallback = onStart;
+    onNewGameCallback = onNewGame;
+    onContinueCallback = onContinue;
+
+    // Check for saved progress
+    savedLevel = getSavedProgress();
 
     if (landingElement) {
-        // Handle click on landing page
-        landingElement.addEventListener('click', handleStart);
+        const startNewBtn = document.getElementById('startNew');
+        const continueBtn = document.getElementById('continueGame');
+        const savedLevelSpan = document.getElementById('savedLevel');
 
-        // Also handle key press to start
+        // Show continue option if player has progress beyond level 1
+        if (savedLevel > 1 && continueBtn && savedLevelSpan) {
+            savedLevelSpan.textContent = savedLevel;
+            continueBtn.style.display = 'block';
+
+            // Handle continue click
+            continueBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleContinue();
+            });
+        }
+
+        // Handle new game click
+        if (startNewBtn) {
+            startNewBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleNewGame();
+            });
+        }
+
+        // Handle key press to start (defaults to new game)
         document.addEventListener('keydown', handleKeyStart);
     }
 }
 
-// Handle start action
-function handleStart(e) {
+// Handle new game action
+function handleNewGame() {
     if (!isLandingVisible) return;
-
-    // Prevent the click from propagating to game
-    e.stopPropagation();
 
     hideLanding();
 
-    if (onStartCallback) {
-        onStartCallback();
+    if (onNewGameCallback) {
+        onNewGameCallback();
+    }
+}
+
+// Handle continue action
+function handleContinue() {
+    if (!isLandingVisible) return;
+
+    hideLanding();
+
+    if (onContinueCallback) {
+        onContinueCallback(savedLevel);
     }
 }
 
@@ -35,14 +72,15 @@ function handleStart(e) {
 function handleKeyStart(e) {
     if (!isLandingVisible) return;
 
-    // Start on Space or Enter
+    // Start new game on Space or Enter
     if (e.code === 'Space' || e.code === 'Enter') {
         e.preventDefault();
-        hideLanding();
-
-        if (onStartCallback) {
-            onStartCallback();
-        }
+        handleNewGame();
+    }
+    // Continue on 'C' key if there's saved progress
+    if (e.code === 'KeyC' && savedLevel > 1) {
+        e.preventDefault();
+        handleContinue();
     }
 }
 

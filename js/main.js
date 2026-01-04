@@ -6,7 +6,7 @@ import { createPlayer } from './player.js';
 import { createStarfield } from './starfield.js';
 import { createAliens } from './aliens.js';
 import { initInput } from './input.js';
-import { initGame, update, handleFire, startGame } from './game.js';
+import { initGame, update, handleFire, startGame, startFromLevel } from './game.js';
 import { updateHighScoresDisplay } from './highscores.js';
 import { initLanding, isLandingActive } from './landing.js';
 import { initAudio } from './audio.js';
@@ -74,11 +74,19 @@ function init() {
     // Initialize high scores display
     updateHighScoresDisplay();
 
-    // Initialize landing page with start callback
-    initLanding(() => {
-        initAudio();  // Initialize audio on game start
-        startGame();  // Start the actual gameplay
-    });
+    // Initialize landing page with start callbacks
+    initLanding(
+        // New game callback
+        () => {
+            initAudio();
+            startGame();
+        },
+        // Continue from level callback
+        (level) => {
+            initAudio();
+            startFromLevel(level);
+        }
+    );
 
     // Glow intensity slider with localStorage persistence
     const glowSlider = document.getElementById('glowSlider');
