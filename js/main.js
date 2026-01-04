@@ -5,9 +5,11 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { createPlayer } from './player.js';
 import { createStarfield } from './starfield.js';
 import { createAliens } from './aliens.js';
-import { initInput } from './input.js';
+import { initInput, setMouseSensitivity } from './input.js';
 import { initGame, update, handleFire } from './game.js';
 import { updateHighScoresDisplay } from './highscores.js';
+import { settingsManager } from './settings.js';
+import { setMasterVolume, setSFXVolume, setMusicVolume, setMute } from './audio.js';
 
 let scene, camera, renderer, composer, bloomPass;
 
@@ -72,25 +74,49 @@ function init() {
     // Initialize high scores display
     updateHighScoresDisplay();
 
-    // Glow intensity slider with localStorage persistence
-    const glowSlider = document.getElementById('glowSlider');
-    const glowValue = document.getElementById('glowValue');
+    // Initialize settings manager
+    settingsManager.init();
 
-    // Load saved glow intensity from localStorage
-    const savedGlowIntensity = localStorage.getItem('spaceInvaders3D_glowIntensity');
-    if (savedGlowIntensity !== null) {
-        const intensity = parseFloat(savedGlowIntensity);
-        bloomPass.strength = intensity;
-        glowSlider.value = intensity;
-        glowValue.textContent = intensity.toFixed(2);
-    }
+    // Wire up settings to game systems
+    settingsManager.on('masterVolume', (value) => {
+        setMasterVolume(value);
+    });
 
-    glowSlider.addEventListener('input', (e) => {
-        const intensity = parseFloat(e.target.value);
-        bloomPass.strength = intensity;
-        glowValue.textContent = intensity.toFixed(2);
-        // Save to localStorage
-        localStorage.setItem('spaceInvaders3D_glowIntensity', intensity.toString());
+    settingsManager.on('sfxVolume', (value) => {
+        setSFXVolume(value);
+    });
+
+    settingsManager.on('musicVolume', (value) => {
+        setMusicVolume(value);
+    });
+
+    settingsManager.on('muteAll', (value) => {
+        setMute(value);
+    });
+
+    settingsManager.on('glowIntensity', (value) => {
+        bloomPass.strength = value;
+    });
+
+    settingsManager.on('showFPS', (value) => {
+        const fpsElement = document.getElementById('fps');
+        if (fpsElement) {
+            fpsElement.style.display = value ? 'block' : 'none';
+        }
+    });
+
+    settingsManager.on('mouseSensitivity', (value) => {
+        setMouseSensitivity(value);
+    });
+
+    settingsManager.on('particleDensity', (value) => {
+        // Will be implemented in particles.js
+        console.log('Particle density:', value);
+    });
+
+    settingsManager.on('showHitboxes', (value) => {
+        // Debug feature - will be implemented later
+        console.log('Show hitboxes:', value);
     });
 
     // Event listeners

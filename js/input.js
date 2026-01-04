@@ -3,6 +3,7 @@ let mouseX = 0;
 let mouseY = 0;
 let isMouseDown = false;
 let onFireCallback = null;
+let mouseSensitivity = 1.0; // Default sensitivity multiplier
 
 // Initialize input handlers
 export function initInput(fireCallback) {
@@ -18,8 +19,21 @@ export function initInput(fireCallback) {
 // Mouse move handler
 function onMouseMove(event) {
     // Normalize mouse position
-    mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-    mouseY = (event.clientY / window.innerHeight) * 2 - 1;  // -1 at top, 1 at bottom
+    const rawX = (event.clientX / window.innerWidth) * 2 - 1;
+    const rawY = (event.clientY / window.innerHeight) * 2 - 1;  // -1 at top, 1 at bottom
+
+    // Apply sensitivity
+    mouseX = rawX * mouseSensitivity;
+    mouseY = rawY * mouseSensitivity;
+
+    // Clamp to valid range
+    mouseX = Math.max(-1, Math.min(1, mouseX));
+    mouseY = Math.max(-1, Math.min(1, mouseY));
+}
+
+// Set mouse sensitivity
+export function setMouseSensitivity(sensitivity) {
+    mouseSensitivity = Math.max(0.5, Math.min(2.0, sensitivity));
 }
 
 // Mouse down handler
