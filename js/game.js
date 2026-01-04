@@ -20,7 +20,8 @@ let scene;
 let camera;
 let score = 0;
 let lives = 3;
-let gameActive = true;
+let gameActive = false;  // Start inactive, wait for landing page
+let gameStarted = false;  // Track if game has been started from landing
 
 // Level state
 let currentLevel = 1;
@@ -35,7 +36,8 @@ export function initGame(sceneRef, cameraRef) {
     camera = cameraRef;
     score = 0;
     lives = 3;
-    gameActive = true;
+    gameActive = false;  // Wait for startGame() call
+    gameStarted = false;
 
     // Initialize level system
     currentLevel = 1;
@@ -60,6 +62,13 @@ export function initGame(sceneRef, cameraRef) {
 
     updateUI();
     updateLevelDisplay();
+}
+
+// Start the game (called from landing page)
+export function startGame() {
+    if (gameStarted) return;  // Prevent double start
+    gameStarted = true;
+    gameActive = true;
 }
 
 // Update camera position based on player and mouse

@@ -226,6 +226,157 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
+        /* Landing Page Styles */
+        #landingPage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(0, 20, 40, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+            transition: opacity 0.8s ease-out, visibility 0.8s ease-out;
+        }
+        #landingPage.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .landing-content {
+            text-align: center;
+            animation: fadeInUp 1s ease-out;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .game-title {
+            font-size: 72px;
+            font-weight: bold;
+            margin: 0;
+            letter-spacing: 12px;
+            color: #00ff00;
+            text-shadow:
+                0 0 10px #00ff00,
+                0 0 20px #00ff00,
+                0 0 40px #00ff00,
+                0 0 80px #00ff00;
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+        .title-invaders {
+            color: #00ffff;
+            text-shadow:
+                0 0 10px #00ffff,
+                0 0 20px #00ffff,
+                0 0 40px #00ffff,
+                0 0 80px #00ffff;
+            animation: titleGlowCyan 2s ease-in-out infinite;
+            animation-delay: 0.5s;
+        }
+        @keyframes titleGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 10px #00ff00,
+                    0 0 20px #00ff00,
+                    0 0 40px #00ff00,
+                    0 0 80px #00ff00;
+            }
+            50% {
+                text-shadow:
+                    0 0 20px #00ff00,
+                    0 0 40px #00ff00,
+                    0 0 60px #00ff00,
+                    0 0 100px #00ff00;
+            }
+        }
+        @keyframes titleGlowCyan {
+            0%, 100% {
+                text-shadow:
+                    0 0 10px #00ffff,
+                    0 0 20px #00ffff,
+                    0 0 40px #00ffff,
+                    0 0 80px #00ffff;
+            }
+            50% {
+                text-shadow:
+                    0 0 20px #00ffff,
+                    0 0 40px #00ffff,
+                    0 0 60px #00ffff,
+                    0 0 100px #00ffff;
+            }
+        }
+        .title-decoration {
+            width: 400px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            margin: 20px auto 40px auto;
+            box-shadow: 0 0 10px #00ffff;
+        }
+        .start-prompt {
+            font-size: 28px;
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00;
+            margin-bottom: 50px;
+            animation: promptPulse 1.5s ease-in-out infinite;
+            cursor: pointer;
+        }
+        @keyframes promptPulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.05);
+            }
+        }
+        .landing-instructions {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-bottom: 40px;
+        }
+        .instruction-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .instruction-item .key {
+            font-size: 20px;
+            color: #ff00ff;
+            text-shadow: 0 0 8px #ff00ff;
+            padding: 8px 20px;
+            border: 2px solid #ff00ff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+        }
+        .instruction-item .action {
+            font-size: 14px;
+            color: #aaaaaa;
+        }
+        .feature-list {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            font-size: 14px;
+            color: #888888;
+        }
+        .feature {
+            color: #00ff00;
+            text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        }
+        .feature-divider {
+            color: #444444;
+        }
     </style>
 </head>
 <body>
@@ -254,6 +405,32 @@
     <div id="transitionOverlay">
         <div class="main-text"></div>
         <div class="sub-text"></div>
+    </div>
+
+    <div id="landingPage">
+        <div class="landing-content">
+            <h1 class="game-title">3D SPACE</h1>
+            <h1 class="game-title title-invaders">INVADERS</h1>
+            <div class="title-decoration"></div>
+            <div class="start-prompt">CLICK TO START</div>
+            <div class="landing-instructions">
+                <div class="instruction-item">
+                    <span class="key">MOUSE</span>
+                    <span class="action">Move Ship</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="key">CLICK</span>
+                    <span class="action">Fire Missile</span>
+                </div>
+            </div>
+            <div class="feature-list">
+                <span class="feature">5 ALIEN TYPES</span>
+                <span class="feature-divider">•</span>
+                <span class="feature">BOSS BATTLES</span>
+                <span class="feature-divider">•</span>
+                <span class="feature">POWER-UPS</span>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="js/main.js"></script>
