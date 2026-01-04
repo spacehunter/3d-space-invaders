@@ -65,34 +65,85 @@ This plan outlines the implementation of a comprehensive settings panel for 3D S
 
 ## Settings Panel Architecture
 
-### Visual Design
+### Visual Design Mockup
 
+**Full Panel with Enhanced Retro Styling**:
 ```
-┌─────────────────────────────────────┐
-│           ⚙ SETTINGS                │
-│─────────────────────────────────────│
-│                                     │
-│  AUDIO                              │
-│  ═════                              │
-│  Master Volume:  [████░░░░] 70%    │
-│  SFX Volume:     [██████░░] 80%    │
-│  Music Volume:   [████████] 100%   │
-│  Mute All:       [ ] OFF           │
-│                                     │
-│  VISUAL                             │
-│  ═══════                            │
-│  Glow Intensity: [█████░░░] 1.50   │
-│  Particle Density: [████░░░░] 60%  │
-│  FPS Display:    [✓] ON            │
-│                                     │
-│  GAMEPLAY                           │
-│  ═════════                          │
-│  Mouse Sensitivity: [████░░░░] 1.0 │
-│  Show Hitboxes:  [ ] OFF           │
-│                                     │
-│  [Reset to Defaults] [Close (ESC)] │
-└─────────────────────────────────────┘
+     ╔═══════════════════════════════════════╗
+     ║  ◄█▓▒░  ⚙ SETTINGS  ░▒▓█►           ║
+     ╠═══════════════════════════════════════╣
+     ║                                       ║
+     ║  ▼ AUDIO ═══════════════════════      ║
+     ║                                       ║
+     ║    Master Volume                      ║
+     ║    ┌─────────●──────┐  ⟨ 70% ⟩      ║
+     ║    └─█████████░░░░░─┘                ║
+     ║                                       ║
+     ║    SFX Volume                         ║
+     ║    ┌────────────●──┐  ⟨ 85% ⟩      ║
+     ║    └─███████████░░─┘                 ║
+     ║                                       ║
+     ║    Music Volume                       ║
+     ║    ┌──────────────●┐  ⟨ 100% ⟩     ║
+     ║    └─█████████████─┘                 ║
+     ║                                       ║
+     ║    Mute All  ┌───┐                   ║
+     ║              │ ○ │ OFF               ║
+     ║              └───┘                   ║
+     ║                                       ║
+     ║  ▼ VISUAL ══════════════════════      ║
+     ║                                       ║
+     ║    Glow Intensity                     ║
+     ║    ┌──────●──────┐  ⟨ 1.50 ⟩       ║
+     ║    └─█████░░░░░░─┘                   ║
+     ║                                       ║
+     ║    Particle Density                   ║
+     ║    ┌────────●────┐  ⟨ 60% ⟩        ║
+     ║    └─████████░░░─┘                   ║
+     ║                                       ║
+     ║    Show FPS  ┌───┐                   ║
+     ║              │ ● │ ON                ║
+     ║              └───┘                   ║
+     ║                                       ║
+     ║  ▼ GAMEPLAY ════════════════════      ║
+     ║                                       ║
+     ║    Mouse Sensitivity                  ║
+     ║    ┌──────●──────┐  ⟨ 1.0x ⟩       ║
+     ║    └─█████░░░░░░─┘                   ║
+     ║                                       ║
+     ║    Debug Hitboxes  ┌───┐             ║
+     ║                    │ ○ │ OFF         ║
+     ║                    └───┘             ║
+     ║                                       ║
+     ║  ═════════════════════════════════    ║
+     ║                                       ║
+     ║   ┌─────────────────┐  ┌─────────┐   ║
+     ║   │ RESET DEFAULTS  │  │ CLOSE ✕ │   ║
+     ║   └─────────────────┘  └─────────┘   ║
+     ║                                       ║
+     ╚═══════════════════════════════════════╝
 ```
+
+**Visual Effects Applied** (as it appears in-game):
+- Panel has pulsing cyan/green border glow
+- Scanlines slowly scroll down the panel
+- All text has bright cyan/green/yellow glow
+- Sliders have glowing fill that pulses
+- Slider thumbs cast light rays
+- Toggle switches have LED glow (red=off, green=on)
+- Background has subtle starfield particles
+- Corner brackets have animated glow
+- Section headers have underline sweep animation
+
+**Color Legend**:
+- `═`, `║`, `╔`, etc. → Bright cyan `#00ffff` with glow
+- Section headers (AUDIO, VISUAL, etc.) → Green `#00ff00` with intense glow
+- Percentage values → Yellow `#ffff00` with subtle glow
+- Slider fill `█` → Cyan-to-green gradient with glow
+- Slider empty `░` → Dark gray `#222` with dim cyan tint
+- Slider thumb `●` → White center with cyan corona
+- Toggle ON `●` → Bright green with radial glow
+- Toggle OFF `○` → Dim red with subtle glow
 
 ### UI Positioning
 - **Panel**: Fixed right side, slides in from right
@@ -102,14 +153,119 @@ This plan outlines the implementation of a comprehensive settings panel for 3D S
 - **Keyboard Shortcut**: ESC key
 
 ### Color Scheme (Retro Arcade)
-- **Background**: `rgba(0, 0, 0, 0.95)` with cyan border
-- **Text**: Cyan `#00ffff` with text-shadow glow
-- **Headers**: Green `#00ff00` with stronger glow
-- **Sliders**:
-  - Track: Dark gray `#222` with cyan border
-  - Fill: Gradient cyan-to-green
-  - Thumb: Bright cyan with glow effect
-- **Buttons**: Cyan border, green on hover
+
+**Core Palette** (matching game aesthetic):
+- **Primary Cyan**: `#00ffff` - Main UI elements, borders
+- **Primary Green**: `#00ff00` - Active states, confirmations
+- **Secondary Yellow**: `#ffff00` - Highlights, warnings
+- **Accent Magenta**: `#ff00ff` - Special elements, emphasis
+- **Deep Black**: `#000000` - Base background
+- **Transparent Black**: `rgba(0, 0, 0, 0.95)` - Panel background
+
+**Visual Effects**:
+- **Background**:
+  - Base: `rgba(0, 0, 0, 0.95)` semi-transparent black
+  - Border: 3px solid cyan with animated glow
+  - Box-shadow: `0 0 40px rgba(0, 255, 255, 0.6), inset 0 0 100px rgba(0, 255, 255, 0.05)`
+  - Subtle scanline effect overlay (animated)
+  - Corner accent brackets (like arcade cabinets)
+
+- **Text Styling**:
+  - Headers: `#00ff00` (green) with multi-layer glow:
+    - `text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00, 0 0 40px #00ff00`
+  - Labels: `#00ffff` (cyan) with softer glow:
+    - `text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff`
+  - Values: `#ffff00` (yellow) with subtle glow
+  - Font: `'Courier New', 'Orbitron', monospace` (retro tech feel)
+  - Letter-spacing: `2px` for that arcade readability
+
+- **Sliders** (Premium arcade feel):
+  - **Track**:
+    - Background: `#111` with `rgba(0, 255, 255, 0.2)` inner glow
+    - Border: `1px solid #00ffff`
+    - Height: `8px`, rounded corners
+    - Box-shadow: `inset 0 0 10px rgba(0, 0, 0, 0.8)`
+
+  - **Fill**:
+    - Animated gradient: `linear-gradient(90deg, #00ffff 0%, #00ff00 100%)`
+    - Box-shadow: `0 0 10px currentColor` (glowing trail)
+    - Animate on change with pulse effect
+
+  - **Thumb**:
+    - Size: `20px` circle
+    - Background: Radial gradient `#00ffff` to white center
+    - Border: `2px solid #ffffff`
+    - Box-shadow: `0 0 15px #00ffff, 0 0 25px #00ffff, inset 0 0 5px #ffffff`
+    - Hover: Scale up 1.2x with intensified glow
+    - Active: Pulse animation
+
+  - **Percentage Display**:
+    - Floating above slider
+    - Animated position following thumb
+    - Glow effect on value change
+
+- **Buttons**:
+  - Border: `2px solid #00ffff` with rounded corners
+  - Background: `transparent` default, `rgba(0, 255, 255, 0.2)` hover
+  - Text: `#00ffff` default, `#00ff00` hover
+  - Box-shadow: `0 0 10px rgba(0, 255, 255, 0.5)` on hover
+  - Hover animation: Scan-line sweep effect
+  - Click: Brief flash of brightness + ripple effect
+  - Sound on interaction (optional): Subtle beep
+
+- **Checkboxes/Toggles**:
+  - Custom styled to look like arcade switches
+  - OFF: Red LED indicator with dim glow
+  - ON: Green LED indicator with bright glow
+  - Box: Metallic frame effect with beveled edges
+  - Click animation: Switch flip with sound effect
+
+- **Section Dividers**:
+  - Animated horizontal lines with gradient
+  - Left/right accent arrows: `◄═════════════════►`
+  - Pulsing glow effect
+  - Subtle parallax movement
+
+### Enhanced Visual Elements
+
+**Scanline Effect**:
+```css
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.settings-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(transparent, rgba(0, 255, 255, 0.1), transparent);
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
+}
+```
+
+**Corner Brackets** (arcade machine aesthetic):
+```
+┏━━━━━━━━━━━━━━━━━━━━━┓
+┃    ⚙ SETTINGS       ┃
+┗━━━━━━━━━━━━━━━━━━━━━┛
+```
+
+**Particle Background**:
+- Subtle floating pixels/stars in panel background
+- Cyan/green colored particles
+- Slow drift animation
+- Adds depth without distraction
+
+**Value Change Feedback**:
+- Ripple effect from slider thumb on change
+- Brief flash of the affected UI value
+- Color pulse: cyan → green → cyan
+- Smooth number counter animation (not instant jump)
 
 ## Implementation Plan
 
@@ -286,20 +442,188 @@ export class SettingsManager {
 
 ### Phase 6: Polish & Enhancements
 
-#### 6.1 Animations
-- Smooth slide-in/out (CSS transitions)
-- Glow pulse on hover
-- Value change feedback
+#### 6.1 Premium Animations & Visual Effects
 
-#### 6.2 Accessibility
-- Keyboard navigation (Tab, Arrow keys)
-- ARIA labels
-- Screen reader support
+**Panel Open/Close Animation**:
+```css
+/* Slide-in from right with stagger effect */
+@keyframes slideIn {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-20px);
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
 
-#### 6.3 Mobile Considerations
-- Touch-friendly slider sizes
-- Full-screen panel on small screens
-- Gesture support (swipe to close)
+/* Border glow intensifies on open */
+@keyframes borderPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.8);
+  }
+}
+```
+
+**Settings Item Entrance** (staggered cascade):
+- Each setting item slides in with 50ms delay
+- Fade-in + slide from left
+- Creates waterfall effect on panel open
+- Glow-in effect for text
+
+**Hover States**:
+- **Sliders**:
+  - Thumb scale animation (1.0 → 1.2)
+  - Glow intensification
+  - Track highlights under thumb
+- **Buttons**:
+  - Scan-line sweep from left to right
+  - Border glow pulse
+  - Slight scale (1.0 → 1.05)
+  - Background fade-in
+- **Toggles**:
+  - LED flicker effect on state change
+  - Mechanical click animation
+  - Surrounding glow spread
+
+**Value Change Animations**:
+```javascript
+// Smooth counter animation for percentage values
+function animateValue(element, start, end, duration) {
+  const range = end - start;
+  const startTime = performance.now();
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Easing function for smooth deceleration
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+    const current = start + (range * easeOut);
+
+    element.textContent = Math.round(current) + '%';
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+```
+
+**Interactive Feedback**:
+- **Click Ripple Effect**:
+  - Circular wave emanates from click point
+  - Cyan color with opacity fade
+  - 500ms duration
+
+- **Value Flash**:
+  - Setting value briefly glows brighter on change
+  - Color shift: cyan → yellow → cyan
+  - 300ms duration
+
+- **Audio Feedback** (subtle):
+  - Slider adjustment: Soft continuous tone (pitch matches value)
+  - Toggle switch: Click sound (different for on/off)
+  - Button press: Confirmation beep
+  - Panel open/close: Swoosh sound
+
+**Background Effects**:
+```css
+/* CRT-style screen curve (subtle) */
+.settings-panel {
+  border-radius: 4px;
+  /* Subtle perspective for depth */
+  transform: perspective(1000px) rotateY(-2deg);
+}
+
+/* Animated grid pattern overlay */
+.settings-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 255, 0.03) 2px,
+      rgba(0, 255, 255, 0.03) 4px
+    );
+  pointer-events: none;
+  animation: gridScroll 20s linear infinite;
+}
+
+@keyframes gridScroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 40px; }
+}
+```
+
+**Glow Pulse on Hover** (all interactive elements):
+```css
+@keyframes glowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 15px currentColor)
+            drop-shadow(0 0 25px currentColor);
+  }
+}
+
+.interactive:hover {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+```
+
+**Section Header Animations**:
+- Animated underline that draws in from left
+- Icon rotation on section expand/collapse (future feature)
+- Glow pulse synchronized across all headers
+
+**Overlay Fade**:
+- Dark overlay behind panel when open
+- Gaussian blur on game content (optional performance toggle)
+- Fade-in 300ms, fade-out 200ms
+- Click overlay to close with ripple effect from click point
+
+#### 6.2 Accessibility (Without Compromising Aesthetic)
+- Keyboard navigation (Tab, Arrow keys) with visible focus states
+- Focus rings using cyan glow (matches aesthetic)
+- ARIA labels and roles
+- Screen reader support for all controls
+- Prefers-reduced-motion media query support
+- High contrast mode detection
+- Skip to setting functionality
+
+#### 6.3 Mobile/Touch Considerations
+- Touch-friendly slider sizes (44px minimum tap target)
+- Full-screen panel on small screens (<768px)
+- Gesture support:
+  - Swipe right to close
+  - Pinch gesture for master volume (experimental)
+- Larger text on mobile (responsive scaling)
+- Simplified animations on lower-end devices
+- Virtual keyboard handling
+
+#### 6.4 Performance Optimizations
+- Hardware-accelerated CSS (transform, opacity only)
+- Debounced slider updates (60fps max)
+- Lazy-load settings panel HTML (not in initial DOM)
+- CSS containment for panel rendering
+- Will-change hints for animated properties
+- RequestAnimationFrame for all JS animations
+- Efficient event delegation
+- No layout thrashing
 
 ## Technical Implementation Details
 
@@ -481,8 +805,92 @@ if (oldGlow !== null && !localStorage.getItem('spaceInvaders3D_settings')) {
 
 **Total Estimated Effort**: 11-18 hours
 
+## Visual Design Philosophy
+
+### Aesthetic Inspiration
+
+The settings panel design draws from classic arcade cabinets and sci-fi interfaces:
+
+**1. Arcade Cabinet Control Panels**
+- Illuminated buttons with internal glow
+- Metallic bezels and borders
+- High-contrast neon colors on dark backgrounds
+- Tactile feedback through visual animations
+
+**2. Retro Sci-Fi Terminals** (Tron, Blade Runner, WarGames)
+- Monochromatic color schemes with bright accents
+- Scanline CRT effects
+- Geometric shapes and clean lines
+- Pulsing/breathing light effects
+- Grid overlays and technical diagrams
+
+**3. Vector Graphics Era** (Tempest, Asteroids, Battlezone)
+- Pure line-based graphics with glow
+- Sharp geometric forms
+- High-brightness elements on black
+- No gradients except for glow effects
+
+**4. Modern Retro-Wave Aesthetic**
+- Neon colors: cyan, magenta, yellow
+- Grid patterns and wireframes
+- Chrome/metallic accents
+- Particle effects and light trails
+
+### Key Design Principles
+
+1. **Everything Glows**: All interactive elements emit light
+2. **Motion with Purpose**: Animations provide feedback, not decoration
+3. **High Contrast**: Maximum readability in any lighting condition
+4. **Tactile Virtuality**: UI feels like physical arcade controls
+5. **Consistent Language**: All UI elements speak the same visual language
+6. **Performance First**: Beauty should never compromise smoothness
+
+### Visual Hierarchy
+
+**Priority 1: Information**
+- Current values (largest, brightest)
+- Setting names (medium, clear)
+
+**Priority 2: Controls**
+- Sliders and toggles (interactive, glowing)
+- Buttons (prominent but secondary)
+
+**Priority 3: Decoration**
+- Borders, dividers, backgrounds
+- Particle effects, scanlines
+- Grid patterns
+
+### Emotional Impact
+
+The settings panel should make players feel:
+- **Empowered**: Full control over their experience
+- **Immersed**: UI is part of the game world, not separate
+- **Nostalgic**: Reminded of classic arcade experiences
+- **Excited**: Want to explore and adjust settings
+- **Professional**: High-quality, polished interface
+
+### Quality Benchmarks
+
+Compare favorably to:
+- Fez (retro-modern UI integration)
+- Geometry Wars (neon glow aesthetic)
+- Thumper (responsive visual feedback)
+- Hyper Light Drifter (atmospheric UI)
+- Resogun (voxel + bloom effects)
+
 ## Conclusion
 
-This settings panel design provides a solid foundation for player customization while maintaining the game's retro arcade aesthetic. The modular architecture allows for easy expansion, and the localStorage-based persistence ensures players' preferences are retained across sessions. The slide-out panel approach balances accessibility with non-intrusiveness, making it easy for players to adjust settings without disrupting their gameplay experience.
+This settings panel design provides a **premium, visually stunning** foundation for player customization while **perfectly matching** the game's retro arcade aesthetic. The modular architecture allows for easy expansion, and the localStorage-based persistence ensures players' preferences are retained across sessions.
 
-The implementation follows existing code patterns (localStorage persistence, event-driven updates) and integrates cleanly with the current architecture. Future enhancements can be added incrementally without major refactoring.
+The slide-out panel approach balances accessibility with non-intrusiveness, making it easy for players to adjust settings without disrupting their gameplay experience. **Most importantly**, the panel is designed to be a visual showcase—something players will want to open and interact with because it looks and feels amazing.
+
+The implementation follows existing code patterns (localStorage persistence, event-driven updates) and integrates cleanly with the current architecture. Every animation, glow effect, and interaction is carefully crafted to create a cohesive, high-quality experience that elevates the entire game.
+
+**Visual Quality Targets**:
+- ✨ "Wow factor" on first open
+- 🎮 Feels like an extension of the game, not a menu
+- 🌟 Satisfying to adjust settings (even when unnecessary)
+- 💎 Production-quality polish
+- 🚀 Performs at 60fps with all effects enabled
+
+Future enhancements can be added incrementally without major refactoring, always maintaining the established visual language and quality bar.
