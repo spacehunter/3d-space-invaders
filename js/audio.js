@@ -490,6 +490,7 @@ export function playLevelComplete() {
     if (!audioContext) return;
 
     const now = audioContext.currentTime;
+    const volume = getFinalVolume(1.0, 'sfx');
 
     // Ascending arpeggio - C, E, G, C (octave)
     const notes = [261.63, 329.63, 392.00, 523.25];
@@ -502,7 +503,7 @@ export function playLevelComplete() {
         osc.frequency.setValueAtTime(freq, now + i * 0.12);
 
         gain.gain.setValueAtTime(0, now + i * 0.12);
-        gain.gain.linearRampToValueAtTime(0.4, now + i * 0.12 + 0.05);
+        gain.gain.linearRampToValueAtTime(0.4 * volume, now + i * 0.12 + 0.05);
         gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.5);
 
         osc.connect(gain);
@@ -516,6 +517,7 @@ export function playLevelComplete() {
     setTimeout(() => {
         if (!audioContext) return;
         const chordNow = audioContext.currentTime;
+        const chordVolume = getFinalVolume(1.0, 'sfx');
 
         [523.25, 659.25, 783.99].forEach(freq => {
             const osc = audioContext.createOscillator();
@@ -524,7 +526,7 @@ export function playLevelComplete() {
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(freq, chordNow);
 
-            gain.gain.setValueAtTime(0.3, chordNow);
+            gain.gain.setValueAtTime(0.3 * chordVolume, chordNow);
             gain.gain.exponentialRampToValueAtTime(0.01, chordNow + 0.8);
 
             osc.connect(gain);
@@ -541,6 +543,7 @@ export function playWarpSound() {
     if (!audioContext) return;
 
     const now = audioContext.currentTime;
+    const volume = getFinalVolume(1.0, 'sfx');
 
     // Rising frequency sweep with noise
     const osc = audioContext.createOscillator();
@@ -555,8 +558,8 @@ export function playWarpSound() {
     filter.frequency.setValueAtTime(500, now);
     filter.frequency.exponentialRampToValueAtTime(5000, now + 1.5);
 
-    gain.gain.setValueAtTime(0.5, now);
-    gain.gain.linearRampToValueAtTime(0.3, now + 0.5);
+    gain.gain.setValueAtTime(0.5 * volume, now);
+    gain.gain.linearRampToValueAtTime(0.3 * volume, now + 0.5);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
 
     osc.connect(filter);
@@ -584,7 +587,7 @@ export function playWarpSound() {
     noiseFilter.Q.value = 1.0;
 
     const noiseGain = audioContext.createGain();
-    noiseGain.gain.setValueAtTime(0.3, now);
+    noiseGain.gain.setValueAtTime(0.3 * volume, now);
     noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
 
     noise.connect(noiseFilter);
@@ -600,6 +603,7 @@ export function playBossWarning() {
     if (!audioContext) return;
 
     const now = audioContext.currentTime;
+    const volume = getFinalVolume(1.0, 'sfx');
 
     // Ominous low rumble building up
     const bass = audioContext.createOscillator();
@@ -609,8 +613,8 @@ export function playBossWarning() {
     bass.frequency.setValueAtTime(30, now);
     bass.frequency.linearRampToValueAtTime(60, now + 2);
 
-    bassGain.gain.setValueAtTime(0.1, now);
-    bassGain.gain.linearRampToValueAtTime(0.8, now + 1.5);
+    bassGain.gain.setValueAtTime(0.1 * volume, now);
+    bassGain.gain.linearRampToValueAtTime(0.8 * volume, now + 1.5);
     bassGain.gain.exponentialRampToValueAtTime(0.01, now + 2);
 
     bass.connect(bassGain);
@@ -627,7 +631,7 @@ export function playBossWarning() {
         beep.type = 'square';
         beep.frequency.setValueAtTime(800, now + i * 0.5);
 
-        beepGain.gain.setValueAtTime(0.4, now + i * 0.5);
+        beepGain.gain.setValueAtTime(0.4 * volume, now + i * 0.5);
         beepGain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.5 + 0.15);
 
         beep.connect(beepGain);

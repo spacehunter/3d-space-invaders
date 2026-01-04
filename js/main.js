@@ -89,10 +89,8 @@ function init() {
         }
     );
 
-    // Initialize settings manager
-    settingsManager.init();
-
-    // Wire up settings to game systems
+    // Wire up settings to game systems BEFORE initializing settings manager
+    // This ensures loaded settings are applied when init() calls applyAllSettings()
     settingsManager.on('masterVolume', (value) => {
         setMasterVolume(value);
     });
@@ -133,6 +131,10 @@ function init() {
         // Debug feature - will be implemented later
         console.log('Show hitboxes:', value);
     });
+
+    // Initialize settings manager AFTER listeners are registered
+    // This allows applyAllSettings() to notify all listeners with loaded values
+    settingsManager.init();
 
     // Pause/resume game when settings panel opens/closes
     settingsManager.on('panelOpen', (isOpen) => {
