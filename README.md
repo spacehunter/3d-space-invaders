@@ -389,6 +389,18 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
+- ✅ **Settings Panel** - Comprehensive game customization!
+  - Audio controls (Master, SFX, Music volumes, Mute All)
+  - Visual settings (Glow Intensity, Particle Density, FPS Counter)
+  - Gameplay settings (Mouse Sensitivity, Debug Hitboxes)
+  - Retro CRT aesthetic with **4 animated scanlines** moving at different speeds
+  - Accessible from landing page or during gameplay (ESC key)
+  - Settings persist across sessions in localStorage
+- ✅ **Continue System Fixed** - Proper game state reset!
+  - Starting from any level now correctly resets lives to 3
+  - Score resets to 0 for a fresh start
+  - Barriers fully repaired before continuing
+  - Lives can never go negative (clamped at 0)
 - ✅ **Level Progression System** - Infinite scaling difficulty!
   - Formula-based difficulty scaling (speed, fire rate, alien count)
   - Hyperspace warp transitions between levels
