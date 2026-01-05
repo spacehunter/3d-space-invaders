@@ -14,3 +14,6 @@ assets/
 # IDE
 .idea/
 .vscode/
+
+# Auto Claude data directory
+.auto-claude/
