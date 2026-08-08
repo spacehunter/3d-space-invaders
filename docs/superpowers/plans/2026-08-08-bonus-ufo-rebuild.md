@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **This project has no test runner.** There is no `test` script in `package.json` and no test library in dependencies. Do not add one — it is out of scope. Verification in every task is: `npm run build` succeeds, plus the headless measurement harness in Task 1, plus a visual check in Task 4.
+- **This project has no test runner.** There is no `test` script in `package.json` and no test library in dependencies. Do not add one — it is out of scope. Verification in every task is: `npm run build` succeeds, plus the headless measurement harness in Task 1, plus a visual check in Task 3.
 - **Max radial extent ≤ 2.0** measured across a full animation sweep. Collision is `missile.position.distanceTo(bonusUFO.position) < 2.0` at `js/missiles.js:236`.
 - **No gameplay change.** Do not touch movement speed, path, spawn interval, the 500-point value, the firing logic, or the collision radius.
 - **Do not fix** the `// 25% chance this UFO will attack` comment above `Math.random() < 0.75`, and do not fix the unused `setSpawnInterval()` / `minSpawnInterval` / `maxSpawnInterval`. Both are deliberate non-goals; fixing them would change balance or widen scope.
@@ -126,14 +126,19 @@ Verified identical model extents before and after."
 
 ---
 
-### Task 2: Build the bonus UFO voxel model
+### Task 2: Build and animate the bonus UFO voxel model
+
+The model and its animation land in **one commit**. They are inseparable:
+`animateBonusUFO()` reads the exact `userData` keys `createBonusUFO()` writes,
+so replacing one without the other leaves a commit that builds fine but throws
+at runtime the moment a bonus UFO spawns.
 
 **Files:**
-- Modify: `js/bonus-ufo.js` — replace `createBonusUFO()` entirely; add palette constants, box arrays and `getBonusUfoParts()` above it
+- Modify: `js/bonus-ufo.js` — replace `createBonusUFO()` and `animateBonusUFO()` entirely; add palette constants, box arrays and `getBonusUfoParts()` above them
 
 **Interfaces:**
 - Consumes: `buildVoxelGeometry`, `mirrorBoxes`, `saucerTier` from `js/voxel.js`
-- Produces: `createBonusUFO() -> THREE.Group` whose `userData` carries `{ hull, collar, canopy, pilot, antenna, beacon, lights }` — `lights` is an array of `{ mesh, material, angle }`. Task 3 animates exactly these.
+- Produces: `createBonusUFO() -> THREE.Group` whose `userData` carries `{ hull, collar, canopy, pilot, antenna, beacon, beaconMaterial, lights }` — `lights` is an array of `{ mesh, material, angle }`. `animateBonusUFO()` reads exactly these keys.
 
 - [ ] **Step 1: Add the import**
 
@@ -328,15 +333,55 @@ function createBonusUFO() {
 }
 ```
 
-- [ ] **Step 5: Verify the build**
+- [ ] **Step 5: Replace `animateBonusUFO()`**
+
+This must land in the same commit as Step 4. The old body reads
+`userData.body`, `.dome` and `.tip`, which Step 4 just removed.
+
+```js
+function animateBonusUFO(ufo, time) {
+    const data = ufo.userData;
+
+    // Counter-rotating layers. The group itself never spins, so the canopy and
+    // antenna can hold level while the hull and collar turn against each other.
+    data.hull.rotation.y = time * 2.0;
+    data.collar.rotation.y = -time * 1.2;
+
+    // Hover bob - unchanged from the original.
+    ufo.position.y = 5 + Math.sin(time * 3) * 0.3;
+
+    // Chase: a bright crest travels around the collar. Each pod has its own
+    // cloned material, so the phase offset actually produces a chase.
+    data.lights.forEach(light => {
+        const phase = time * 5.0 - light.angle * 2.0;
+        const crest = Math.pow((Math.sin(phase) + 1) / 2, 3);
+        light.material.emissiveIntensity = 0.7 + crest * 3.0;
+        light.mesh.position.y = -0.06 + crest * 0.05;
+    });
+
+    // Canopy holds level and sways gently; the pilot looks around inside it.
+    data.canopy.rotation.y = Math.sin(time * 0.7) * 0.18;
+    data.pilot.rotation.y = Math.sin(time * 1.3) * 0.5;
+
+    // Antenna sways. Beacon flashes on an explicit phase window - a steep
+    // power curve would read as a permanent glow rather than a flash.
+    data.antenna.rotation.z = Math.sin(time * 3) * 0.12;
+    const beaconPhase = (time % 1.4) / 1.4;
+    const flash = beaconPhase < 0.08 ? Math.sin((beaconPhase / 0.08) * Math.PI) : 0;
+    data.beaconMaterial.emissiveIntensity = 0.8 + flash * 4.0;
+    data.beacon.scale.setScalar(1 + flash * 0.4);
+}
+```
+
+- [ ] **Step 6: Verify the build**
 
 ```bash
 npm run build
 ```
 
-Expected: `✓ built`. The old `animateBonusUFO()` still references `userData.body`, `.dome` and `.tip`, which no longer exist — that is fine at build time and is fixed in Task 3. Do **not** run the game yet.
+Expected: `✓ built`.
 
-- [ ] **Step 6: Verify the radial budget**
+- [ ] **Step 7: Verify the radial budget**
 
 Write `/tmp/measure-ufo.mjs`:
 
@@ -376,82 +421,7 @@ node /tmp/measure-ufo.mjs 2>/dev/null
 
 Expected: `WITHIN BUDGET`. If over, reduce `UFO_LIGHT_RADIUS` or the widest `saucerTier` width and re-run. Do not proceed while over budget — the model would extend past its own hitbox and shots that look like hits would miss.
 
-- [ ] **Step 7: Commit**
-
-```bash
-git add js/bonus-ufo.js
-git commit -m "Rebuild the bonus UFO model as a voxel sculpt
-
-Replaces cylinders and spheres with merged voxel geometry behind a
-lazily-built parts registry. Magenta value ramp with gold trim, and a
-level canopy with a pilot. Animation still to follow."
-```
-
----
-
-### Task 3: Rewrite the animation for counter-rotating layers
-
-**Files:**
-- Modify: `js/bonus-ufo.js` — replace `animateBonusUFO()`
-
-**Interfaces:**
-- Consumes: `userData.{hull, collar, canopy, pilot, antenna, beacon, lights}` from Task 2
-- Produces: nothing consumed downstream
-
-- [ ] **Step 1: Replace `animateBonusUFO()`**
-
-```js
-function animateBonusUFO(ufo, time) {
-    const data = ufo.userData;
-
-    // Counter-rotating layers. The group itself never spins, so the canopy and
-    // antenna can hold level while the hull and collar turn against each other.
-    data.hull.rotation.y = time * 2.0;
-    data.collar.rotation.y = -time * 1.2;
-
-    // Hover bob - unchanged from the original.
-    ufo.position.y = 5 + Math.sin(time * 3) * 0.3;
-
-    // Chase: a bright crest travels around the collar. Each pod has its own
-    // cloned material, so the phase offset actually produces a chase.
-    data.lights.forEach(light => {
-        const phase = time * 5.0 - light.angle * 2.0;
-        const crest = Math.pow((Math.sin(phase) + 1) / 2, 3);
-        light.material.emissiveIntensity = 0.7 + crest * 3.0;
-        light.mesh.position.y = -0.06 + crest * 0.05;
-    });
-
-    // Canopy holds level and sways gently; the pilot looks around inside it.
-    data.canopy.rotation.y = Math.sin(time * 0.7) * 0.18;
-    data.pilot.rotation.y = Math.sin(time * 1.3) * 0.5;
-
-    // Antenna sways. Beacon flashes on an explicit phase window - a steep
-    // power curve would read as a permanent glow rather than a flash.
-    data.antenna.rotation.z = Math.sin(time * 3) * 0.12;
-    const beaconPhase = (time % 1.4) / 1.4;
-    const flash = beaconPhase < 0.08 ? Math.sin((beaconPhase / 0.08) * Math.PI) : 0;
-    data.beaconMaterial.emissiveIntensity = 0.8 + flash * 4.0;
-    data.beacon.scale.setScalar(1 + flash * 0.4);
-}
-```
-
-- [ ] **Step 2: Verify the build**
-
-```bash
-npm run build
-```
-
-Expected: `✓ built`.
-
-- [ ] **Step 3: Re-verify the radial budget with animation running**
-
-```bash
-node /tmp/measure-ufo.mjs 2>/dev/null
-```
-
-Expected: `WITHIN BUDGET`. The chase now moves pods in Y only, so the radial figure should be unchanged from Task 2.
-
-- [ ] **Step 4: Verify per-instance material cloning**
+- [ ] **Step 8: Verify per-instance material cloning**
 
 ```bash
 node --input-type=module -e "
@@ -470,20 +440,23 @@ import('/Users/moog/Documents/3d-space-invaders/js/bonus-ufo.js').then(async m =
 
 Expected: `PASS: 12 distinct pod materials`. A `FAIL` here means the chase will silently pulse in unison — the exact bug CLAUDE.md records from the row-3 UFO.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add js/bonus-ufo.js
-git commit -m "Animate the bonus UFO as counter-rotating layers
+git commit -m "Rebuild the bonus UFO as a voxel sculpt with counter-rotating layers
 
-Hull spins one way, light collar the other, canopy and antenna hold
-level so the pilot and beacon stay readable. Chasing rim lights and a
-beacon flash driven from an explicit phase window."
+Replaces cylinders and spheres with merged voxel geometry behind a
+lazily-built parts registry. Magenta value ramp with gold trim, a level
+canopy with a pilot, chasing rim lights and a phase-window beacon.
+
+Model and animation land together because animateBonusUFO() reads the
+exact userData keys createBonusUFO() writes."
 ```
 
 ---
 
-### Task 4: Verify in-game and update documentation
+### Task 3: Verify in-game and update documentation
 
 **Files:**
 - Modify: `CLAUDE.md` — the `bonus-ufo.js` row in the module table, and the voxel sculpt section
