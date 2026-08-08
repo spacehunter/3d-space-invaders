@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { playUFOSpawn, playUFOTravel, stopUFOTravel, updateUFOTravelPanning } from './audio.js';
-import { buildVoxelGeometry, mirrorBoxes, saucerTier } from './voxel.js';
+import { buildVoxelGeometry, saucerTier } from './voxel.js';
 
 let bonusUFO = null;
 let ufoSpeed = 0.05; // Slower movement speed (50% of original) - makes UFO more shootable
@@ -50,10 +50,16 @@ const UFO_EMITTER = [
     { size: [0.30, 0.10, 0.30], pos: [0, -0.64, 0], color: UFO_HI }
 ];
 
-// One light pod, instanced around the collar at radius 1.70 - inboard of the
-// hull's ~1.92 rim, so each pod reads as mounted on the saucer's edge with
-// hull visible outboard of it, matching the old smooth model's proportions
-// (hull 2.0 / lights 1.8).
+// One light pod, instanced around the collar at radius 1.70. The hull's XZ
+// radius isn't constant - it varies from 1.60 on the X/Z axes to 1.919 at its
+// cut corners - and the pod's outer edge sits at 1.80, so the two overlap
+// rather than the pod always sitting inboard. Because the hull spins at
+// +2.0 rad/s against the collar's -1.2, each pod sweeps past corners and
+// axes alike: measured over 60s, every pod has at least one of its 8 corners
+// inside the hull on every frame, at least four corners on half of frames,
+// and never more than six. Net effect: pods read as rim-mounted rather than
+// floating, but they breathe in and out of the rim at roughly 2Hz rather
+// than sitting permanently proud of it.
 const UFO_LIGHT_POD = [
     { size: [0.20, 0.16, 0.20], pos: [0, 0, 0], color: UFO_GOLD_DIM },
     { size: [0.14, 0.14, 0.14], pos: [0, 0.02, 0], color: 0xffe89a }
@@ -324,6 +330,15 @@ function animateBonusUFO(ufo, time) {
  * Removes the bonus UFO from the scene
  */
 export function removeBonusUFO(scene) {
+    // No dispose() here: only one bonus UFO exists at a time, so at most 13
+    // cloned materials (12 light pods + 1 beacon) are ever live, sharing one
+    // cached shader program. If disposal is added later, it must be
+    // selective - dispose only userData.lights' materials plus the beacon
+    // material, the sole per-spawn clones. Do not blanket-traverse the mesh
+    // (the boss.js:869 pattern of child.geometry.dispose() on every child):
+    // the geometries and the hull/canopy/pilot/antenna materials all come
+    // from the shared, cached ufoParts registry and are reused by every
+    // future spawn, so disposing them here would break subsequent UFOs.
     if (bonusUFO && scene) {
         // Stop travel sound
         stopUFOTravel();
