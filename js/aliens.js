@@ -638,42 +638,308 @@ function createCrabAlien(group) {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Squid (row 2) - jet-propelled voxel sculpt
+// ---------------------------------------------------------------------------
+
+// Mantle: tapering tiers from a pointed tail down to the collar. saucerTier()
+// (shared with the UFO hull) unions three boxes into a cut-corner disc, which
+// reads as a round mantle where a plain stack of boxes would look like a
+// chimney.
+const SQUID_MANTLE = [
+    ...saucerTier(0.18, 0.16, 0.16, 1.00, 0xb4ffb8),
+    ...saucerTier(0.38, 0.32, 0.17, 0.85, 0x5cff64),
+    ...saucerTier(0.56, 0.46, 0.19, 0.68, 0x2cec38),
+    ...saucerTier(0.70, 0.58, 0.20, 0.49, 0x14cc20),
+    ...saucerTier(0.80, 0.66, 0.20, 0.29, 0x11b81c),
+    ...saucerTier(0.82, 0.68, 0.20, 0.09, 0x0fa418),
+    ...saucerTier(0.74, 0.62, 0.14, -0.05, 0x0a7d14),   // collar
+    // Dorsal keel running down the back of the hood
+    { size: [0.10, 0.16, 0.32], pos: [0, 0.86, -0.16], color: 0x7cff88 },
+    { size: [0.12, 0.16, 0.28], pos: [0, 0.66, -0.28], color: 0x3cf048 },
+    { size: [0.12, 0.14, 0.24], pos: [0, 0.44, -0.33], color: 0x22d02e },
+    // Darker belly panels, so the front reads as underside rather than more back
+    { size: [0.56, 0.50, 0.10], pos: [0, 0.30, 0.30], color: 0x0c8c16 },
+    { size: [0.60, 0.46, 0.09], pos: [0, 0.08, 0.31], color: 0x0a7d14 }
+];
+
+// Chromatophore spots scattered over the skin - these carry most of the bloom
+// and flush together on the jet
+const SQUID_SPOTS = [
+    { size: [0.11, 0.11, 0.06], pos: [-0.17, 0.62, 0.23], color: 0x8cffb4 },
+    { size: [0.09, 0.09, 0.06], pos: [0.13, 0.47, 0.29], color: 0xc8ffd8 },
+    { size: [0.12, 0.12, 0.06], pos: [-0.05, 0.28, 0.33], color: 0x8cffb4 },
+    { size: [0.08, 0.08, 0.06], pos: [0.21, 0.13, 0.32], color: 0xc8ffd8 },
+    { size: [0.06, 0.11, 0.13], pos: [-0.36, 0.36, 0.05], color: 0x8cffb4 },
+    { size: [0.06, 0.09, 0.11], pos: [0.36, 0.50, -0.06], color: 0xc8ffd8 },
+    { size: [0.06, 0.10, 0.12], pos: [-0.39, 0.14, -0.12], color: 0x8cffb4 },
+    { size: [0.06, 0.09, 0.11], pos: [0.38, 0.24, 0.12], color: 0x8cffb4 },
+    { size: [0.10, 0.10, 0.06], pos: [0.09, 0.62, -0.26], color: 0xc8ffd8 },
+    { size: [0.10, 0.10, 0.06], pos: [-0.13, 0.36, -0.31], color: 0x8cffb4 }
+];
+
+// Head under the collar: eye pods, jaw plate and the beak between the arms
+const SQUID_HEAD = [
+    { size: [0.62, 0.20, 0.54], pos: [0, -0.16, 0.00], color: 0x0fa418 },
+    { size: [0.66, 0.09, 0.18], pos: [0, -0.04, 0.24], color: 0x075c0e },   // brow
+    { size: [0.30, 0.30, 0.24], pos: [-0.28, -0.18, 0.14], color: 0x064a0c },
+    { size: [0.30, 0.30, 0.24], pos: [0.28, -0.18, 0.14], color: 0x064a0c },
+    { size: [0.46, 0.14, 0.20], pos: [0, -0.32, 0.16], color: 0x0a7d14 },   // jaw plate
+    { size: [0.18, 0.14, 0.16], pos: [0, -0.44, 0.06], color: 0x053c0a },
+    { size: [0.14, 0.09, 0.10], pos: [0, -0.51, 0.08], color: 0xd8ffc8 }    // beak tip
+];
+
+// Iris plus a horizontal slit pupil, merged so both eyes pulse as one mesh
+const SQUID_EYES = [
+    { size: [0.26, 0.24, 0.12], pos: [-0.30, -0.17, 0.26], color: 0xff2a1e },
+    { size: [0.26, 0.24, 0.12], pos: [0.30, -0.17, 0.26], color: 0xff2a1e },
+    { size: [0.17, 0.07, 0.06], pos: [-0.30, -0.17, 0.325], color: 0xfff0d0 },
+    { size: [0.17, 0.07, 0.06], pos: [0.30, -0.17, 0.325], color: 0xfff0d0 }
+];
+
+// Nictitating lids, parked up under the brow until a blink drops them
+const SQUID_LIDS = [
+    { size: [0.30, 0.16, 0.16], pos: [-0.30, 0, 0.29], color: 0x0a7d14 },
+    { size: [0.30, 0.16, 0.16], pos: [0.30, 0, 0.29], color: 0x0a7d14 }
+];
+const SQUID_LID_OPEN_Y = 0.04;
+const SQUID_LID_CLOSED_Y = -0.17;
+
+// One side fin, hinged at the mantle wall so it can undulate outward
+const SQUID_FIN = [
+    { size: [0.26, 0.10, 0.56], pos: [-0.13, 0, -0.02], color: 0x2cec38 },
+    { size: [0.22, 0.08, 0.44], pos: [-0.34, 0, -0.06], color: 0x1ed42a },
+    { size: [0.13, 0.06, 0.26], pos: [-0.51, 0, -0.12], color: 0x14bc20 },
+    { size: [0.58, 0.05, 0.07], pos: [-0.29, 0.035, 0.22], color: 0x9cff9c }, // leading edge
+    { size: [0.10, 0.07, 0.50], pos: [-0.05, -0.02, -0.02], color: 0x0a7d14 } // root rib
+];
+const SQUID_FIN_X = 0.26;
+const SQUID_FIN_Y = 0.52;
+
+// Siphon slung under the head - the nozzle the jet fires from
+const SQUID_SIPHON = [
+    { size: [0.24, 0.18, 0.24], pos: [0, -0.28, 0.30], color: 0x3cff5a },
+    { size: [0.18, 0.12, 0.12], pos: [0, -0.30, 0.44], color: 0x9cffb4 },
+    { size: [0.12, 0.08, 0.06], pos: [0, -0.31, 0.52], color: 0xe0ffd8 }
+];
+
+// Expelled water, hidden until a thrust burst. Kept inside a ~0.95 reach so it
+// never pokes into the neighbouring column.
+const SQUID_PLUME = [
+    { size: [0.14, 0.14, 0.20], pos: [0, -0.31, 0.62], color: 0xe0ffd8 },
+    { size: [0.20, 0.20, 0.20], pos: [0, -0.32, 0.74], color: 0x6cff86 },
+    { size: [0.26, 0.26, 0.14], pos: [0, -0.33, 0.85], color: 0x1a9f2a }
+];
+
+const SQUID_ARM_COUNT = 6;
+const SQUID_ARM_RADIUS = 0.24;
+const SQUID_ARM_Y = -0.44;
+
+// Arms taper toward the tip; baseBend splays them then curls them back inward
+const SQUID_ARM_SEGMENTS = [
+    { length: 0.30, width: 0.17, baseBend: 0.42, color: 0x22d02e },
+    { length: 0.26, width: 0.13, baseBend: -0.28, color: 0x16a820 },
+    { length: 0.22, width: 0.10, baseBend: -0.52, color: 0x0f8a18 }
+];
+
+// The two long feeding tentacles hang almost straight and lash on a strike
+const SQUID_TENTACLE_SEGMENTS = [
+    { length: 0.30, width: 0.11, baseBend: 0.16, color: 0x1ed42a },
+    { length: 0.28, width: 0.09, baseBend: -0.10, color: 0x16a820 },
+    { length: 0.26, width: 0.07, baseBend: -0.14, color: 0x0f8a18 }
+];
+const SQUID_TENTACLE_Y = -0.46;
+// Yaw aims each tentacle's local +X outward; the forward lash rides on a
+// separate un-yawed pivot so both sides strike toward the player
+const SQUID_TENTACLE_MOUNTS = [
+    { side: -1, yaw: Math.PI + 0.7 },
+    { side: 1, yaw: -0.7 }
+];
+
+// Geometries and non-animated materials are built once and shared by every
+// squid in the formation
+let squidParts = null;
+
+// Arm segment with a row of suckers on its inner face
+function buildSquidArmGeometry(segment) {
+    const sucker = Math.max(0.05, segment.width * 0.32);
+    const inner = -segment.width / 2;
+    // Origin sits at the top of the segment so it doubles as the joint pivot
+    return buildVoxelGeometry([
+        { size: [segment.width, segment.length, segment.width * 0.85], pos: [0, -segment.length / 2, 0], color: segment.color },
+        { size: [segment.width + 0.04, 0.06, segment.width * 0.85 + 0.04], pos: [0, -0.02, 0], color: 0x075c0e },
+        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.28, 0], color: 0xd8ffc8 },
+        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.55, 0], color: 0xd8ffc8 },
+        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.82, 0], color: 0xd8ffc8 }
+    ]);
+}
+
+function getSquidParts() {
+    if (squidParts) return squidParts;
+
+    squidParts = {
+        mantleGeometry: buildVoxelGeometry(SQUID_MANTLE),
+        spotGeometry: buildVoxelGeometry(SQUID_SPOTS),
+        headGeometry: buildVoxelGeometry(SQUID_HEAD),
+        eyeGeometry: buildVoxelGeometry(SQUID_EYES),
+        lidGeometry: buildVoxelGeometry(SQUID_LIDS),
+        siphonGeometry: buildVoxelGeometry(SQUID_SIPHON),
+        plumeGeometry: buildVoxelGeometry(SQUID_PLUME),
+        finGeometries: {
+            '-1': buildVoxelGeometry(SQUID_FIN),
+            '1': buildVoxelGeometry(mirrorBoxes(SQUID_FIN))
+        },
+        armGeometries: SQUID_ARM_SEGMENTS.map(buildSquidArmGeometry),
+        tentacleGeometries: SQUID_TENTACLE_SEGMENTS.map(s => buildLimbSegmentGeometry(s, s.color, 0x075c0e)),
+        // Paddle club on the end of each feeding tentacle
+        clubGeometry: buildVoxelGeometry([
+            { size: [0.15, 0.24, 0.11], pos: [0, -0.12, 0], color: 0x2ee03a },
+            { size: [0.07, 0.07, 0.05], pos: [-0.08, -0.07, 0], color: 0xd8ffc8 },
+            { size: [0.07, 0.07, 0.05], pos: [-0.08, -0.17, 0], color: 0xd8ffc8 }
+        ]),
+        shellMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x0a8c16,
+            emissiveIntensity: 1.0,
+            shininess: 45,
+            flatShading: true
+        }),
+        limbMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x0f9c1a,
+            emissiveIntensity: 1.2,
+            flatShading: true
+        }),
+        lidMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x086010,
+            emissiveIntensity: 0.9,
+            flatShading: true
+        }),
+        // Cloned per alien so each squid pulses on its own animation offset
+        eyeMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0xff2a1e,
+            emissiveIntensity: 2.2,
+            flatShading: true
+        }),
+        spotMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x6cff9c,
+            emissiveIntensity: 1.0,
+            flatShading: true
+        }),
+        siphonMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x5cff78,
+            emissiveIntensity: 1.2,
+            flatShading: true
+        }),
+        plumeMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x8cffa0,
+            emissiveIntensity: 1.4,
+            transparent: true,
+            opacity: 0.0,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            flatShading: true
+        })
+    };
+
+    return squidParts;
+}
+
 function createSquidAlien(group) {
-    const material = new THREE.MeshPhongMaterial({
-        color: 0x00ff00,
-        emissive: 0x00ff00,
-        emissiveIntensity: 1.6,
-        flatShading: true
-    });
+    const parts = getSquidParts();
 
-    // Head/body
-    const head = new THREE.Mesh(new THREE.BoxGeometry(1, 1.2, 0.8), material);
-    head.castShadow = true;
+    // The mantle carries the squash and stretch. Scaling it rather than the
+    // group leaves alien.scale free for the swoop telegraph.
+    const mantle = new THREE.Mesh(parts.mantleGeometry, parts.shellMaterial);
+    mantle.castShadow = true;
+    group.add(mantle);
+    group.userData.mantle = mantle;
+
+    // Spots ride on the mantle so they flex with it
+    const spots = new THREE.Mesh(parts.spotGeometry, parts.spotMaterial.clone());
+    mantle.add(spots);
+    group.userData.spots = spots;
+
+    // Head cranes against the body pitch; eyes and lids are parented to it so
+    // they stay in their sockets while it moves
+    const head = new THREE.Mesh(parts.headGeometry, parts.shellMaterial);
     group.add(head);
+    group.userData.head = head;
 
-    // Eyes
-    const eyeMaterial = new THREE.MeshPhongMaterial({
-        color: 0xff0000,
-        emissive: 0xff0000,
-        emissiveIntensity: 3.0
+    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
+    head.add(eyes);
+    group.userData.eyes = eyes;
+
+    const lids = new THREE.Mesh(parts.lidGeometry, parts.lidMaterial);
+    lids.position.y = SQUID_LID_OPEN_Y;
+    head.add(lids);
+    group.userData.lids = lids;
+
+    const siphon = new THREE.Mesh(parts.siphonGeometry, parts.siphonMaterial.clone());
+    group.add(siphon);
+    group.userData.siphon = siphon;
+
+    const plume = new THREE.Mesh(parts.plumeGeometry, parts.plumeMaterial.clone());
+    plume.visible = false;
+    group.add(plume);
+    group.userData.plume = plume;
+
+    // Side fins hinge at the mantle wall. Mirrored geometry rather than
+    // scale.x = -1, which would invert the normals on one side.
+    group.userData.fins = [-1, 1].map(side => {
+        const fin = new THREE.Mesh(parts.finGeometries[side], parts.shellMaterial);
+        fin.position.set(side * SQUID_FIN_X, SQUID_FIN_Y, -0.02);
+        fin.castShadow = true;
+        group.add(fin);
+        return { mesh: fin, side };
     });
-    const eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.2), eyeMaterial);
-    eyeLeft.position.set(-0.25, 0.3, 0.4);
-    group.add(eyeLeft);
 
-    const eyeRight = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.2), eyeMaterial);
-    eyeRight.position.set(0.25, 0.3, 0.4);
-    group.add(eyeRight);
+    // Arm crown: each arm is a chain of nested segments, so a curl travels down
+    // the limb instead of the whole thing swinging rigidly
+    group.userData.arms = [];
+    for (let i = 0; i < SQUID_ARM_COUNT; i++) {
+        const angle = (i / SQUID_ARM_COUNT) * Math.PI * 2;
 
-    // Bottom tentacles
-    group.userData.legs = [];
-    for (let i = 0; i < 6; i++) {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), material);
-        leg.position.set(-0.5 + i * 0.2, -0.8, 0);
-        leg.userData.baseY = -0.8;
-        group.add(leg);
-        group.userData.legs.push(leg);
+        const mount = new THREE.Group();
+        mount.position.set(
+            Math.cos(angle) * SQUID_ARM_RADIUS,
+            SQUID_ARM_Y,
+            Math.sin(angle) * SQUID_ARM_RADIUS
+        );
+        // Local +X now points away from the crown, so Z rotation splays outward
+        mount.rotation.y = -angle;
+        group.add(mount);
+
+        const segments = buildLimbChain(mount, parts.armGeometries, SQUID_ARM_SEGMENTS, parts.limbMaterial, -1);
+
+        group.userData.arms.push({ mount, segments, phase: i * 0.9 });
     }
+
+    // Two long feeding tentacles. The pivot is un-yawed so a rotation about its
+    // X axis lashes both tentacles toward the player; the mount under it holds
+    // the outward yaw the segment bends splay against.
+    group.userData.tentacles = SQUID_TENTACLE_MOUNTS.map(config => {
+        const pivot = new THREE.Group();
+        pivot.position.set(config.side * 0.20, SQUID_TENTACLE_Y, 0.20);
+        group.add(pivot);
+
+        const mount = new THREE.Group();
+        mount.rotation.y = config.yaw;
+        pivot.add(mount);
+
+        const segments = buildLimbChain(mount, parts.tentacleGeometries, SQUID_TENTACLE_SEGMENTS, parts.limbMaterial, -1);
+
+        const club = new THREE.Mesh(parts.clubGeometry, parts.limbMaterial);
+        club.position.y = -SQUID_TENTACLE_SEGMENTS[2].length;
+        segments[2].add(club);
+
+        return { pivot, mount, segments, club, side: config.side };
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -1256,112 +1522,253 @@ function createBeetleAlien(group) {
 }
 
 
+// ---------------------------------------------------------------------------
+// Invader (row 6) - the 1-bit arcade homage, sculpted but deliberately crisp
+// ---------------------------------------------------------------------------
+
+// This row is the homage row, so form comes from stacked bevels and hard
+// shadow steps rather than from hue: near-white plates, grey trim, and a dark
+// recess grey used only for sockets and seams. Red is reserved for the blaster.
+const INVADER_WHITE = 0xffffff;
+const INVADER_PLATE = 0xeaeaea;
+const INVADER_TRIM = 0xcccccc;
+const INVADER_SHADE = 0x8e8e8e;
+const INVADER_RECESS = 0x4a4a4a;
+
+// Centre column of the hull - straddles x=0, so it is never mirrored
+const INVADER_HULL_CORE = [
+    { size: [0.44, 0.12, 0.36], pos: [0, 0.62, -0.02], color: INVADER_WHITE },  // crown cap
+    { size: [0.64, 0.16, 0.46], pos: [0, 0.50, -0.02], color: INVADER_PLATE },
+    { size: [0.92, 0.20, 0.58], pos: [0, 0.33, 0.00], color: INVADER_PLATE },   // head
+    { size: [0.84, 0.05, 0.50], pos: [0, 0.45, 0.00], color: INVADER_WHITE },   // head bevel
+    { size: [1.00, 0.09, 0.12], pos: [0, 0.21, 0.31], color: INVADER_SHADE },   // brow band
+    { size: [1.14, 0.26, 0.68], pos: [0, 0.06, 0.00], color: INVADER_PLATE },   // chest
+    { size: [1.06, 0.05, 0.60], pos: [0, 0.21, 0.00], color: INVADER_WHITE },   // chest bevel
+    { size: [1.22, 0.20, 0.72], pos: [0, -0.16, 0.00], color: INVADER_PLATE },  // belly, widest tier
+    { size: [1.10, 0.06, 0.64], pos: [0, -0.28, 0.00], color: INVADER_SHADE },  // under-lip
+    { size: [0.78, 0.16, 0.52], pos: [0, -0.38, 0.00], color: INVADER_PLATE },  // pelvis
+    { size: [0.66, 0.06, 0.44], pos: [0, -0.47, 0.00], color: INVADER_TRIM },
+    // Front-face detail: a centre seam and a stepped grille
+    { size: [0.07, 0.44, 0.06], pos: [0, 0.14, 0.37], color: INVADER_SHADE },
+    { size: [0.34, 0.07, 0.08], pos: [0, -0.06, 0.37], color: INVADER_RECESS },
+    { size: [0.26, 0.06, 0.08], pos: [0, -0.16, 0.37], color: INVADER_RECESS },
+    // Cannon housing the barrel slides into
+    { size: [0.34, 0.24, 0.26], pos: [0, -0.22, 0.36], color: INVADER_TRIM },
+    { size: [0.38, 0.06, 0.22], pos: [0, -0.09, 0.36], color: INVADER_WHITE }
+];
+
+// One half of the hull. mirrorBoxes() builds the other, so the two sides are
+// exact - symmetry carries this silhouette more than any other model's.
+const INVADER_HULL_SIDE = [
+    { size: [0.16, 0.26, 0.30], pos: [-0.44, 0.30, 0.16], color: INVADER_PLATE },   // cheek
+    { size: [0.30, 0.24, 0.12], pos: [-0.26, 0.15, 0.32], color: INVADER_RECESS },  // eye socket
+    { size: [0.34, 0.06, 0.16], pos: [-0.26, 0.29, 0.32], color: INVADER_TRIM },    // socket hood
+    { size: [0.24, 0.22, 0.44], pos: [-0.60, 0.10, 0.00], color: INVADER_PLATE },   // shoulder pad
+    { size: [0.20, 0.05, 0.38], pos: [-0.60, 0.22, 0.00], color: INVADER_WHITE },   // shoulder bevel
+    { size: [0.22, 0.06, 0.10], pos: [-0.60, -0.02, 0.00], color: INVADER_SHADE },  // shoulder shadow
+    { size: [0.08, 0.08, 0.08], pos: [-0.42, -0.16, 0.38], color: INVADER_SHADE },  // rivet
+    { size: [0.08, 0.08, 0.08], pos: [-0.42, 0.06, 0.36], color: INVADER_SHADE },
+    { size: [0.20, 0.14, 0.34], pos: [-0.42, -0.42, 0.00], color: INVADER_SHADE }   // hip block
+];
+
+// Both optics in one mesh, so a blink scales them together. Built around y=0
+// and lifted by INVADER_EYE_Y at mount time, so the squash closes the eyes in
+// place instead of sliding them down toward the group origin.
+const INVADER_EYE_Y = 0.15;
+const INVADER_EYE_HALF = [
+    { size: [0.22, 0.14, 0.10], pos: [-0.26, 0, 0.37], color: 0x00ffff },
+    { size: [0.10, 0.07, 0.06], pos: [-0.26, 0, 0.41], color: 0xd8ffff }
+];
+
+// Antenna: a stepped pixel stalk leaning outward from its base
+const INVADER_ANTENNA = [
+    { size: [0.10, 0.16, 0.10], pos: [0.00, 0.08, 0], color: INVADER_TRIM },
+    { size: [0.08, 0.14, 0.08], pos: [-0.05, 0.21, 0], color: INVADER_PLATE },
+    { size: [0.08, 0.12, 0.08], pos: [-0.10, 0.32, 0], color: INVADER_WHITE }
+];
+const INVADER_ANTENNA_PIP = [-0.13, 0.40, 0];
+
+// Arm, built extending along -X from its shoulder joint so it can swing
+const INVADER_ARM = [
+    { size: [0.22, 0.20, 0.34], pos: [-0.11, 0.00, 0], color: INVADER_PLATE },
+    { size: [0.24, 0.05, 0.30], pos: [-0.11, 0.10, 0], color: INVADER_WHITE },
+    { size: [0.20, 0.06, 0.32], pos: [-0.11, -0.10, 0], color: INVADER_SHADE },
+    { size: [0.16, 0.26, 0.26], pos: [-0.24, 0.14, 0], color: INVADER_PLATE },   // forearm
+    { size: [0.16, 0.05, 0.22], pos: [-0.24, 0.26, 0], color: INVADER_WHITE },
+    { size: [0.13, 0.16, 0.18], pos: [-0.28, 0.32, 0], color: INVADER_TRIM },    // claw
+    { size: [0.09, 0.09, 0.09], pos: [-0.28, 0.43, 0], color: INVADER_WHITE }
+];
+
+// Blaster coils - the one accent colour, matching the red bolt it fires
+const INVADER_COILS = [
+    { size: [0.30, 0.06, 0.08], pos: [0, -0.09, 0.44], color: 0xff6a6a },
+    { size: [0.09, 0.06, 0.26], pos: [-0.40, -0.14, 0.18], color: 0xff6a6a },
+    { size: [0.09, 0.06, 0.26], pos: [0.40, -0.14, 0.18], color: 0xff6a6a },
+    { size: [0.12, 0.05, 0.12], pos: [0, -0.35, 0.28], color: 0xffb0b0 }
+];
+
+// Straight pixel legs - no splay, because the crisp vertical stance is the
+// silhouette. All the march lives in fore/aft rotation.
+const INVADER_LEG_SEGMENTS = [
+    { length: 0.15, width: 0.16, baseBend: 0 },   // thigh
+    { length: 0.15, width: 0.13, baseBend: 0 }    // shin
+];
+
+const INVADER_LEG_X = 0.30;
+const INVADER_LEG_Y = -0.42;
+
+let invaderParts = null;
+
+function getInvaderParts() {
+    if (invaderParts) return invaderParts;
+
+    invaderParts = {
+        hullGeometry: buildVoxelGeometry([
+            ...INVADER_HULL_CORE,
+            ...INVADER_HULL_SIDE,
+            ...mirrorBoxes(INVADER_HULL_SIDE)
+        ]),
+        eyeGeometry: buildVoxelGeometry([
+            ...INVADER_EYE_HALF,
+            ...mirrorBoxes(INVADER_EYE_HALF)
+        ]),
+        antennaGeometries: {
+            '-1': buildVoxelGeometry(INVADER_ANTENNA),
+            '1': buildVoxelGeometry(mirrorBoxes(INVADER_ANTENNA))
+        },
+        armGeometries: {
+            '-1': buildVoxelGeometry(INVADER_ARM),
+            '1': buildVoxelGeometry(mirrorBoxes(INVADER_ARM))
+        },
+        coilGeometry: buildVoxelGeometry(INVADER_COILS),
+        pipGeometry: buildVoxelGeometry([
+            { size: [0.11, 0.11, 0.11], pos: [0, 0, 0], color: 0x9ffcff }
+        ]),
+        // Barrel runs forward from its breech, so recoil is a slide along Z
+        barrelGeometry: buildVoxelGeometry([
+            { size: [0.25, 0.25, 0.08], pos: [0, 0, 0.05], color: INVADER_SHADE },
+            { size: [0.20, 0.20, 0.34], pos: [0, 0, 0.18], color: INVADER_PLATE },
+            { size: [0.28, 0.05, 0.16], pos: [0, 0.11, 0.18], color: INVADER_WHITE },  // vent fin
+            { size: [0.24, 0.24, 0.10], pos: [0, 0, 0.35], color: INVADER_TRIM },      // muzzle ring
+            { size: [0.11, 0.11, 0.08], pos: [0, 0, 0.41], color: 0xff5a5a }           // bore
+        ]),
+        muzzleGeometry: buildVoxelGeometry([
+            { size: [0.26, 0.26, 0.09], pos: [0, 0, 0], color: 0xffffff },
+            { size: [0.14, 0.14, 0.22], pos: [0, 0, 0.08], color: 0xffc0c0 }
+        ]),
+        footGeometry: buildVoxelGeometry([
+            { size: [0.24, 0.10, 0.30], pos: [0, -0.05, 0.05], color: INVADER_PLATE },
+            { size: [0.26, 0.05, 0.32], pos: [0, -0.11, 0.05], color: INVADER_SHADE }
+        ]),
+        legGeometries: INVADER_LEG_SEGMENTS.map(s => buildLimbSegmentGeometry(s, INVADER_PLATE, INVADER_TRIM)),
+        plateMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x9e9e9e,
+            emissiveIntensity: 1.15,
+            shininess: 20,
+            flatShading: true
+        }),
+        limbMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x707070,
+            emissiveIntensity: 0.95,
+            flatShading: true
+        }),
+        // Cloned per alien so each invader blinks and charges on its own clock
+        eyeMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x00e5ff,
+            emissiveIntensity: 2.4,
+            flatShading: true
+        }),
+        coilMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0xff3a3a,
+            emissiveIntensity: 1.2,
+            flatShading: true
+        }),
+        muzzleMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0xffd0d0,
+            emissiveIntensity: 2.0,
+            transparent: true,
+            opacity: 0.0,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            flatShading: true
+        })
+    };
+
+    return invaderParts;
+}
+
 function createInvaderAlien(group) {
-    // Classic retro 1-bit white/bright look - high contrast
-    const material = new THREE.MeshPhongMaterial({
-        color: 0xffffff,
-        emissive: 0xffffff,
-        emissiveIntensity: 1.8,
-        flatShading: true
+    const parts = getInvaderParts();
+    // Optics and antenna pips share one clone, so the blink reads as one system
+    const eyeMaterial = parts.eyeMaterial.clone();
+
+    const hull = new THREE.Mesh(parts.hullGeometry, parts.plateMaterial);
+    hull.castShadow = true;
+    group.add(hull);
+    group.userData.hull = hull;
+
+    const eyes = new THREE.Mesh(parts.eyeGeometry, eyeMaterial);
+    eyes.position.y = INVADER_EYE_Y;
+    group.add(eyes);
+    group.userData.eyes = eyes;
+
+    const coils = new THREE.Mesh(parts.coilGeometry, parts.coilMaterial.clone());
+    group.add(coils);
+    group.userData.coils = coils;
+
+    // Blaster barrel slides back into its housing on recoil
+    const barrel = new THREE.Mesh(parts.barrelGeometry, parts.plateMaterial);
+    barrel.position.set(0, -0.22, 0.44);
+    group.add(barrel);
+    group.userData.barrel = barrel;
+    group.userData.barrelRestZ = 0.44;
+
+    const muzzle = new THREE.Mesh(parts.muzzleGeometry, parts.muzzleMaterial.clone());
+    muzzle.position.set(0, 0, 0.48);
+    muzzle.visible = false;
+    barrel.add(muzzle);
+    group.userData.muzzle = muzzle;
+
+    // Stepped antennae with a sensor pip that blinks with the optics
+    group.userData.antennae = [-1, 1].map(side => {
+        const antenna = new THREE.Mesh(parts.antennaGeometries[side], parts.limbMaterial);
+        antenna.position.set(side * 0.22, 0.54, -0.02);
+        group.add(antenna);
+
+        const pip = new THREE.Mesh(parts.pipGeometry, eyeMaterial);
+        pip.position.set(side * INVADER_ANTENNA_PIP[0], INVADER_ANTENNA_PIP[1], INVADER_ANTENNA_PIP[2]);
+        antenna.add(pip);
+
+        return { mesh: antenna, side };
     });
 
-    // Main body - chunky symmetrical block (classic invader shape)
-    const bodyTop = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.25, 0.6), material);
-    bodyTop.position.y = 0.25;
-    bodyTop.castShadow = true;
-    group.add(bodyTop);
-
-    const bodyMiddle = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.3, 0.7), material);
-    bodyMiddle.position.y = 0;
-    bodyMiddle.castShadow = true;
-    group.add(bodyMiddle);
-
-    const bodyBottom = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.25, 0.6), material);
-    bodyBottom.position.y = -0.25;
-    bodyBottom.castShadow = true;
-    group.add(bodyBottom);
-
-    // Side wings/arms - symmetrical pixel blocks
-    const wingLeft = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.2, 0.3), material);
-    wingLeft.position.set(-0.7, 0.1, 0);
-    group.add(wingLeft);
-
-    const wingRight = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.2, 0.3), material);
-    wingRight.position.set(0.7, 0.1, 0);
-    group.add(wingRight);
-
-    // Two short antennae - symmetrical
-    const antennaMaterial = new THREE.MeshPhongMaterial({
-        color: 0xcccccc,
-        emissive: 0xcccccc,
-        emissiveIntensity: 1.5,
-        flatShading: true
+    // Arms hinge at the shoulder so they can pump with the march
+    group.userData.arms = [-1, 1].map(side => {
+        const arm = new THREE.Mesh(parts.armGeometries[side], parts.plateMaterial);
+        arm.position.set(side * 0.46, 0.10, 0);
+        group.add(arm);
+        return { mesh: arm, side };
     });
 
-    const antennaLeft = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.35, 0.1), antennaMaterial);
-    antennaLeft.position.set(-0.25, 0.55, 0);
-    antennaLeft.rotation.z = -0.3;
-    group.add(antennaLeft);
-    group.userData.antennaLeft = antennaLeft;
+    // Two straight pixel legs, jointed at the knee
+    group.userData.legs = [-1, 1].map(side => {
+        const mount = new THREE.Group();
+        mount.position.set(side * INVADER_LEG_X, INVADER_LEG_Y, 0);
+        group.add(mount);
 
-    const antennaRight = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.35, 0.1), antennaMaterial);
-    antennaRight.position.set(0.25, 0.55, 0);
-    antennaRight.rotation.z = 0.3;
-    group.add(antennaRight);
-    group.userData.antennaRight = antennaRight;
+        const segments = buildLimbChain(mount, parts.legGeometries, INVADER_LEG_SEGMENTS, parts.limbMaterial, -1);
 
-    // Eyes - classic arcade style, high contrast
-    const eyeMaterial = new THREE.MeshPhongMaterial({
-        color: 0x00ffff,
-        emissive: 0x00ffff,
-        emissiveIntensity: 3.5
+        const foot = new THREE.Mesh(parts.footGeometry, parts.limbMaterial);
+        foot.position.y = -INVADER_LEG_SEGMENTS[1].length;
+        segments[1].add(foot);
+
+        return { mount, segments, foot, side };
     });
-
-    const eyeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.15), eyeMaterial);
-    eyeLeft.position.set(-0.25, 0.1, 0.35);
-    group.add(eyeLeft);
-
-    const eyeRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.15), eyeMaterial);
-    eyeRight.position.set(0.25, 0.1, 0.35);
-    group.add(eyeRight);
-
-    // Single center blaster cannon
-    const cannonMaterial = new THREE.MeshPhongMaterial({
-        color: 0xff4444,
-        emissive: 0xff4444,
-        emissiveIntensity: 1.6,
-        flatShading: true
-    });
-
-    const cannon = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.5), cannonMaterial);
-    cannon.position.set(0, -0.15, 0.5);
-    group.add(cannon);
-    group.userData.cannon = cannon;
-
-    // Cannon tip - glowing muzzle
-    const tipMaterial = new THREE.MeshPhongMaterial({
-        color: 0xff0000,
-        emissive: 0xff0000,
-        emissiveIntensity: 4.0
-    });
-
-    const cannonTip = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.1), tipMaterial);
-    cannonTip.position.set(0, -0.15, 0.75);
-    group.add(cannonTip);
-    group.userData.cannonTip = cannonTip;
-
-    // Bottom pixel feet - symmetrical
-    const footLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.2), material);
-    footLeft.position.set(-0.35, -0.45, 0);
-    footLeft.userData.baseY = -0.45;
-    group.add(footLeft);
-    group.userData.footLeft = footLeft;
-
-    const footRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.2), material);
-    footRight.position.set(0.35, -0.45, 0);
-    footRight.userData.baseY = -0.45;
-    group.add(footRight);
-    group.userData.footRight = footRight;
 }
 
 // Animate a single alien
@@ -1511,31 +1918,121 @@ export function animateAlien(alien) {
             break;
         }
 
-        case 2: // Squid - propulsion cycle
-            // Propulsion: fast stretch/move, slow relax
-            const swimCycle = (Math.sin(time * 3) + 1) / 2; // 0 to 1
-            const propulsion = Math.pow(swimCycle, 2); // Non-linear
+        case 2: { // Squid - jet propulsion, rippling fins, lashing tentacles
+            const squid = alien.userData;
 
-            if (alien.userData.legs) {
-                alien.userData.legs.forEach((leg, i) => {
-                    // Legs trail behind during propulsion
-                    const legLag = propulsion * 0.5;
-                    leg.rotation.x = legLag + Math.sin(time * 8 + i) * 0.2;
-                    leg.position.y = leg.userData.baseY - legLag * 0.2;
+            // Jet cycle as an explicit event: a hard contraction, then a long
+            // glide. `vent` is a much tighter window, so the siphon reads as a
+            // flash rather than a permanent glow.
+            const jetPhase = (time % 2.4) / 2.4;
+            const thrust = jetPhase < 0.26 ? Math.sin((jetPhase / 0.26) * Math.PI) : 0;
+            const vent = jetPhase < 0.07 ? Math.sin((jetPhase / 0.07) * Math.PI) : 0;
+
+            // Squash and stretch as the mantle expels its water. This rides on
+            // the mantle, not the group - the swoop telegraph owns alien.scale.
+            if (squid.mantle) {
+                squid.mantle.scale.set(1 - thrust * 0.17, 1 + thrust * 0.16, 1 - thrust * 0.17);
+            }
+
+            // Chromatophores flush with the jet
+            if (squid.spots) {
+                squid.spots.material.emissiveIntensity =
+                    0.9 + (Math.sin(time * 2.3) + 1) * 0.55 + thrust * 1.8;
+            }
+
+            // Fins undulate constantly, then sweep flat and back on the power
+            // stroke so the squid streamlines into the jet
+            if (squid.fins) {
+                squid.fins.forEach(fin => {
+                    const wave = Math.sin(time * 3.4 + fin.side * 0.6);
+                    fin.mesh.rotation.z = fin.side * (wave * 0.34 - thrust * 0.40);
+                    fin.mesh.rotation.x = Math.sin(time * 3.4 - 0.9) * 0.24;
+                    fin.mesh.rotation.y = fin.side * thrust * 0.22;
                 });
             }
 
-            // Squash and stretch
-            const stretch = 1 + propulsion * 0.3;
-            const squash = 1 - propulsion * 0.15;
-            alien.scale.set(squash, stretch, squash);
+            // Arm crown: a wave travels around the ring...
+            if (squid.arms) {
+                squid.arms.forEach(arm => {
+                    const ringPhase = time * 4.6 + arm.phase;
+                    arm.segments.forEach((segment, j) => {
+                        // ...and then down each arm, growing toward the tip.
+                        // Thrust pulls the whole crown into a spear.
+                        const lag = ringPhase - j * 0.8;
+                        const amplitude = 0.16 + j * 0.14;
+                        segment.rotation.z = segment.userData.baseBend
+                            + Math.sin(lag) * amplitude
+                            - thrust * (0.26 + j * 0.10);
+                        segment.rotation.x = Math.cos(lag * 0.7) * amplitude * 0.6;
+                    });
+                });
+            }
 
-            // Move forward (up/down in this view) with propulsion
-            alien.position.y = Math.sin(time * 3) * 0.3;
+            // Feeding tentacles drift, then lash out roughly every five seconds
+            const strikePhase = (time % 5.3) / 5.3;
+            const strike = strikePhase < 0.13 ? Math.sin((strikePhase / 0.13) * Math.PI) : 0;
 
-            // Tilt into movement
-            alien.rotation.x = propulsion * 0.3;
+            if (squid.tentacles) {
+                squid.tentacles.forEach((tentacle, i) => {
+                    // The lash lives on the un-yawed pivot, so both tentacles
+                    // swing toward the player rather than mirroring apart
+                    tentacle.pivot.rotation.x = -strike * 0.95;
+                    tentacle.pivot.rotation.y = Math.sin(time * 1.6 + i * 2.1) * 0.12;
+
+                    tentacle.segments.forEach((segment, j) => {
+                        const drift = Math.sin(time * 2.6 - j * 0.9 + i * 1.4);
+                        // Straightens as it strikes, coils back as it recovers
+                        segment.rotation.z = segment.userData.baseBend * (1 - strike * 0.9)
+                            + drift * (0.10 + j * 0.07);
+                    });
+
+                    tentacle.club.scale.setScalar(1 + strike * 0.45);
+                });
+            }
+
+            // Head cranes against the body pitch, keeping the eyes on the player
+            if (squid.head) {
+                squid.head.rotation.x = thrust * 0.20;
+            }
+
+            // Eyes drift and pulse, and widen on the strike
+            if (squid.eyes) {
+                squid.eyes.position.x = Math.sin(time * 0.9) * 0.03;
+                squid.eyes.material.emissiveIntensity = 2.0 + Math.sin(time * 3.2) * 0.7 + strike * 1.5;
+            }
+
+            // Blink: lids drop and lift roughly every 3.7 seconds. The per-alien
+            // animation offset keeps the formation out of sync.
+            if (squid.lids) {
+                const blinkPhase = (time % 3.7) / 3.7;
+                const blink = blinkPhase < 0.08 ? Math.sin((blinkPhase / 0.08) * Math.PI) : 0;
+                squid.lids.position.y = SQUID_LID_OPEN_Y
+                    - blink * (SQUID_LID_OPEN_Y - SQUID_LID_CLOSED_Y);
+            }
+
+            // Siphon flashes as the jet fires, and the plume stabs out with it
+            if (squid.siphon) {
+                squid.siphon.material.emissiveIntensity = 1.1 + vent * 3.4 + thrust * 1.0;
+                squid.siphon.scale.set(1 + vent * 0.25, 1 + vent * 0.20, 1);
+            }
+            if (squid.plume) {
+                squid.plume.visible = thrust > 0.02;
+                squid.plume.material.opacity = thrust * 0.5;
+                squid.plume.scale.set(0.5 + thrust * 0.5, 0.5 + thrust * 0.5, 0.35 + thrust * 0.65);
+            }
+
+            // Pitches nose-up into the jet, then sways through the glide
+            alien.rotation.x = -thrust * 0.24 + Math.sin(time * 1.3) * 0.05;
+            alien.rotation.z = Math.sin(time * 1.1) * 0.09;
+            alien.rotation.y = Math.sin(time * 0.7) * 0.16;
+
+            // Each jet kicks the squid upward and it settles back on the glide.
+            // Skipped mid-swoop, which owns Y.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = thrust * 0.34 + Math.sin(time * 1.3) * 0.06;
+            }
             break;
+        }
 
         case 3: { // UFO - counter-rotating saucer, chase lights, scan beam
             const ufo = alien.userData;
@@ -1751,44 +2248,99 @@ export function animateAlien(alien) {
         }
 
 
-        case 6: // Invader - classic retro march with cannon charge
-            // Antenna waggle - visible swaying motion
-            if (alien.userData.antennaLeft) {
-                // Sway back and forth with some vertical bobbing
-                alien.userData.antennaLeft.rotation.z = -0.3 + Math.sin(time * 5) * 0.4;
-                alien.userData.antennaLeft.rotation.x = Math.sin(time * 4) * 0.25;
+        case 6: { // Invader - two-frame retro march, blinking optics, blaster recoil
+            const invader = alien.userData;
+
+            // The march is a hard two-frame sprite flip, not a smooth walk
+            // cycle - that stutter is the whole point of the homage row.
+            // Accumulated from a frame delta, so the formation speeding up
+            // changes the cadence instead of jumping the pose.
+            const now = performance.now() * 0.001;
+            const dt = Math.min(0.05, now - (invader.marchClock !== undefined ? invader.marchClock : now));
+            invader.marchClock = now;
+            invader.marchStep = ((invader.marchStep || 0) + dt * (0.9 + alienSpeed * 20)) % 2;
+
+            // Square wave with a short blended edge: crisp at any frame rate,
+            // without the tearing a true instant flip would give
+            const stepPhase = invader.marchStep % 1;
+            const snap = Math.min(1, stepPhase / 0.12);
+            const frame = invader.marchStep < 1 ? snap : 1 - snap;
+            const swing = frame * 2 - 1;   // -1..1, holding at the extremes
+
+            // Fire cycle as explicit events: a crisp flash, a recoil that snaps
+            // back and eases out, then a long recharge
+            const firePhase = (time % 2.6) / 2.6;
+            const flash = firePhase < 0.05 ? Math.sin((firePhase / 0.05) * Math.PI) : 0;
+            const recoil = firePhase < 0.02
+                ? firePhase / 0.02
+                : Math.max(0, 1 - (firePhase - 0.02) / 0.16);
+            const charge = Math.max(0, (firePhase - 0.07) / 0.93);
+
+            // Legs: one strides while the other plants, swapping on the flip
+            if (invader.legs) {
+                invader.legs.forEach(leg => {
+                    const lead = leg.side * swing;
+                    const lift = Math.max(0, lead);
+                    // Hip swings fore/aft; -X rotation carries the foot forward
+                    leg.segments[0].rotation.x = -lead * 0.32;
+                    leg.segments[1].rotation.x = lift * 0.55;
+                    leg.foot.rotation.x = -lift * 0.30;
+                });
             }
-            if (alien.userData.antennaRight) {
-                // Opposite phase for alternating effect
-                alien.userData.antennaRight.rotation.z = 0.3 + Math.sin(time * 5 + Math.PI) * 0.4;
-                alien.userData.antennaRight.rotation.x = Math.sin(time * 4 + Math.PI) * 0.25;
+
+            // Arms pump against the legs, and both snap up on the shot
+            if (invader.arms) {
+                const raise = 0.06 + flash * 0.12;   // symmetric, so it stays square-on
+                invader.arms.forEach(arm => {
+                    arm.mesh.rotation.z = arm.side * raise - swing * 0.16;
+                    arm.mesh.rotation.x = arm.side * swing * 0.20;
+                });
             }
-            // Marching feet - alternating lift like walking
-            if (alien.userData.footLeft) {
-                const leftLift = Math.max(0, Math.sin(time * 6)) * 0.12;
-                alien.userData.footLeft.position.y = alien.userData.footLeft.userData.baseY + leftLift;
-                alien.userData.footLeft.position.z = Math.sin(time * 6) * 0.08;
+
+            // Antennae sway outward together and twitch on each footfall
+            if (invader.antennae) {
+                invader.antennae.forEach(antenna => {
+                    antenna.mesh.rotation.z = antenna.side * (Math.sin(time * 5) * 0.22 + swing * 0.10);
+                    antenna.mesh.rotation.x = Math.sin(time * 4 + antenna.side) * 0.16;
+                });
             }
-            if (alien.userData.footRight) {
-                const rightLift = Math.max(0, Math.sin(time * 6 + Math.PI)) * 0.12;
-                alien.userData.footRight.position.y = alien.userData.footRight.userData.baseY + rightLift;
-                alien.userData.footRight.position.z = Math.sin(time * 6 + Math.PI) * 0.08;
+
+            // Optics: a slow scan glow with an occasional hard blink
+            if (invader.eyes) {
+                const blinkPhase = (time % 3.7) / 3.7;
+                const blink = blinkPhase < 0.04 ? Math.sin((blinkPhase / 0.04) * Math.PI) : 0;
+                invader.eyes.scale.y = 1 - blink * 0.9;
+                invader.eyes.material.emissiveIntensity =
+                    2.0 + Math.sin(time * 3) * 0.5 + charge * 0.8 - blink * 1.6;
             }
-            // Cannon charge pulse - grows brighter then dims (charging to fire)
-            if (alien.userData.cannon) {
-                const chargeIntensity = (Math.sin(time * 4) + 1) / 2;
-                alien.userData.cannon.material.emissiveIntensity = 1.6 + chargeIntensity * 1.5;
+
+            // Barrel recoils into its housing, then eases back out
+            if (invader.barrel) {
+                invader.barrel.position.z = invader.barrelRestZ - recoil * 0.18;
             }
-            // Cannon tip glow pulse - pulsing muzzle glow
-            if (alien.userData.cannonTip) {
-                const tipPulse = (Math.sin(time * 8) + 1) / 2;
-                const tipScale = 1 + tipPulse * 0.5;
-                alien.userData.cannonTip.scale.set(tipScale, tipScale, tipScale);
-                alien.userData.cannonTip.material.emissiveIntensity = 3.0 + tipPulse * 2.0;
+            if (invader.muzzle) {
+                invader.muzzle.visible = flash > 0.01;
+                invader.muzzle.material.opacity = flash * 0.6;
+                invader.muzzle.scale.setScalar(0.3 + flash * 0.7);
             }
-            // Slight body rock during march
-            alien.rotation.z = Math.sin(time * 6) * 0.08;
+
+            // Coils glow back up while recharging and dump on the shot
+            if (invader.coils) {
+                invader.coils.material.emissiveIntensity = 0.7 + charge * 2.4 + flash * 2.0;
+            }
+
+            // Body rocks with the march and kicks back on the shot. The
+            // formation owns position.z, so the kick stays in rotation.
+            alien.rotation.z = swing * 0.06;
+            alien.rotation.x = -recoil * 0.10;
+
+            // Stomp: the body dips as a foot plants. Skipped mid-swoop,
+            // which owns Y.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = Math.abs(swing) * 0.05;
+            }
             break;
+        }
     }
 }
 

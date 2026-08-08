@@ -32,7 +32,7 @@ const BESTIARY_ENTRIES = [
         points: 40,
         color: '#44ff88',
         tagline: 'ROW 3 - GREEN',
-        description: 'Jet propulsion swimming - a fast stretch forward followed by a slow relax back - with trailing legs that drag behind the thrust, dynamic squash and stretch synced to the movement, and red glowing eyes.',
+        description: 'Tapered voxel mantle with side fins and a jet siphon. The mantle squashes and the siphon flashes on each thrust, chromatophore spots flush with the jet, the fins undulate then sweep flat to streamline, a wave travels around the six-arm crown and down each arm, and two clubbed feeding tentacles lash out every few seconds.',
         weapon: 'Standard red missiles'
     },
     {
@@ -68,7 +68,7 @@ const BESTIARY_ENTRIES = [
         points: 0,
         color: '#ffffff',
         tagline: 'ROW 7 - WHITE - BONUS ROW',
-        description: 'Classic retro 1-bit arcade style with a symmetrical silhouette, two short antennae that sway and bob, a centre blaster cannon with a charging glow, and marching feet that step in alternation.',
+        description: 'Classic 1-bit arcade silhouette rebuilt in layered white plates with bevelled edges and recessed optics. It marches in a hard two-frame sprite flip rather than a smooth walk, antennae sway above the crown, and the centre blaster cannon charges, flashes and recoils into its housing on each shot.',
         weapon: 'Blaster bolts - straight-shooting, high speed'
     }
 ];

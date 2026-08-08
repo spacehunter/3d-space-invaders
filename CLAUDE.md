@@ -63,20 +63,20 @@ npm run package    # Build + bump version + create zip for distribution
 **Alien Types by Row**: Each row (0-6) has distinct geometry, animation, and behavior:
 - Row 0: Octopus (sculpted voxel mantle, 6 jointed tentacles that curl, blinking eyes, pulsing vents, 60 points)
 - Row 1: Crab (tiered carapace, jointed pincers, tripod walking gait, swivelling eye stalks, 50 points)
-- Row 2: Squid (jet propulsion, squash/stretch, 40 points)
+- Row 2: Squid (tapered mantle, undulating fins, six-arm crown wave, lashing feeding tentacles, jet siphon flash, 40 points)
 - Row 3: UFO (layered saucer hull, counter-rotating light collar, canopy pilot, scan beam, 30 points)
 - Row 4: Tank (sloped armour, rolling tread belts, rotating turret, recoiling gun, fires homing missiles, 20 points)
 - Row 5: Beetle (splitting elytra, buzzing flight wings, creeping gait, glowing web-bomb sac, fires web bombs, 10 points)
-- Row 6: Invader (classic 1-bit style, marching feet, fires blaster bolts, 0 points bonus row)
+- Row 6: Invader (layered 1-bit plates, recessed optics, two-frame sprite march, recoiling blaster cannon, fires blaster bolts, 0 points bonus row)
 
 **Voxel Sculpt System** (`aliens.js`): The rebuilt alien models share one construction approach — read this before adding or editing a model.
 - `buildVoxelGeometry(boxes)` merges a list of `{size, pos, rotX/rotY/rotZ, color}` boxes into a **single** geometry, baking each box's colour into vertex colours. Detail then costs vertices rather than draw calls, so an elaborate part stays one mesh. Materials rendering it must set `vertexColors: true`.
 - `mirrorBoxes(boxes)` builds the opposite half of a symmetrical part. Use it instead of `scale.x = -1`, which inverts normals and breaks lighting on that half.
 - `saucerTier(width, depth, height, y, color)` unions three boxes into a disc with cut corners — reads far rounder than a box (UFO hull).
 - `buildLimbSegmentGeometry()` + `buildLimbChain()` build jointed limbs: each segment's origin sits at its joint and parents the next, so a bend propagates down the limb rather than swinging it rigidly. Used by crab arms/legs/eye stalks and beetle legs.
-- Each rebuilt type caches its geometries and static materials in a lazily-built module-level registry (`getOctopusParts()`, `getCrabParts()`, `getUfoParts()`, `getTankParts()`, `getBeetleParts()`), shared by every instance in the formation.
-- **Rebuilt so far**: rows 0 (Octopus), 1 (Crab), 3 (UFO), 4 (Tank), 5 (Beetle). Rows 2 (Squid) and 6 (Invader) still use their original simple box models and are the remaining candidates.
-- Keep a model's half-width under ~0.95 — `ALIEN_SPACING` is 2, and the missile collision radius is 1.2 from the group origin.
+- Each rebuilt type caches its geometries and static materials in a lazily-built module-level registry (`getOctopusParts()`, `getCrabParts()`, `getSquidParts()`, `getUfoParts()`, `getTankParts()`, `getBeetleParts()`, `getInvaderParts()`), shared by every instance in the formation.
+- **All seven rows are now rebuilt.** Row 6 (Invader) is the deliberate exception to "more detail is better": it is the 1-bit homage row, so it gains depth through layered plates and bevels while keeping a crisp, symmetrical, hard-edged silhouette. Do not organicise it.
+- Keep a model's half-width under ~0.95 — `ALIEN_SPACING` is 2, and the missile collision radius is 1.2 from the group origin. Measure the **animated peak**, not the rest pose: a limb at full extension is what actually overlaps the neighbouring column. Rows 0, 1, 3 and 5 currently exceed this at peak (up to 1.28 on the UFO) and are outstanding cleanup.
 
 **Missile System**: Three separate arrays managed in `missiles.js`:
 - `missiles` - Player projectiles (can intercept alien missiles)
