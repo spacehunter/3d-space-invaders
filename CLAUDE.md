@@ -50,12 +50,13 @@ npm run package    # Build + bump version + create zip for distribution
 | `highscores.js` | 3D high score entry UI and localStorage persistence |
 | `barriers.js` | Destructible voxel barriers with radial damage |
 | `powerups.js` | Power-up drops (Rapid Fire, Spread Shot, Barrier Repair) |
-| `bonus-ufo.js` | Periodic bonus UFO that flies across screen |
+| `bonus-ufo.js` | Periodic bonus UFO that flies across screen — voxel sculpt with counter-rotating hull and light collar, level canopy with pilot |
 | `levels.js` | Level progression system with formula-based scaling difficulty |
 | `boss.js` | 5 boss types (Mothership, Hive Queen, Dreadnought, Phantom, Titan) with multi-phase health systems |
 | `transitions.js` | Level transition effects (hyperspace warp) and level announcement UI |
 | `landing.js` | Landing page menu (New Game / Continue / Bestiary / Settings) |
 | `bestiary.js` | Bestiary gallery - browse the 7 alien models one at a time, fully animated |
+| `voxel.js` | Shared voxel toolkit — `buildVoxelGeometry`, `mirrorBoxes`, `saucerTier`, `buildLimbSegmentGeometry`, `buildLimbChain` — used by both `aliens.js` and `bonus-ufo.js` |
 | `constants.js` | Game constants (PLAYER_SPEED, MISSILE_SPEED, ALIEN_ROWS/COLS, ALIEN_SPACING) |
 
 ### Key Patterns
@@ -69,12 +70,13 @@ npm run package    # Build + bump version + create zip for distribution
 - Row 5: Beetle (splitting elytra, buzzing flight wings, creeping gait, glowing web-bomb sac, fires web bombs, 10 points)
 - Row 6: Invader (layered 1-bit plates, recessed optics, two-frame sprite march, recoiling blaster cannon, fires blaster bolts, 0 points bonus row)
 
-**Voxel Sculpt System** (`aliens.js`): The rebuilt alien models share one construction approach — read this before adding or editing a model.
+**Voxel Sculpt System**: The rebuilt alien models, plus the bonus UFO, share one construction approach — read this before adding or editing a model. The shared helpers below now live in `js/voxel.js`, not `aliens.js`, so both `aliens.js` and `bonus-ufo.js` import from there.
 - `buildVoxelGeometry(boxes)` merges a list of `{size, pos, rotX/rotY/rotZ, color}` boxes into a **single** geometry, baking each box's colour into vertex colours. Detail then costs vertices rather than draw calls, so an elaborate part stays one mesh. Materials rendering it must set `vertexColors: true`.
 - `mirrorBoxes(boxes)` builds the opposite half of a symmetrical part. Use it instead of `scale.x = -1`, which inverts normals and breaks lighting on that half.
 - `saucerTier(width, depth, height, y, color)` unions three boxes into a disc with cut corners — reads far rounder than a box (UFO hull).
 - `buildLimbSegmentGeometry()` + `buildLimbChain()` build jointed limbs: each segment's origin sits at its joint and parents the next, so a bend propagates down the limb rather than swinging it rigidly. Used by crab arms/legs/eye stalks and beetle legs.
-- Each rebuilt type caches its geometries and static materials in a lazily-built module-level registry (`getOctopusParts()`, `getCrabParts()`, `getSquidParts()`, `getUfoParts()`, `getTankParts()`, `getBeetleParts()`, `getInvaderParts()`), shared by every instance in the formation.
+- Each rebuilt type caches its geometries and static materials in a lazily-built module-level registry (`getOctopusParts()`, `getCrabParts()`, `getSquidParts()`, `getUfoParts()`, `getTankParts()`, `getBeetleParts()`, `getInvaderParts()`, `getBonusUfoParts()`), shared by every instance (or, for the bonus UFO, every spawn).
+- The bonus UFO is **not** in the Bestiary gallery, so unlike the alien models it can only be verified in gameplay — allow up to ~20s per spawn.
 - **All seven rows are now rebuilt.** Row 6 (Invader) is the deliberate exception to "more detail is better": it is the 1-bit homage row, so it gains depth through layered plates and bevels while keeping a crisp, symmetrical, hard-edged silhouette. Do not organicise it.
 - **Give the colour ramp room, and keep emissive low enough that it doesn't erase it.** Emissive is added flat, on top of the vertex colours rather than through them, so a bright emissive floods every tier equally. The Invader originally ran a `0xffffff → 0xeaeaea → 0xcccccc` ramp (~8% of value) under a `0x9e9e9e` emissive at 1.15, and the whole sculpt flattened into one white mass under bloom — all the bevel detail was present and invisible. Spread the ramp wide, tint it, and let the plate colours carry the form.
 - Keep a model's half-width under ~0.95 — `ALIEN_SPACING` is 2, and the missile collision radius is 1.2 from the group origin. Measure the **animated peak**, not the rest pose: a limb at full extension is what actually overlaps the neighbouring column. Rows 0, 1, 3 and 5 currently exceed this at peak (up to 1.28 on the UFO) and are outstanding cleanup.
@@ -94,6 +96,7 @@ npm run package    # Build + bump version + create zip for distribution
 - **Prefer animating a child mesh's scale over the group's.** `updateTelegraph()` captures and restores `alien.scale` for the swoop warning.
 - **Drive discrete events from an explicit phase window**, not a steep power curve. `charge^12` reads as a permanent glow, not a muzzle flash; `(time % period) / period < 0.06` gives a crisp event.
 - **Accumulate speed-linked motion from a frame delta**, not by multiplying a changing rate into `time` — the latter makes the whole cycle jump whenever the rate changes (tank tread scroll).
+- **A mesh's origin must sit at the point you intend to rotate or scale about.** Baking a positional offset into the geometry and then transforming the mesh moves the part instead of transforming it in place. The bonus UFO's beacon had `pos: [0, 1.40, 0]` baked into its geometry, so `scale.setScalar()` scaled the offset too and threw the beacon from y=1.52 to y=2.13 on every flash, past its own collision sphere; the antenna's base sat at y=0.710 while `rotation.z` pivoted about y=0, sliding the base 0.170 units across the hull each sway. The fix in both cases is to centre the geometry on the intended pivot and carry the offset on the mesh via `mesh.position`. Note that moving a parent's origin also moves its children, so child offsets need compensating.
 
 **Camera**: Dynamic third-person following player with mouse-controlled zoom (Y-axis depth).
 
