@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { playUFOSpawn, playUFOTravel, stopUFOTravel, updateUFOTravelPanning } from './audio.js';
+import { buildVoxelGeometry, mirrorBoxes, saucerTier } from './voxel.js';
 
 let bonusUFO = null;
 let ufoSpeed = 0.05; // Slower movement speed (50% of original) - makes UFO more shootable
@@ -11,98 +12,184 @@ const maxSpawnInterval = 30000; // Maximum time between spawns
 // Callback for firing UFO missile (set by missiles.js)
 let ufoMissileFireCallback = null;
 
+// Magenta signature with gold trim. Wide value ramp rather than flat
+// saturation: emissive is added on top of vertex colours, not through them,
+// so a narrow ramp under bloom flattens into one glowing blob.
+const UFO_HI = 0xffd4f6;
+const UFO_PLATE = 0xff5ce0;
+const UFO_MID = 0xc81fa8;
+const UFO_SHADE = 0x7d1268;
+const UFO_RECESS = 0x3a0733;
+const UFO_GOLD = 0xffc44a;
+const UFO_GOLD_DIM = 0xa87413;
+
+// Hull: stacked discs. saucerTier() unions three boxes into a cut-corner disc,
+// which reads far rounder than a box. A merged mesh's rotating AABB is bound
+// by its own local width (Three re-boxes the *local* AABB's corners each
+// frame, not the exact rotated vertices), so the widest tier or crossbar sets
+// the real 2.0 budget directly - measured via the radial-budget harness and
+// scaled down (~0.72x) from an initial pass that measured 2.46.
+const UFO_HULL = [
+    ...saucerTier(0.94, 0.62, 0.14, 0.30, UFO_MID),
+    ...saucerTier(1.24, 0.82, 0.16, 0.17, UFO_PLATE),
+    ...saucerTier(1.58, 1.05, 0.18, 0.00, UFO_PLATE),
+    ...saucerTier(1.70, 1.12, 0.07, -0.11, UFO_GOLD_DIM),
+    ...saucerTier(1.44, 0.95, 0.16, -0.22, UFO_MID),
+    ...saucerTier(1.07, 0.71, 0.14, -0.36, UFO_SHADE),
+    ...saucerTier(0.66, 0.43, 0.12, -0.47, UFO_RECESS),
+    { size: [1.77, 0.05, 0.14], pos: [0, 0.02, 0], color: UFO_GOLD },
+    { size: [0.14, 0.05, 1.77], pos: [0, 0.02, 0], color: UFO_GOLD },
+    { size: [0.45, 0.05, 0.22], pos: [0, 0.10, 0.53], color: UFO_HI },
+    { size: [0.45, 0.05, 0.22], pos: [0, 0.10, -0.53], color: UFO_HI }
+];
+
+// Underside emitter the missile originates from
+const UFO_EMITTER = [
+    { size: [0.54, 0.10, 0.54], pos: [0, -0.56, 0], color: UFO_GOLD },
+    { size: [0.30, 0.10, 0.30], pos: [0, -0.64, 0], color: UFO_HI }
+];
+
+// One light pod, instanced around the collar at radius 1.22. Twelve discrete
+// pods spaced every 30 degrees can present a pod near the x axis and another
+// near the z axis at the same time, so the collar's worst-case AABB corner
+// reaches noticeably further than the radius alone - measured via the
+// radial-budget harness and tuned down from an initial 1.86, which measured
+// 2.824.
+const UFO_LIGHT_POD = [
+    { size: [0.20, 0.16, 0.20], pos: [0, 0, 0], color: UFO_GOLD_DIM },
+    { size: [0.14, 0.14, 0.14], pos: [0, 0.02, 0], color: 0xffe89a }
+];
+
+const UFO_LIGHT_COUNT = 12;
+const UFO_LIGHT_RADIUS = 1.22;
+
+const UFO_CANOPY = [
+    ...saucerTier(0.92, 0.62, 0.14, 0.44, 0x6fe4f4),
+    ...saucerTier(0.70, 0.48, 0.14, 0.56, 0x9ff4ff),
+    ...saucerTier(0.44, 0.30, 0.10, 0.66, 0xd8fbff),
+    { size: [0.98, 0.05, 0.66], pos: [0, 0.36, 0], color: UFO_GOLD }
+];
+
+const UFO_PILOT = [
+    { size: [0.26, 0.20, 0.22], pos: [0, 0.52, 0], color: 0x2b0f3a },
+    { size: [0.16, 0.10, 0.14], pos: [0, 0.64, 0.02], color: 0x50205e },
+    { size: [0.06, 0.05, 0.05], pos: [-0.05, 0.65, 0.10], color: 0xff5ce0 },
+    { size: [0.06, 0.05, 0.05], pos: [0.05, 0.65, 0.10], color: 0xff5ce0 }
+];
+
+const UFO_ANTENNA = [
+    { size: [0.09, 0.62, 0.09], pos: [0, 1.02, 0], color: UFO_GOLD_DIM },
+    { size: [0.16, 0.07, 0.16], pos: [0, 0.76, 0], color: UFO_GOLD }
+];
+
+const UFO_BEACON = [
+    { size: [0.24, 0.24, 0.24], pos: [0, 1.40, 0], color: 0xff3a6a }
+];
+
+// Built once and shared across respawns. The old code rebuilt 17 meshes and
+// 17 materials on every spawn.
+let ufoParts = null;
+
+function getBonusUfoParts() {
+    if (ufoParts) return ufoParts;
+
+    ufoParts = {
+        hullGeometry: buildVoxelGeometry(UFO_HULL),
+        emitterGeometry: buildVoxelGeometry(UFO_EMITTER),
+        podGeometry: buildVoxelGeometry(UFO_LIGHT_POD),
+        canopyGeometry: buildVoxelGeometry(UFO_CANOPY),
+        pilotGeometry: buildVoxelGeometry(UFO_PILOT),
+        antennaGeometry: buildVoxelGeometry(UFO_ANTENNA),
+        beaconGeometry: buildVoxelGeometry(UFO_BEACON),
+        hullMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x6a1152,
+            emissiveIntensity: 0.9,
+            shininess: 30,
+            flatShading: true
+        }),
+        canopyMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x2f7f8c,
+            emissiveIntensity: 1.1,
+            transparent: true,
+            opacity: 0.85,
+            flatShading: true
+        }),
+        pilotMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x40103f,
+            emissiveIntensity: 0.7,
+            flatShading: true
+        }),
+        antennaMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x7a5510,
+            emissiveIntensity: 0.9,
+            flatShading: true
+        }),
+        // Cloned per instance by callers - these are animated
+        podMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0xffe89a,
+            emissiveIntensity: 1.6,
+            flatShading: true
+        }),
+        beaconMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0xff3a6a,
+            emissiveIntensity: 2.0,
+            flatShading: true
+        })
+    };
+
+    return ufoParts;
+}
+
 /**
  * Creates a distinctive bonus UFO with elaborate design
  */
 function createBonusUFO() {
     const ufo = new THREE.Group();
+    const parts = getBonusUfoParts();
 
-    // Main saucer body (larger and more elaborate than regular UFO)
-    const bodyGeometry = new THREE.CylinderGeometry(1.5, 2.0, 0.6, 16);
-    const bodyMaterial = new THREE.MeshPhongMaterial({
-        color: 0xff00ff, // Magenta/purple for distinction
-        emissive: 0xff00ff,
-        emissiveIntensity: 2.0,
-        flatShading: true
-    });
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.rotation.y = Math.PI / 16; // Slight rotation for visual interest
-    ufo.add(body);
+    // Hull spins; the collar counter-spins; canopy and antenna stay level so
+    // their asymmetric detail stays readable at 2 rad/s.
+    const hull = new THREE.Mesh(parts.hullGeometry, parts.hullMaterial);
+    hull.add(new THREE.Mesh(parts.emitterGeometry, parts.hullMaterial));
+    ufo.add(hull);
 
-    // Dome on top
-    const domeGeometry = new THREE.SphereGeometry(0.8, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-    const domeMaterial = new THREE.MeshPhongMaterial({
-        color: 0xffff00, // Yellow dome
-        emissive: 0xffff00,
-        emissiveIntensity: 2.5,
-        flatShading: true
-    });
-    const dome = new THREE.Mesh(domeGeometry, domeMaterial);
-    dome.position.y = 0.3;
-    ufo.add(dome);
-
-    // Bottom disc
-    const bottomGeometry = new THREE.CylinderGeometry(1.8, 1.2, 0.3, 16);
-    const bottomMaterial = new THREE.MeshPhongMaterial({
-        color: 0xff0080,
-        emissive: 0xff0080,
-        emissiveIntensity: 1.8,
-        flatShading: true
-    });
-    const bottom = new THREE.Mesh(bottomGeometry, bottomMaterial);
-    bottom.position.y = -0.45;
-    ufo.add(bottom);
-
-    // Create multiple lights around the rim (12 lights for bonus UFO)
+    const collar = new THREE.Group();
     const lights = [];
-    for (let i = 0; i < 12; i++) {
-        const angle = (i / 12) * Math.PI * 2;
-        const lightGeometry = new THREE.SphereGeometry(0.15, 8, 8);
-        const lightMaterial = new THREE.MeshPhongMaterial({
-            color: i % 2 === 0 ? 0x00ffff : 0xffff00, // Alternating cyan and yellow
-            emissive: i % 2 === 0 ? 0x00ffff : 0xffff00,
-            emissiveIntensity: 3.0,
-            flatShading: true
-        });
-        const light = new THREE.Mesh(lightGeometry, lightMaterial);
-        light.position.x = Math.cos(angle) * 1.8;
-        light.position.z = Math.sin(angle) * 1.8;
-        light.position.y = -0.2;
-        lights.push(light);
-        ufo.add(light);
+    for (let i = 0; i < UFO_LIGHT_COUNT; i++) {
+        const angle = (i / UFO_LIGHT_COUNT) * Math.PI * 2;
+        // Own material per pod, or the chase writes one value 12 times and
+        // every light pulses in unison instead of chasing.
+        const material = parts.podMaterial.clone();
+        const mesh = new THREE.Mesh(parts.podGeometry, material);
+        mesh.position.set(Math.cos(angle) * UFO_LIGHT_RADIUS, -0.06, Math.sin(angle) * UFO_LIGHT_RADIUS);
+        collar.add(mesh);
+        lights.push({ mesh, material, angle });
     }
+    ufo.add(collar);
 
-    // Add antenna on top of dome
-    const antennaGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.8, 8);
-    const antennaMaterial = new THREE.MeshPhongMaterial({
-        color: 0xffffff,
-        emissive: 0xffffff,
-        emissiveIntensity: 2.0,
-        flatShading: true
-    });
-    const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
-    antenna.position.y = 0.9;
+    const canopy = new THREE.Mesh(parts.canopyGeometry, parts.canopyMaterial);
+    const pilot = new THREE.Mesh(parts.pilotGeometry, parts.pilotMaterial);
+    canopy.add(pilot);
+    ufo.add(canopy);
+
+    const antenna = new THREE.Mesh(parts.antennaGeometry, parts.antennaMaterial);
+    const beacon = new THREE.Mesh(parts.beaconGeometry, parts.beaconMaterial.clone());
+    antenna.add(beacon);
     ufo.add(antenna);
 
-    // Antenna tip (glowing sphere)
-    const tipGeometry = new THREE.SphereGeometry(0.2, 8, 8);
-    const tipMaterial = new THREE.MeshPhongMaterial({
-        color: 0xff0000,
-        emissive: 0xff0000,
-        emissiveIntensity: 3.5,
-        flatShading: true
+    // Merge, never replace: spawnBonusUFO() writes direction, points and
+    // willAttack into this same object.
+    Object.assign(ufo.userData, {
+        hull, collar, canopy, pilot, antenna, beacon, lights,
+        beaconMaterial: beacon.material,
+        animationOffset: Math.random() * Math.PI * 2
     });
-    const tip = new THREE.Mesh(tipGeometry, tipMaterial);
-    tip.position.y = 1.3;
-    ufo.add(tip);
-
-    // Store references for animation
-    ufo.userData.body = body;
-    ufo.userData.dome = dome;
-    ufo.userData.lights = lights;
-    ufo.userData.antenna = antenna;
-    ufo.userData.tip = tip;
-    ufo.userData.animationOffset = Math.random() * Math.PI * 2;
 
     return ufo;
 }
@@ -191,36 +278,36 @@ export function updateBonusUFO() {
  * Animates the bonus UFO with spinning, pulsing, and light effects
  */
 function animateBonusUFO(ufo, time) {
-    // Spin the entire UFO
-    ufo.rotation.y = time * 2.0; // Fast spin
+    const data = ufo.userData;
 
-    // Wobble motion
+    // Counter-rotating layers. The group itself never spins, so the canopy and
+    // antenna can hold level while the hull and collar turn against each other.
+    data.hull.rotation.y = time * 2.0;
+    data.collar.rotation.y = -time * 1.2;
+
+    // Hover bob - unchanged from the original.
     ufo.position.y = 5 + Math.sin(time * 3) * 0.3;
 
-    // Pulsing body
-    const pulseScale = 1.0 + Math.sin(time * 4) * 0.1;
-    ufo.userData.body.scale.set(pulseScale, 1, pulseScale);
-
-    // Dome pulse (different frequency)
-    const domePulse = 1.0 + Math.sin(time * 5) * 0.15;
-    ufo.userData.dome.scale.set(domePulse, domePulse, domePulse);
-
-    // Animate lights (pulsing intensity effect)
-    ufo.userData.lights.forEach((light, index) => {
-        const offset = (index / ufo.userData.lights.length) * Math.PI * 2;
-        const intensity = 2.5 + Math.sin(time * 8 + offset) * 1.5;
-        light.material.emissiveIntensity = Math.max(1.0, intensity);
-
-        // Slight bobbing of lights
-        light.position.y = -0.2 + Math.sin(time * 6 + offset) * 0.1;
+    // Chase: a bright crest travels around the collar. Each pod has its own
+    // cloned material, so the phase offset actually produces a chase.
+    data.lights.forEach(light => {
+        const phase = time * 5.0 - light.angle * 2.0;
+        const crest = Math.pow((Math.sin(phase) + 1) / 2, 3);
+        light.material.emissiveIntensity = 0.7 + crest * 3.0;
+        light.mesh.position.y = -0.06 + crest * 0.05;
     });
 
-    // Antenna sway
-    ufo.userData.antenna.rotation.z = Math.sin(time * 3) * 0.2;
+    // Canopy holds level and sways gently; the pilot looks around inside it.
+    data.canopy.rotation.y = Math.sin(time * 0.7) * 0.18;
+    data.pilot.rotation.y = Math.sin(time * 1.3) * 0.5;
 
-    // Tip pulse
-    const tipPulse = 1.0 + Math.sin(time * 10) * 0.3;
-    ufo.userData.tip.scale.set(tipPulse, tipPulse, tipPulse);
+    // Antenna sways. Beacon flashes on an explicit phase window - a steep
+    // power curve would read as a permanent glow rather than a flash.
+    data.antenna.rotation.z = Math.sin(time * 3) * 0.12;
+    const beaconPhase = (time % 1.4) / 1.4;
+    const flash = beaconPhase < 0.08 ? Math.sin((beaconPhase / 0.08) * Math.PI) : 0;
+    data.beaconMaterial.emissiveIntensity = 0.8 + flash * 4.0;
+    data.beacon.scale.setScalar(1 + flash * 0.4);
 }
 
 /**
