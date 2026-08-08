@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { initAudio } from './audio.js';
-import { getPlayer, updatePlayer, showPlayer } from './player.js';
+import { getPlayer, updatePlayer, showPlayer, triggerPlayerFire } from './player.js';
 import { updateStarfield, setStarfieldSpeed } from './starfield.js';
 import { createAliens, updateAliens, animateAlien, getAliens, resetAliens, setAlienConfig } from './aliens.js';
 import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, updateWebBombs, updateBlasterBolts, checkAlienFire, resetMissiles, initUFOMissiles, setLevelCompleteCallback } from './missiles.js';
@@ -210,7 +210,9 @@ export function handleFire() {
 
     const player = getPlayer();
     if (player) {
-        fireMissile(player, scene);
+        if (fireMissile(player, scene)) {
+            triggerPlayerFire();
+        }
     }
 }
 

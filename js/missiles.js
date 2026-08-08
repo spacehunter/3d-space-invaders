@@ -48,7 +48,7 @@ export function fireMissile(player, scene) {
 
     // Check cooldown
     if (now - lastPlayerFireTime < fireDelay) {
-        return;
+        return false;
     }
     lastPlayerFireTime = now;
 
@@ -64,6 +64,7 @@ export function fireMissile(player, scene) {
     }
 
     playMissileFire();
+    return true;
 }
 
 // Helper to create a single missile
