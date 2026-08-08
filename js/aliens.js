@@ -1527,13 +1527,17 @@ function createBeetleAlien(group) {
 // ---------------------------------------------------------------------------
 
 // This row is the homage row, so form comes from stacked bevels and hard
-// shadow steps rather than from hue: near-white plates, grey trim, and a dark
-// recess grey used only for sockets and seams. Red is reserved for the blaster.
-const INVADER_WHITE = 0xffffff;
-const INVADER_PLATE = 0xeaeaea;
-const INVADER_TRIM = 0xcccccc;
-const INVADER_SHADE = 0x8e8e8e;
-const INVADER_RECESS = 0x4a4a4a;
+// shadow steps rather than from hue. The ramp is a cool blue-grey rather than
+// neutral white: at a glance it still reads as the white/silver row, but a
+// near-white ramp (fff -> eaeaea -> cccccc) spans too little value for the
+// bevels to survive bloom, so the sculpt flattened into one mass. These steps
+// are spread much wider and tinted, which is what actually makes the form
+// legible. Red stays reserved for the blaster, cyan for the optics.
+const INVADER_WHITE = 0xf8fbff;   // highlight - bevel tops catching the light
+const INVADER_PLATE = 0xdfe9f6;   // main armour plate
+const INVADER_TRIM = 0xb2c1d4;    // edge trim and secondary panels
+const INVADER_SHADE = 0x7d8da5;   // shadow step under an overhang
+const INVADER_RECESS = 0x3d4860;  // sockets and seams only
 
 // Centre column of the hull - straddles x=0, so it is never mirrored
 const INVADER_HULL_CORE = [
@@ -1653,32 +1657,36 @@ function getInvaderParts() {
             { size: [0.11, 0.11, 0.08], pos: [0, 0, 0.41], color: 0xff5a5a }           // bore
         ]),
         muzzleGeometry: buildVoxelGeometry([
-            { size: [0.26, 0.26, 0.09], pos: [0, 0, 0], color: 0xffffff },
-            { size: [0.14, 0.14, 0.22], pos: [0, 0, 0.08], color: 0xffc0c0 }
+            { size: [0.26, 0.26, 0.09], pos: [0, 0, 0], color: 0xfff3d0 },
+            { size: [0.14, 0.14, 0.22], pos: [0, 0, 0.08], color: 0xffc44a }
         ]),
         footGeometry: buildVoxelGeometry([
             { size: [0.24, 0.10, 0.30], pos: [0, -0.05, 0.05], color: INVADER_PLATE },
             { size: [0.26, 0.05, 0.32], pos: [0, -0.11, 0.05], color: INVADER_SHADE }
         ]),
         legGeometries: INVADER_LEG_SEGMENTS.map(s => buildLimbSegmentGeometry(s, INVADER_PLATE, INVADER_TRIM)),
+        // Emissive is added flat, on top of the vertex colours rather than
+        // through them, so a bright grey emissive floods every tier equally and
+        // erases the ramp. Tinted cool and pulled well down, so the plate
+        // colours - not the glow - carry the form.
         plateMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: 0x9e9e9e,
-            emissiveIntensity: 1.15,
+            emissive: 0x647691,
+            emissiveIntensity: 0.85,
             shininess: 20,
             flatShading: true
         }),
         limbMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: 0x707070,
-            emissiveIntensity: 0.95,
+            emissive: 0x4e5d76,
+            emissiveIntensity: 0.75,
             flatShading: true
         }),
         // Cloned per alien so each invader blinks and charges on its own clock
         eyeMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
             emissive: 0x00e5ff,
-            emissiveIntensity: 2.4,
+            emissiveIntensity: 3.0,
             flatShading: true
         }),
         coilMaterial: new THREE.MeshPhongMaterial({
@@ -1689,8 +1697,8 @@ function getInvaderParts() {
         }),
         muzzleMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: 0xffd0d0,
-            emissiveIntensity: 2.0,
+            emissive: 0xffc44a,
+            emissiveIntensity: 2.2,
             transparent: true,
             opacity: 0.0,
             depthWrite: false,

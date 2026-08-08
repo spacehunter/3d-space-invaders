@@ -68,7 +68,7 @@ const BESTIARY_ENTRIES = [
         points: 0,
         color: '#ffffff',
         tagline: 'ROW 7 - WHITE - BONUS ROW',
-        description: 'Classic 1-bit arcade silhouette rebuilt in layered white plates with bevelled edges and recessed optics. It marches in a hard two-frame sprite flip rather than a smooth walk, antennae sway above the crown, and the centre blaster cannon charges, flashes and recoils into its housing on each shot.',
+        description: 'Classic 1-bit arcade silhouette rebuilt in layered pale steel plates with bevelled edges and cyan recessed optics. It marches in a hard two-frame sprite flip rather than a smooth walk, antennae sway above the crown, and the centre blaster cannon charges, flashes and recoils into its housing on each shot.',
         weapon: 'Blaster bolts - straight-shooting, high speed'
     }
 ];
