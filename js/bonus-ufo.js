@@ -24,22 +24,24 @@ const UFO_GOLD = 0xffc44a;
 const UFO_GOLD_DIM = 0xa87413;
 
 // Hull: stacked discs. saucerTier() unions three boxes into a cut-corner disc,
-// which reads far rounder than a box. Widest tier is 2.36 wide (1.18 radius);
-// the collar lights sit further out and set the real 2.0 budget (measured via
-// the corrected vertex-distance harness, not the AABB-corner one - see
-// UFO_LIGHT_RADIUS).
+// which reads far rounder than a box. XZ dimensions scaled ~1.36x from the
+// first rebuild pass (heights/y-offsets untouched) so the hull's widest
+// corner reaches ~1.92 - past the light collar's 1.70 radius - so the rim
+// lights read as mounted on the saucer's edge instead of floating in the gap
+// outboard of it. Widest tier corner is now ~1.92, the model's limiting
+// point against the 2.0 collision radius in missiles.js.
 const UFO_HULL = [
-    ...saucerTier(1.30, 0.86, 0.14, 0.30, UFO_MID),
-    ...saucerTier(1.72, 1.14, 0.16, 0.17, UFO_PLATE),
-    ...saucerTier(2.20, 1.46, 0.18, 0.00, UFO_PLATE),
-    ...saucerTier(2.36, 1.56, 0.07, -0.11, UFO_GOLD_DIM),
-    ...saucerTier(2.00, 1.32, 0.16, -0.22, UFO_MID),
-    ...saucerTier(1.48, 0.98, 0.14, -0.36, UFO_SHADE),
-    ...saucerTier(0.92, 0.60, 0.12, -0.47, UFO_RECESS),
-    { size: [2.46, 0.05, 0.20], pos: [0, 0.02, 0], color: UFO_GOLD },
-    { size: [0.20, 0.05, 2.46], pos: [0, 0.02, 0], color: UFO_GOLD },
-    { size: [0.62, 0.05, 0.30], pos: [0, 0.10, 0.74], color: UFO_HI },
-    { size: [0.62, 0.05, 0.30], pos: [0, 0.10, -0.74], color: UFO_HI }
+    ...saucerTier(1.76, 1.17, 0.14, 0.30, UFO_MID),
+    ...saucerTier(2.33, 1.55, 0.16, 0.17, UFO_PLATE),
+    ...saucerTier(2.99, 1.98, 0.18, 0.00, UFO_PLATE),
+    ...saucerTier(3.20, 2.12, 0.07, -0.11, UFO_GOLD_DIM),
+    ...saucerTier(2.71, 1.79, 0.16, -0.22, UFO_MID),
+    ...saucerTier(2.01, 1.33, 0.14, -0.36, UFO_SHADE),
+    ...saucerTier(1.25, 0.81, 0.12, -0.47, UFO_RECESS),
+    { size: [3.34, 0.05, 0.27], pos: [0, 0.02, 0], color: UFO_GOLD },
+    { size: [0.27, 0.05, 3.34], pos: [0, 0.02, 0], color: UFO_GOLD },
+    { size: [0.84, 0.05, 0.41], pos: [0, 0.10, 1.00], color: UFO_HI },
+    { size: [0.84, 0.05, 0.41], pos: [0, 0.10, -1.00], color: UFO_HI }
 ];
 
 // Underside emitter the missile originates from
@@ -48,20 +50,17 @@ const UFO_EMITTER = [
     { size: [0.30, 0.10, 0.30], pos: [0, -0.64, 0], color: UFO_HI }
 ];
 
-// One light pod, instanced around the collar at radius 1.82. Rotation about
-// the group origin never changes a vertex's distance from it, so the
-// farthest pod corner - not the radius alone - sets the real reach: with 12
-// pods every 30 degrees, one always sits near a diagonal where its corner
-// extends past the radius. Tuned via the vertex-distance harness (not an
-// AABB-corner one, which over-reports by ~sqrt(2) for a round object) to a
-// measured peak of ~1.96 against the 2.0 collision radius in missiles.js.
+// One light pod, instanced around the collar at radius 1.70 - inboard of the
+// hull's ~1.92 rim, so each pod reads as mounted on the saucer's edge with
+// hull visible outboard of it, matching the old smooth model's proportions
+// (hull 2.0 / lights 1.8).
 const UFO_LIGHT_POD = [
     { size: [0.20, 0.16, 0.20], pos: [0, 0, 0], color: UFO_GOLD_DIM },
     { size: [0.14, 0.14, 0.14], pos: [0, 0.02, 0], color: 0xffe89a }
 ];
 
 const UFO_LIGHT_COUNT = 12;
-const UFO_LIGHT_RADIUS = 1.82;
+const UFO_LIGHT_RADIUS = 1.70;
 
 const UFO_CANOPY = [
     ...saucerTier(0.92, 0.62, 0.14, 0.44, 0x6fe4f4),
