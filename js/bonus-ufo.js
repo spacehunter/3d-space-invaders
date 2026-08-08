@@ -77,9 +77,13 @@ const UFO_PILOT = [
     { size: [0.06, 0.05, 0.05], pos: [0.05, 0.65, 0.10], color: 0xff5ce0 }
 ];
 
+// Rebased so the mast's base sits at the mesh's own origin - the mesh, not
+// the geometry, carries the mount-height offset, so
+// animateBonusUFO()'s rotation.z sway hinges at the base instead of
+// pivoting about the saucer's centre and sliding the mast sideways.
 const UFO_ANTENNA = [
-    { size: [0.09, 0.62, 0.09], pos: [0, 1.02, 0], color: UFO_GOLD_DIM },
-    { size: [0.16, 0.07, 0.16], pos: [0, 0.76, 0], color: UFO_GOLD }
+    { size: [0.09, 0.62, 0.09], pos: [0, 0.31, 0], color: UFO_GOLD_DIM },
+    { size: [0.16, 0.07, 0.16], pos: [0, 0.05, 0], color: UFO_GOLD }
 ];
 
 // Centred on its own origin - the mesh, not the geometry, carries the y
@@ -182,8 +186,11 @@ function createBonusUFO() {
     ufo.add(canopy);
 
     const antenna = new THREE.Mesh(parts.antennaGeometry, parts.antennaMaterial);
+    antenna.position.y = 0.71;
     const beacon = new THREE.Mesh(parts.beaconGeometry, parts.beaconMaterial.clone());
-    beacon.position.y = 1.40;
+    // Beacon is a child of antenna, so antenna's rebased origin shifted it too
+    // - 1.40 minus the antenna's own 0.71 offset holds it at the same world height.
+    beacon.position.y = 0.69;
     antenna.add(beacon);
     ufo.add(antenna);
 
