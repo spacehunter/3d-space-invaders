@@ -17,3 +17,9 @@ assets/
 
 # Auto Claude data directory
 .auto-claude/
+
+# Playwright MCP scratch output
+.playwright-mcp/
+
+# Local Claude tooling config
+.claude_settings.json

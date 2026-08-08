@@ -18,18 +18,22 @@ A modern 3D recreation of the classic Space Invaders arcade game built with THRE
 The game features 7 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
 
 1. **Octopus Aliens** (Top Row - Purple)
-   - **Ripple tentacle waving** with fluid, sequential wave motion
-   - **Breathing body** that scales independently of tentacles
-   - Glowing yellow eyes
-   - **Gentle rotation wobble**
+   - **Sculpted voxel mantle**: tapering domed hood with a crest, brow ridge, cheek plates and side fins
+   - **Six jointed tentacles**, each three nested segments with suction cups, so a **curl travels down the limb**
+   - **Jet propulsion cycle** - the hood flares as the body contracts and the tentacles sweep
+   - **Blinking eyes** with heavy hooded lids, plus glowing yellow irises that drift and look around
+   - **Bioluminescent collar vents** that flare on each contraction
+   - **Chomping beak** and gentle rotation wobble over a breathing body
    - Fires standard red missiles
    - Worth 60 points
 
 2. **Crab Aliens** (Row 2 - Red)
-   - **Snappy claws** with aggressive fast-close, slow-open motion
-   - Eye stalks that bob
-   - **Nervous scuttle** with jittery side-to-side movement
-   - **Anxious rotation**
+   - **Tiered armoured carapace**: low and wide, with a serrated front rim, lateral spikes and shoulder blocks
+   - **Jointed pincer claws** on two-segment arms - the elbow straightens and thrusts as the jaws snap shut
+   - **Six walking legs** with a real knee bend, driven as **alternating tripods**
+   - **Swivelling eye stalks** carrying cyan compound eyes that flinch and duck
+   - **Molten shell seams** that glow hotter with every snap
+   - **Chattering mandibles** over a body that rocks with the gait
    - Fires standard red missiles
    - Worth 50 points
 
@@ -42,25 +46,33 @@ The game features 7 rows of aliens, each with distinctive 3D designs and dramati
    - Worth 40 points
 
 4. **UFO Aliens** (Row 4 - Yellow)
-   - **Chasing lights** that rotate around the rim
+   - **Layered saucer hull** built from stacked voxel discs, with panel seams and landing struts
+   - **Counter-rotating construction**: the hull spins one way beneath a level canopy while the light collar spins the other
+   - **True chase lights** - the bright spot travels around the ring, each lamp lit independently
+   - **Translucent canopy** with a pilot silhouette that looks around inside it
+   - **Scan beam** that charges at the emitter and stabs downward every few seconds
    - **Gyroscopic hover** with complex multi-axis wobble
-   - **Spinning** rotation while floating
    - Fires standard red missiles
    - Worth 30 points
 
 5. **Tank Aliens** (Row 5 - Cyan)
-   - **Recoil animation** on cannon when firing
+   - **Sloped armour hull** with glacis plate, side skirts, fenders, bolt heads and exhaust stacks
+   - **Rolling treads**: a real belt of plates that wraps the bogies and sprockets, scrolling at the formation's actual speed
+   - **Spinning road wheels** with contrasting spokes, geared to the track's surface speed
+   - **Rotating turret** with cupola and a **sweeping radar dish**
+   - **Recoiling gun**: the barrel snaps back into the mantlet on the shot and eases out, with a crisp muzzle flash
+   - **Charging energy coils** that glow back up between shots
    - **Engine rumble** vibration effect
-   - **Tracking cannon** that aims at player
-   - Tank treads and armored appearance
    - **Fires special homing missiles** with particle trails!
    - Worth 20 points
 
 6. **Beetle Aliens** (Row 6 - Orange)
-   - **Classic 70s arcade insect** with rounded shell
-   - **Scuttling leg animation** with alternating tripod gait
-   - **Antenna waggle** with glowing pulsing tips
-   - Six legs for realistic insect movement
+   - **Ribbed elytra** (hard wing cases) over a dark body, with a pronotum shield and a **rhinoceros horn**
+   - **Breaks into flight**: the shell splits, the cases lift and splay into a V, and hidden wings unfold
+   - **Buzzing flight wings** that blur as it lifts clear of the formation, then fold away again
+   - **Creeping tripod gait** with three-jointed legs that tuck up in flight
+   - **Club-tipped antennae** that sweep and waggle
+   - **Glowing web-bomb sac** slung under the abdomen, charging between shots
    - **Fires Web Bombs** - slow projectiles that create danger zones!
    - Worth 10 points
 
@@ -71,6 +83,16 @@ The game features 7 rows of aliens, each with distinctive 3D designs and dramati
    - **Marching feet** with alternating step animation
    - **Fires fast Blaster Bolts** - straight-shooting high-speed projectiles!
    - Worth 0 points (bonus row)
+
+### Bestiary Gallery
+A field guide reached from the **BESTIARY** option on the landing page (or the **B** key):
+- Browse all 7 alien types one at a time, rendered large and centred on a slowly turning display
+- Each model runs its full in-game animation - tentacle curls, snapping claws, chase lights, rolling treads and all
+- Shows the alien's name, row colour, point value, behaviour summary and armament
+- **← / →** (or the on-screen arrows) page between types and wrap around at both ends
+- **B**, Backspace or the **BACK** button returns to the landing page
+- Models are auto-framed to the viewport, so each type fills the display regardless of its size
+- Uses the same bloom and lighting as the game, dialled back slightly so bright emissive types stay readable up close
 
 ### Level Progression System
 - **Infinite levels** with formula-based scaling difficulty
@@ -259,6 +281,21 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 | Mouse Wheel Up/Down | Cycle through letters (A-Z, 0-9) |
 | Left Click | Confirm current letter and move to next |
 
+### On the Landing Page
+| Input | Action |
+|-------|--------|
+| SPACE / ENTER | Start a new game |
+| C | Continue from your saved level |
+| B | Open the Bestiary gallery |
+| S | Open Settings |
+
+### In the Bestiary
+| Input | Action |
+|-------|--------|
+| ← / → (or A / D) | Previous / next alien |
+| On-screen ‹ › arrows | Previous / next alien |
+| B / Backspace / BACK | Return to the landing page |
+
 ## Technical Details
 
 ### Core Technology
@@ -356,6 +393,10 @@ npm run dev        # Start dev server with hot reload (http://localhost:5173)
 │   ├── levels.js       # Level configuration and scaling system
 │   ├── boss.js         # Boss entities and battle mechanics
 │   ├── transitions.js  # Level transition effects and UI
+│   ├── landing.js      # Landing page menu
+│   ├── bestiary.js     # Bestiary gallery view of the alien models
+│   ├── settings.js     # Settings panel and persistence
+│   ├── bonus-ufo.js    # Periodic bonus UFO
 │   └── constants.js    # Game constants and configuration
 ├── dist/               # Production build output (generated)
 └── README.md           # This file
@@ -389,6 +430,15 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
+- ✅ **Alien Model Overhaul** - Five of the seven alien types rebuilt as detailed voxel sculpts!
+  - **Octopus** - domed mantle, six jointed tentacles that curl a wave down their length, blinking hooded eyes, pulsing collar vents
+  - **Crab** - tiered carapace, jointed pincers that thrust as the jaws snap, alternating tripod gait, swivelling eye stalks
+  - **UFO** - layered saucer hull, counter-rotating light collar, pilot visible in the canopy, downward scan beam
+  - **Tank** - sloped armour, tread belts that roll at the formation's actual speed, rotating turret, recoiling gun
+  - **Beetle** - wing cases that split open into buzzing flight, creeping gait, glowing web-bomb sac
+  - Squid and Invader still use their original models
+  - **Per-part animation restored across all seven types** - claws, legs, chase lights, cannons and marching feet had been silently inert
+- ✅ **Bestiary Gallery** - Browse every alien model up close from the landing page
 - ✅ **Settings Panel** - Comprehensive game customization!
   - Audio controls (Master, SFX, Music volumes, Mute All)
   - Visual settings (Glow Intensity, Particle Density, FPS Counter)

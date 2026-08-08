@@ -6,13 +6,15 @@ let landingElement = null;
 let isLandingVisible = true;
 let onNewGameCallback = null;
 let onContinueCallback = null;
+let onBestiaryCallback = null;
 let savedLevel = 1;
 
 // Initialize the landing page
-export function initLanding(onNewGame, onContinue) {
+export function initLanding(onNewGame, onContinue, onBestiary) {
     landingElement = document.getElementById('landingPage');
     onNewGameCallback = onNewGame;
     onContinueCallback = onContinue;
+    onBestiaryCallback = onBestiary;
 
     // Check for saved progress
     savedLevel = getSavedProgress();
@@ -39,6 +41,15 @@ export function initLanding(onNewGame, onContinue) {
             startNewBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 handleNewGame();
+            });
+        }
+
+        // Handle bestiary click
+        const bestiaryBtn = document.getElementById('openBestiary');
+        if (bestiaryBtn) {
+            bestiaryBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleOpenBestiary();
             });
         }
 
@@ -78,6 +89,18 @@ function handleContinue() {
     }
 }
 
+// Handle bestiary open action - the landing page has to get out of the way so
+// the gallery's 3D model is visible through the canvas behind it
+function handleOpenBestiary() {
+    if (!isLandingVisible) return;
+
+    hideLanding();
+
+    if (onBestiaryCallback) {
+        onBestiaryCallback();
+    }
+}
+
 // Handle settings open action
 function handleOpenSettings() {
     if (!isLandingVisible) return;
@@ -99,6 +122,11 @@ function handleKeyStart(e) {
     if (e.code === 'KeyC' && savedLevel > 1) {
         e.preventDefault();
         handleContinue();
+    }
+    // Open bestiary on 'B' key
+    if (e.code === 'KeyB') {
+        e.preventDefault();
+        handleOpenBestiary();
     }
     // Open settings on 'S' key
     if (e.code === 'KeyS') {

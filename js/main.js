@@ -2,23 +2,36 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createPlayer } from './player.js';
 import { createStarfield } from './starfield.js';
 import { createAliens } from './aliens.js';
 import { initInput, setMouseSensitivity } from './input.js';
 import { initGame, update, handleFire, startGame, startFromLevel, resetGame, pauseGame, resumeGame } from './game.js';
 import { updateHighScoresDisplay } from './highscores.js';
-import { initLanding, isLandingActive } from './landing.js';
+import { initLanding, isLandingActive, showLanding } from './landing.js';
+import { initBestiary, openBestiary, isBestiaryActive, updateBestiary, getBestiaryScene, getBestiaryCamera, onBestiaryResize } from './bestiary.js';
 import { initAudio, setMasterVolume, setSFXVolume, setMusicVolume, setMute } from './audio.js';
 import { settingsManager } from './settings.js';
 
-let scene, camera, renderer, composer, bloomPass;
+let scene, camera, renderer, composer, bloomPass, renderPass;
+
+// Glow intensity from settings, and the factor applied on top of it. The
+// bestiary views models from close up, where full gameplay bloom blows the
+// bright emissive types (the white Invader especially) out to a flat blob.
+let baseBloomStrength = 1.5;
+const BESTIARY_BLOOM_SCALE = 0.5;
+
+function applyBloomStrength() {
+    bloomPass.strength = baseBloomStrength * (isBestiaryActive() ? BESTIARY_BLOOM_SCALE : 1);
+}
 
 // Initialize the game
 function init() {
     // Scene
     scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x000000, 10, 100);
+    scene.background = new THREE.Color(0x010208);
+    scene.fog = new THREE.Fog(0x02030a, 10, 110);
 
     // Camera - 3rd person view
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -27,13 +40,18 @@ function init() {
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
     document.body.appendChild(renderer.domElement);
 
     // Post-processing for retro glow effect
     composer = new EffectComposer(renderer);
-    const renderPass = new RenderPass(scene, camera);
+    composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderPass = new RenderPass(scene, camera);
     composer.addPass(renderPass);
 
     // UnrealBloomPass for that 80s vector glow aesthetic
@@ -45,19 +63,38 @@ function init() {
     );
     composer.addPass(bloomPass);
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0x404040);
+    // OutputPass applies tone mapping + sRGB conversion after bloom
+    composer.addPass(new OutputPass());
+
+    // Lighting - hemisphere for cool space ambience, directional key light with soft shadows
+    const hemiLight = new THREE.HemisphereLight(0x3a4a8a, 0x1a0b2e, 0.7);
+    scene.add(hemiLight);
+
+    const ambientLight = new THREE.AmbientLight(0x303040);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
     dirLight.position.set(5, 10, 5);
     dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(2048, 2048);
+    dirLight.shadow.camera.left = -30;
+    dirLight.shadow.camera.right = 30;
+    dirLight.shadow.camera.top = 30;
+    dirLight.shadow.camera.bottom = -30;
     scene.add(dirLight);
 
-    // Point lights for atmosphere
-    const greenLight = new THREE.PointLight(0x00ff00, 1, 50);
-    greenLight.position.set(0, 5, 0);
+    // Accent point lights for arcade atmosphere
+    const greenLight = new THREE.PointLight(0x00ff88, 0.8, 50);
+    greenLight.position.set(0, 5, 8);
     scene.add(greenLight);
+
+    const magentaLight = new THREE.PointLight(0xff00aa, 0.6, 60);
+    magentaLight.position.set(-15, 3, -20);
+    scene.add(magentaLight);
+
+    const cyanLight = new THREE.PointLight(0x00aaff, 0.6, 60);
+    cyanLight.position.set(15, 3, -20);
+    scene.add(cyanLight);
 
     // Create game entities
     createPlayer(scene);
@@ -75,6 +112,10 @@ function init() {
     // Initialize high scores display
     updateHighScoresDisplay();
 
+    // Initialize the bestiary gallery before the landing page so its document
+    // keydown listener runs first and never sees the keypress that opened it
+    initBestiary(() => showLanding());
+
     // Initialize landing page with start callbacks
     initLanding(
         // New game callback
@@ -86,6 +127,10 @@ function init() {
         (level) => {
             initAudio();
             startFromLevel(level);
+        },
+        // Bestiary callback
+        () => {
+            openBestiary();
         }
     );
 
@@ -108,7 +153,8 @@ function init() {
     });
 
     settingsManager.on('glowIntensity', (value) => {
-        bloomPass.strength = value;
+        baseBloomStrength = value;
+        applyBloomStrength();
     });
 
     settingsManager.on('showFPS', (value) => {
@@ -141,8 +187,8 @@ function init() {
         if (isOpen) {
             pauseGame();
         } else {
-            // Only resume if we're not on the landing page
-            if (!isLandingActive()) {
+            // Only resume if we're not on the landing page or in the bestiary
+            if (!isLandingActive() && !isBestiaryActive()) {
                 resumeGame();
             }
         }
@@ -158,6 +204,7 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
+    onBestiaryResize();
 }
 
 // FPS tracking
@@ -184,8 +231,21 @@ function animate() {
         lastTime = currentTime;
     }
 
-    // Update game state
-    update();
+    // The bestiary borrows the composer: point the RenderPass at its scene so
+    // the gallery gets the same bloom and tone mapping as the game
+    applyBloomStrength();
+
+    if (isBestiaryActive()) {
+        updateBestiary();
+        renderPass.scene = getBestiaryScene();
+        renderPass.camera = getBestiaryCamera();
+    } else {
+        renderPass.scene = scene;
+        renderPass.camera = camera;
+
+        // Update game state
+        update();
+    }
 
     // Render scene with post-processing
     composer.render();

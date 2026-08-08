@@ -54,18 +54,29 @@ npm run package    # Build + bump version + create zip for distribution
 | `levels.js` | Level progression system with formula-based scaling difficulty |
 | `boss.js` | 5 boss types (Mothership, Hive Queen, Dreadnought, Phantom, Titan) with multi-phase health systems |
 | `transitions.js` | Level transition effects (hyperspace warp) and level announcement UI |
+| `landing.js` | Landing page menu (New Game / Continue / Bestiary / Settings) |
+| `bestiary.js` | Bestiary gallery - browse the 7 alien models one at a time, fully animated |
 | `constants.js` | Game constants (PLAYER_SPEED, MISSILE_SPEED, ALIEN_ROWS/COLS, ALIEN_SPACING) |
 
 ### Key Patterns
 
 **Alien Types by Row**: Each row (0-6) has distinct geometry, animation, and behavior:
-- Row 0: Octopus (ripple tentacles, breathing, 60 points)
-- Row 1: Crab (snapping claws, scuttle, 50 points)
+- Row 0: Octopus (sculpted voxel mantle, 6 jointed tentacles that curl, blinking eyes, pulsing vents, 60 points)
+- Row 1: Crab (tiered carapace, jointed pincers, tripod walking gait, swivelling eye stalks, 50 points)
 - Row 2: Squid (jet propulsion, squash/stretch, 40 points)
-- Row 3: UFO (chasing lights, gyroscopic hover, 30 points)
-- Row 4: Tank (tracking cannon, fires homing missiles, 20 points)
-- Row 5: Beetle (scuttling legs, antenna waggle, fires web bombs, 10 points)
+- Row 3: UFO (layered saucer hull, counter-rotating light collar, canopy pilot, scan beam, 30 points)
+- Row 4: Tank (sloped armour, rolling tread belts, rotating turret, recoiling gun, fires homing missiles, 20 points)
+- Row 5: Beetle (splitting elytra, buzzing flight wings, creeping gait, glowing web-bomb sac, fires web bombs, 10 points)
 - Row 6: Invader (classic 1-bit style, marching feet, fires blaster bolts, 0 points bonus row)
+
+**Voxel Sculpt System** (`aliens.js`): The rebuilt alien models share one construction approach — read this before adding or editing a model.
+- `buildVoxelGeometry(boxes)` merges a list of `{size, pos, rotX/rotY/rotZ, color}` boxes into a **single** geometry, baking each box's colour into vertex colours. Detail then costs vertices rather than draw calls, so an elaborate part stays one mesh. Materials rendering it must set `vertexColors: true`.
+- `mirrorBoxes(boxes)` builds the opposite half of a symmetrical part. Use it instead of `scale.x = -1`, which inverts normals and breaks lighting on that half.
+- `saucerTier(width, depth, height, y, color)` unions three boxes into a disc with cut corners — reads far rounder than a box (UFO hull).
+- `buildLimbSegmentGeometry()` + `buildLimbChain()` build jointed limbs: each segment's origin sits at its joint and parents the next, so a bend propagates down the limb rather than swinging it rigidly. Used by crab arms/legs/eye stalks and beetle legs.
+- Each rebuilt type caches its geometries and static materials in a lazily-built module-level registry (`getOctopusParts()`, `getCrabParts()`, `getUfoParts()`, `getTankParts()`, `getBeetleParts()`), shared by every instance in the formation.
+- **Rebuilt so far**: rows 0 (Octopus), 1 (Crab), 3 (UFO), 4 (Tank), 5 (Beetle). Rows 2 (Squid) and 6 (Invader) still use their original simple box models and are the remaining candidates.
+- Keep a model's half-width under ~0.95 — `ALIEN_SPACING` is 2, and the missile collision radius is 1.2 from the group origin.
 
 **Missile System**: Three separate arrays managed in `missiles.js`:
 - `missiles` - Player projectiles (can intercept alien missiles)
@@ -73,6 +84,15 @@ npm run package    # Build + bump version + create zip for distribution
 - `ufoMissiles` - Special bonus UFO missiles with shrapnel
 
 **Animation**: Time-based with per-entity `animationOffset` for variety. Aliens animate even after game over via `animateAlien()`.
+
+**Animation invariants** — each of these has already caused a silent failure in this codebase, so violating them produces no error, just missing motion:
+- **Merge, never replace, `userData`.** Model builders stash references to their moving parts there (`tentacles`, `cannon`, `legs`, `lights`...). `createAliens()` replacing the object once killed per-part animation for *all seven* alien types at once.
+- **Clone any material you animate per-instance.** A material shared across meshes holds one value: the UFO's eight ring lights shared one material, so the chase effect wrote the same intensity eight times and never chased. The same applies between aliens — each instance needs its own material to pulse on its own `animationOffset`.
+- **The formation owns `position.x` / `position.z`.** Animation must never accumulate into them; a per-frame nudge walks the alien out of formation (the tank's recoil used to drift it backwards forever). Put the motion in rotation, or in a child mesh's local transform.
+- **Guard `position.y` while swooping.** `updateSwoop()` owns Y during a kamikaze dive, so hover/bob animation must check `!alien.userData.isSwooping`.
+- **Prefer animating a child mesh's scale over the group's.** `updateTelegraph()` captures and restores `alien.scale` for the swoop warning.
+- **Drive discrete events from an explicit phase window**, not a steep power curve. `charge^12` reads as a permanent glow, not a muzzle flash; `(time % period) / period < 0.06` gives a crisp event.
+- **Accumulate speed-linked motion from a frame delta**, not by multiplying a changing rate into `time` — the latter makes the whole cycle jump whenever the rate changes (tank tread scroll).
 
 **Camera**: Dynamic third-person following player with mouse-controlled zoom (Y-axis depth).
 
@@ -90,6 +110,13 @@ npm run package    # Build + bump version + create zip for distribution
 - Bosses scale up each time they reappear (enhanced versions)
 - Full barrier repair before each boss fight
 - Special audio cues (warning alarm, phase transitions)
+
+**Bestiary Gallery**: Managed in `bestiary.js`, opened from the landing page (button or `B` key):
+- Owns a separate `THREE.Scene` with its own camera, lights and star backdrop. It does **not** own a renderer: `main.js` swaps `renderPass.scene`/`renderPass.camera` over to it while it is active, so the gallery inherits the game's bloom and tone mapping. Bloom strength is scaled down (`BESTIARY_BLOOM_SCALE`) while it is open, since gameplay bloom blows out bright emissive models at close range.
+- Builds models via `createAlienPreview(type)` in `aliens.js` - a standalone factory that does **not** push into the shared module-level `aliens` array, so opening the gallery cannot corrupt an in-progress formation. Never use `createAliens()` for display purposes.
+- Scene graph is `pivot` (turntable rotation) → `holder` (auto-fit scale/centering) → alien. The rotation must live on a parent because `animateAlien()` writes `alien.rotation` and `alien.position.y` itself.
+- Models are auto-framed from a `Box3` measured on the rest pose, scaled to `TARGET_SIZE`, so new or resized models need no hand-tuning.
+- While it is open, `game.js`'s `handleFire()` and the settings panel's resume-on-close both bail out via `isBestiaryActive()`.
 
 ### State Reset Pattern
 

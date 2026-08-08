@@ -888,6 +888,176 @@
             margin: 0 15px;
             color: #00ffff;
         }
+        .bestiary-prompt {
+            font-size: 24px;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            animation: promptPulse 1.5s ease-in-out infinite;
+            animation-delay: 0.45s;
+            cursor: pointer;
+            padding: 10px 30px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .bestiary-prompt:hover {
+            border-color: #ff00ff;
+            background: rgba(255, 0, 255, 0.1);
+        }
+
+        /* ==================== BESTIARY GALLERY STYLES ==================== */
+        /* Transparent overlay - the alien is rendered by the WebGL canvas behind */
+        #bestiaryOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 450;
+            font-family: 'Courier New', monospace;
+            opacity: 0;
+            transition: opacity 0.4s ease-out;
+            pointer-events: none;
+        }
+        #bestiaryOverlay.visible {
+            opacity: 1;
+        }
+        /* The gallery draws over the live canvas, so the game HUD has to go */
+        body.bestiary-open #ui,
+        body.bestiary-open #highscores,
+        body.bestiary-open #levelIndicator,
+        body.bestiary-open #instructions,
+        body.bestiary-open #gameOver {
+            display: none;
+        }
+        #bestiaryOverlay .bestiary-header {
+            margin-top: 30px;
+            text-align: center;
+        }
+        #bestiaryOverlay .bestiary-title {
+            font-size: 40px;
+            font-weight: bold;
+            letter-spacing: 12px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 40px #00ff00;
+            margin: 0;
+        }
+        #bestiaryOverlay .bestiary-subtitle {
+            margin-top: 8px;
+            font-size: 13px;
+            letter-spacing: 4px;
+            color: #00ffff;
+            text-shadow: 0 0 6px #00ffff;
+        }
+        #bestiaryOverlay .bestiary-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 44px;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+            background: rgba(0, 0, 0, 0.45);
+            border: 2px solid #00ffff;
+            padding: 10px 22px;
+            cursor: pointer;
+            pointer-events: auto;
+            user-select: none;
+            transition: all 0.25s ease;
+        }
+        #bestiaryOverlay .bestiary-nav:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+            transform: translateY(-50%) scale(1.1);
+        }
+        #bestiaryPrev { left: 40px; }
+        #bestiaryNext { right: 40px; }
+        #bestiaryOverlay .bestiary-info {
+            width: 760px;
+            max-width: 88%;
+            margin-bottom: 24px;
+            padding: 20px 28px;
+            background: rgba(0, 0, 0, 0.75);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.35), inset 0 0 60px rgba(0, 255, 255, 0.05);
+            text-align: center;
+        }
+        #bestiaryOverlay .bestiary-name-row {
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 20px;
+        }
+        #bestiaryName {
+            font-size: 34px;
+            font-weight: bold;
+            letter-spacing: 6px;
+            color: #ffffff;
+        }
+        #bestiaryPoints {
+            font-size: 22px;
+            color: #ffff00;
+            text-shadow: 0 0 8px #ffff00;
+        }
+        #bestiaryTagline {
+            margin-top: 6px;
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: #888;
+        }
+        #bestiaryDescription {
+            margin-top: 14px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #b8f0ff;
+        }
+        #bestiaryWeapon {
+            margin-top: 12px;
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: #ff5555;
+            text-shadow: 0 0 6px #ff0000;
+        }
+        #bestiaryCounter {
+            margin-top: 14px;
+            font-size: 13px;
+            letter-spacing: 3px;
+            color: #00ff00;
+            text-shadow: 0 0 6px #00ff00;
+        }
+        #bestiaryBack {
+            margin-top: 16px;
+            display: inline-block;
+            font-size: 16px;
+            letter-spacing: 3px;
+            color: #ffff00;
+            text-shadow: 0 0 8px #ffff00;
+            border: 2px solid #ffff00;
+            background: transparent;
+            font-family: 'Courier New', monospace;
+            padding: 8px 26px;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.25s ease;
+        }
+        #bestiaryBack:hover {
+            background: rgba(255, 255, 0, 0.15);
+            box-shadow: 0 0 18px rgba(255, 255, 0, 0.6);
+        }
+        #bestiaryOverlay .bestiary-keys {
+            margin-top: 10px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: #666;
+        }
+        @media (max-width: 768px) {
+            #bestiaryPrev { left: 10px; }
+            #bestiaryNext { right: 10px; }
+            #bestiaryOverlay .bestiary-nav { font-size: 30px; padding: 6px 12px; }
+            #bestiaryOverlay .bestiary-title { font-size: 26px; letter-spacing: 6px; }
+        }
     </style>
 </head>
 <body>
@@ -1035,6 +1205,7 @@
                 <div class="continue-prompt" id="continueGame" style="display: none;">
                     CONTINUE FROM LEVEL <span id="savedLevel">2</span>
                 </div>
+                <div class="bestiary-prompt" id="openBestiary">☠ BESTIARY</div>
                 <div class="settings-prompt" id="openSettings">⚙ SETTINGS</div>
             </div>
             <div class="landing-instructions">
@@ -1045,6 +1216,10 @@
                 <div class="instruction-item">
                     <span class="key">C</span>
                     <span class="action">Continue</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="key">B</span>
+                    <span class="action">Bestiary</span>
                 </div>
                 <div class="instruction-item">
                     <span class="key">S</span>
@@ -1058,6 +1233,30 @@
                 <span class="feature-divider">•</span>
                 <span class="feature">POWER-UPS</span>
             </div>
+        </div>
+    </div>
+
+    <!-- Bestiary Gallery (transparent - the model is drawn by the WebGL canvas) -->
+    <div id="bestiaryOverlay">
+        <div class="bestiary-header">
+            <h2 class="bestiary-title">BESTIARY</h2>
+            <div class="bestiary-subtitle">INVADER FIELD GUIDE</div>
+        </div>
+
+        <div class="bestiary-nav" id="bestiaryPrev">‹</div>
+        <div class="bestiary-nav" id="bestiaryNext">›</div>
+
+        <div class="bestiary-info">
+            <div class="bestiary-name-row">
+                <span id="bestiaryName">OCTOPUS</span>
+                <span id="bestiaryPoints">60 PTS</span>
+            </div>
+            <div id="bestiaryTagline">TOP ROW - PURPLE</div>
+            <div id="bestiaryDescription"></div>
+            <div id="bestiaryWeapon"></div>
+            <div id="bestiaryCounter">1 / 7</div>
+            <button id="bestiaryBack">◄ BACK</button>
+            <div class="bestiary-keys">← / → NAVIGATE &nbsp;•&nbsp; B RETURN</div>
         </div>
     </div>
 

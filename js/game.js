@@ -15,6 +15,7 @@ import { getLevelConfig } from './levels.js';
 import { startLevelTransition, isInTransition, forceEndTransition, updateTransition } from './transitions.js';
 import { spawnBoss, updateBoss, getCurrentBoss, resetBoss, damageBoss, getBossHitRadius } from './boss.js';
 import { showLanding } from './landing.js';
+import { isBestiaryActive } from './bestiary.js';
 
 // Game state
 let scene;
@@ -184,6 +185,12 @@ export function updateCamera(player, mouseX, mouseY) {
 // Handle firing
 export function handleFire() {
     initAudio();  // Initialize audio on first click
+
+    // Clicks belong to the gallery while it is open - they must not fire or
+    // bounce the player back to the landing page
+    if (isBestiaryActive()) {
+        return;
+    }
 
     // If initial entry is active, don't fire or reset
     if (isInitialEntryActive()) {
