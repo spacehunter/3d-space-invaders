@@ -2,6 +2,12 @@
 
 A modern 3D recreation of the classic Space Invaders arcade game built with THREE.js, featuring a third-person camera view, blocky/pixel-art aesthetic, unique alien designs, and intense alien counter-fire mechanics.
 
+## Current Project Status
+
+As of 2026-08-09, all 8 alien rows have distinct rebuilt voxel models and animations. The Row 7 Scorpion has completed a Beetle-inspired consistency pass: its compact burnt-orange carapace, raised segmented tail, chunky pincers, eight-legged tripod gait, and amber stinger now read clearly at formation distance. Venom-dart gameplay is unchanged.
+
+Latest validation: `npm run build` passes. Run `npm run dev` and open `http://localhost:5173/` to test the game, or `/alien-preview.html` to inspect the Scorpion directly.
+
 ## Features
 
 ### Gameplay
@@ -76,12 +82,12 @@ The game features 8 rows of aliens, each with distinctive 3D designs and dramati
    - **Fires Web Bombs** - slow projectiles that create danger zones!
    - Worth 10 points
 
-8. **Scorpion Aliens** (Row 7 - Dark Orange)
-    - **Segmented arachnid carapace** with a pronounced S-curve body and raised rear section
-    - **Jointed tail** with 4 segments that undulate in a wave
-    - **Glowing stinger** at the tail tip that pulses with venom
-    - **Pedipalp pincers** that snap at the front with jointed arms
-    - **Segment front legs** and **8 jointed walking legs** with tripod gait
+8. **Scorpion Aliens** (Row 7 - Burnt Orange)
+    - **Compact chunky carapace** with a dark underbody and a Beetle-consistent voxel silhouette
+    - **Raised five-segment tail** that curls above the body and whips on strike
+    - **Amber stinger** at the tail tip that pulses with venom
+    - **Chunky pedipalp pincers** that snap at the front
+    - **8 jointed walking legs** with a clear alternating tripod gait
     - **Fires venom darts** - slow-arcing mortar projectiles that drop from above!
     - Worth 5 points
 
@@ -423,7 +429,7 @@ Tested on:
 
 ## Performance
 
-- Renders 77 aliens (7 rows × 11 columns) with individual animations
+- Renders 88 aliens (8 rows × 11 columns) with individual animations
 - Hundreds of particles for explosions and trails
 - Thousands of animated stars
 - Runs at 60 FPS on modern hardware
@@ -431,14 +437,14 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
-- ✅ **Alien Model Overhaul** - Five of the seven alien types rebuilt as detailed voxel sculpts!
+- ✅ **Alien Model Overhaul** - All eight alien types now use distinct voxel sculpts and animations!
   - **Octopus** - domed mantle, six jointed tentacles that curl a wave down their length, blinking hooded eyes, pulsing collar vents
   - **Crab** - tiered carapace, jointed pincers that thrust as the jaws snap, alternating tripod gait, swivelling eye stalks
   - **UFO** - layered saucer hull, counter-rotating light collar, pilot visible in the canopy, downward scan beam
   - **Tank** - sloped armour, tread belts that roll at the formation's actual speed, rotating turret, recoiling gun
   - **Beetle** - wing cases that split open into buzzing flight, creeping gait, glowing web-bomb sac
-  - Squid and Invader still use their original models
-  - **Per-part animation restored across all seven types** - claws, legs, chase lights, cannons and marching feet had been silently inert
+  - **Scorpion** - compact burnt-orange carapace, raised five-segment tail, amber stinger, snapping pincers and tripod gait
+  - **Per-part animation restored across all eight types** - claws, legs, chase lights, cannons and marching feet had been silently inert
 - ✅ **Bestiary Gallery** - Browse every alien model up close from the landing page
 - ✅ **Settings Panel** - Comprehensive game customization!
   - Audio controls (Master, SFX, Music volumes, Mute All)

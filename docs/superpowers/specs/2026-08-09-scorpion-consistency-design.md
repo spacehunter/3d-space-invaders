@@ -1,5 +1,8 @@
 # Scorpion Invader Consistency Design
 
+**Date:** 2026-08-09
+**Status:** Implemented and verified
+
 ## Goal
 
 Revise the Row 7 Scorpion so it reaches at least a 7/10 visual consistency score against the existing invader roster, using the Beetle as the primary reference while preserving the current venom-dart gameplay.

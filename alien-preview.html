@@ -1,234 +1,368 @@
 <!DOCTYPE html>
-<html lang="en"><head>
+<html lang="en">
+<head>
 <meta charset="utf-8">
-<title>Scorpion Preview</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}
-body{overflow:hidden;background:#1a1a2e;font-family:monospace;user-select:none}
-#ui{position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:10;background:rgba(0,0,0,0.4);padding:5px 8px;border-radius:6px}
-#ui button{background:#2a2a3e;color:#ccc;border:1px solid #555;padding:4px 10px;cursor:pointer;font-family:monospace;font-size:11px;border-radius:3px;border:none}
-#ui button.on{background:#1656c8;color:#fff;font-weight:bold}
-#ui button:hover{background:#444}
-#ui button.on:hover{background:#10469c}
-#bar{position:fixed;top:44px;left:50%;transform:translateX(-50%);color:#aaa;font-size:11px;background:rgba(0,0,0,0.5);padding:3px 10px;border-radius:3px;z-index:10}
-#msg{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);color:#666;font-size:10px;background:rgba(0,0,0,0.4);padding:3px 8px;border-radius:3px;z-index:10;text-align:center}
-</style></head><body>
-<div id="ui"><button class="on">Reset View</button><button id="shotBtn">Screenshot</button></div>
+<title>Scorpion Preview — Row 7</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#0f0c08;font-family:monospace;user-select:none}
+#ui{position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;background:rgba(0,0,0,0.55);padding:6px 10px;border-radius:6px;flex-wrap:wrap;justify-content:center}
+#ui button{background:#2a2016;color:#cca662;border:1px solid #554430;padding:5px 12px;cursor:pointer;font-family:monospace;font-size:11px;border-radius:3px}
+#ui button.on{background:#804a10;color:#fff;font-weight:bold;border-color:#aa6a30}
+#ui button:hover{background:#3a2e20}
+#ui button.on:hover{background:#6a3a0c}
+#bar{position:fixed;top:46px;left:50%;transform:translateX(-50%);color:#998877;font-size:11px;background:rgba(0,0,0,0.5);padding:4px 12px;border-radius:3px;z-index:10;white-space:nowrap}
+#msg{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);color:#665544;font-size:10px;background:rgba(0,0,0,0.4);padding:3px 8px;border-radius:3px;z-index:10;text-align:center}
+</style>
+</head>
+<body>
+<div id="ui">
+  <button id="stand">Stand</button>
+  <button id="idle">Idle</button>
+  <button id="walk">Walk</button>
+  <button id="charge">Charge</button>
+  <button id="strike">Strike</button>
+  <button id="reset">Reset</button>
+  <button id="shotBtn">Screenshot</button>
+</div>
 <div id="bar">Scorpion — Row 7 — Drag to rotate · Scroll to zoom</div>
-<div id="msg">Click button or press S to screenshot · Press R to reset view</div>
+<div id="msg">Click animation · S = Screenshot · R = Reset</div>
+</body>
 
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"}}</script>
 <script type="module">
-import*as THREE from'three'
-import{OrbitControls}from'three/addons/controls/OrbitControls.js'
-import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js'
-import{RenderPass}from'three/addons/postprocessing/RenderPass.js'
-import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js'
-import{mergeGeometries}from'three/addons/utils/mergeGeometries.js'
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { createAlienPreview } from '/js/aliens.js';
+/* ================================================================
+   SCORPION PREVIEW — 5 animation states
+   ================================================================ */
 
-// Voxel helpers
-function bGeo(boxes){return boxes.map(b=>{const g=new THREE.BoxGeometry(b.size[0],b.size[1],b.size[2]);if(b.rotX)g.rotateX(b.rotX);if(b.rotY)g.rotateY(b.rotY);if(b.rotZ)g.rotateZ(b.rotZ);if(b.pos)g.translate(b.pos[0],b.pos[1],b.pos[2]);const c=new THREE.Color(b.color);const v=g.attributes.position.count,cl=new Float32Array(v*3);for(let i=0;i<v;i++){cl[i*3]=c.r;cl[i*3+1]=c.g;cl[i*3+2]=c.b}g.setAttribute('color',new THREE.Float32BufferAttribute(cl,3));return g})}
-function bVox(boxes){return boxes.length===1?bGeo(boxes)[0]:mergeGeometries(bGeo(boxes))}
-function limbSeg(s,c1,c2){return bVox([{size:[s.width,s.length,s.width],pos:[0,-s.length/2,0],color:c1},{size:[s.width+0.05,0.07,s.width+0.05],pos:[0,-0.02,0],color:c2||c1}])}
-function limbChain(mount,geos,segs,mat){const chain=[];let p=mount;segs.forEach((s,j)=>{const m=new THREE.Mesh(geos[j],mat);m.position.y=j===0?0:-segs[j-1].length;m.rotation.z=s.baseBend;m.userData.baseBend=s.baseBend;p.add(m);p=m;chain.push(m)});return chain}
-
-// Tail segment: extends along +Z axis
-function tailSeg(w,h,l,c1,c2){return bVox([{size:[w,h,l],pos:[0,0,-l/2],color:c1},{size:[w+0.03,0.035,l+0.03],pos:[0,0,0],color:c2||c1}])}
-function tailChain(mount,geos,segs,mat){const chain=[];let p=mount;segs.forEach((s,j)=>{const m=new THREE.Mesh(geos[j],mat);m.position.z=j===0?0:segs[j-1].len;m.rotation.z=s.bend;m.userData.baseBend=s.bend;p.add(m);p=m;chain.push(m)});return chain}
-
-// Scorpion constants
-const LEG_SEGS=[{length:0.22,width:0.10,baseBend:0.95},{length:0.18,width:0.08,baseBend:-1.40},{length:0.12,width:0.06,baseBend:-0.30}]
-const LEG_CFG=[{side:-1,z:0.34,phase:0},{side:-1,z:0.12,phase:Math.PI},{side:-1,z:-0.08,phase:0},{side:-1,z:-0.26,phase:Math.PI},{side:1,z:0.34,phase:0},{side:1,z:0.12,phase:Math.PI},{side:1,z:-0.08,phase:0},{side:1,z:-0.26,phase:Math.PI}]
-const TL_SEGS=[{len:0.30,w:0.16,bend:0},{len:0.26,w:0.13,bend:0.22},{len:0.22,w:0.11,bend:0.30},{len:0.18,w:0.09,bend:-0.05}]
-
-// Make the scorpion model
-function makeScorpion(){
- const g=new THREE.Group()
- // Body
- const bodyGeo=bVox([
-  {size:[0.86,0.10,0.94],pos:[0,-0.11,-0.08],color:0x5a3c1a},
-  {size:[0.82,0.08,0.82],pos:[0,-0.06,-0.06],color:0x6e4a24},
-  {size:[0.78,0.06,0.70],pos:[0,-0.03,-0.04],color:0x82582e},
-  {size:[0.22,0.10,0.20],pos:[-0.44,-0.06,0.18],color:0x5a3c1a},
-  {size:[0.22,0.10,0.20],pos:[0.44,-0.06,0.18],color:0x5a3c1a},
-  {size:[0.68,0.14,0.24],pos:[0,0.02,0.36],color:0x3e2a12},
-  {size:[0.56,0.05,0.14],pos:[0,0.06,0.34],color:0x523818},
-  {size:[0.34,0.08,0.12],pos:[0,-0.02,0.46],color:0x2a1c0c},
-  {size:[0.08,0.06,0.08],pos:[-0.48,-0.04,-0.20],color:0x6e4a24},
-  {size:[0.08,0.06,0.08],pos:[0.48,-0.04,-0.20],color:0x6e4a24},
-  {size:[0.08,0.06,0.08],pos:[-0.48,-0.02,-0.26],color:0x523818},
-  {size:[0.08,0.06,0.08],pos:[0.48,-0.02,-0.26],color:0x523818},
-  {size:[0.08,0.06,0.08],pos:[-0.44,0.00,-0.32],color:0x3e2a12},
-  {size:[0.08,0.06,0.08],pos:[0.44,0.00,-0.32],color:0x3e2a12}
- ])
- const body=new THREE.Mesh(bodyGeo,new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x3a2210,emissiveIntensity:0.85,shininess:25,flatShading:true}))
- body.castShadow=true
- g.add(body)
- // Head
- g.add(new THREE.Mesh(bVox([
-  {size:[0.30,0.08,0.18],pos:[0,0.04,0.38],color:0x1a120c},
-  {size:[0.12,0.06,0.06],pos:[-0.12,0.05,0.44],color:0x2a2012},
-  {size:[0.12,0.06,0.06],pos:[0.12,0.05,0.44],color:0x2a2012},
-  {size:[0.09,0.04,0.04],pos:[-0.12,0.05,0.455],color:0x4a3c24},
-  {size:[0.09,0.04,0.04],pos:[0.12,0.05,0.455],color:0x4a3c24}
- ]),new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x1a0e06,emissiveIntensity:0.6,flatShading:true})))
- // Tail
- const tlPiv=new THREE.Group()
- tlPiv.position.set(0,0.04,-0.30)
- g.add(tlPiv)
- const tlGeos=TL_SEGS.map(s=>tailSeg(s.w,0.12,s.len,0x9e6a28,0x5a3c1a))
- const tlCh=tailChain(tlPiv,tlGeos,TL_SEGS,new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x624218,emissiveIntensity:0.8,flatShading:true}))
- const stinger=new THREE.Mesh(bVox([
-  {size:[0.08,0.08,0.16],pos:[0,0,-0.28],color:0x2a1c0c},
-  {size:[0.06,0.06,0.08],pos:[0,0,-0.48],color:0xffd000},
-  {size:[0.04,0.04,0.04],pos:[0,0,-0.60],color:0xffd800}
- ]),new THREE.MeshPhongMaterial({vertexColors:true,emissive:0xffd800,emissiveIntensity:1.5,flatShading:true}))
- stinger.position.z=-TL_SEGS[3].len-0.02
- tlCh[3].add(stinger)
- // Pincers
- const pMat=new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x624218,emissiveIntensity:1.0,flatShading:true})
- g.userData.pincers=[-1,1].map(side=>{
-  const piv=new THREE.Group()
-  piv.position.set(side*0.44,0.04,0.30)
-  piv.rotation.y=-side*0.25
-  g.add(piv)
-  const arm=piv.add(new THREE.Mesh(bVox([
-   {size:[0.20,0.10,0.20],pos:[0,0,0.05],color:0x5a3c1a},
-   {size:[0.14,0.08,0.16],pos:[0,0.02,0.17],color:0x6e4a24},
-   {size:[0.12,0.06,0.16],pos:[0,0.00,0.30],color:0x82582e},
-   {size:[0.10,0.05,0.10],pos:[0,0,0.42],color:0x6e4a24},
-   {size:[0.08,0.04,0.16],pos:[0,0,0.54],color:0x82582e}
-  ]),pMat))
-  arm.position.z=0.10
-  arm.rotation.x=-0.35
-  const jw=piv.add(new THREE.Mesh(bVox([{size:[0.08,0.14,0.14],pos:[0,-0.05,0.46],color:0x6e4a24}]),pMat))
-  jw.rotation.x=0.35
-  return{pivot:piv,arm:arm,jaw:jw,side:side}
- })
- // 8 legs
- const legGeos=LEG_SEGS.map(s=>limbSeg(s,0x8a6030,0x4a2e14))
- g.userData.legs=LEG_CFG.map(c=>{
-  const lm=new THREE.Group()
-  lm.position.set(c.side*0.50,-0.08,c.z)
-  lm.rotation.y=c.side>0?0:Math.PI
-  g.add(lm)
-  const segs=limbChain(lm,legGeos,LEG_SEGS,new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x3a2210,emissiveIntensity:0.7,flatShading:true}))
-  return{mount:lm,segs:segs,phase:c.phase,side:c.side}
- })
- // Store refs
- g.userData.body=body
- g.userData.tailPivot=tlPiv
- g.userData.tailChain=tlCh
- g.userData.stinger=stinger
- return g
+// ---------- Voxel helpers ----------
+function buildGeo(boxes) {
+  return boxes.map(b => {
+    const g = new THREE.BoxGeometry(b.size[0], b.size[1], b.size[2]);
+    if (b.rotX) g.rotateX(b.rotX);
+    if (b.rotY) g.rotateY(b.rotY);
+    if (b.rotZ) g.rotateZ(b.rotZ);
+    if (b.pos) g.translate(b.pos[0], b.pos[1], b.pos[2]);
+    const c = new THREE.Color(b.color);
+    const v = g.attributes.position.count;
+    const cl = new Float32Array(v * 3);
+    for (let i = 0; i < v; i++) { cl[i*3] = c.r; cl[i*3+1] = c.g; cl[i*3+2] = c.b; }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(cl, 3));
+    return g;
+  });
+}
+function BVox(boxes) { return boxes.length === 1 ? buildGeo(boxes)[0] : mergeGeometries(buildGeo(boxes)); }
+function mirB(boxes) { return boxes.map(b => ({ ...b, pos: [-b.pos[0], b.pos[1], b.pos[2]] })); }
+function limbGeo(s, c1, c2) {
+  return BVox([{ size:[s.width,s.length,s.width], pos:[0,-s.length/2,0], color:c1 },
+               { size:[s.width+0.05,0.07,s.width+0.05], pos:[0,-0.02,0], color:c2||c1 }]);
+}
+function limbChain(m, geos, segs, mat) {
+  const c = []; let p = m;
+  segs.forEach((s, j) => { const m2 = new THREE.Mesh(geos[j], mat); m2.position.y = j===0?0:-segs[j-1].length; m2.rotation.z=s.baseBend; m2.userData.baseBend=s.baseBend; p.add(m2); p=m2; c.push(m2); }); return c;
+}
+function tailGeo(w, l, c1, c2) { return BVox([{size:[w,w,l],pos:[0,0,-l/2],color:c1},{size:[w+0.06,w+0.06,0.03],pos:[0,0,0],color:c2||c1}]); }
+function bTCh(mount, geos, segs, mat) {
+  const c = []; let p = mount;
+  segs.forEach((s, j) => { const m2 = new THREE.Mesh(geos[j], mat); m2.position.z=j===0?0:segs[j-1].length; m2.rotation.z=s.baseBend; m2.userData.baseBend=s.baseBend; p.add(m2); p=m2; c.push(m2); }); return c;
 }
 
-// Animation
-function animScorpion(s){
- if(!s.userData.animOffset)s.userData.animOffset=Math.random()*Math.PI*2
- const t=s.userData.animOffset+Date.now()*0.001
- const fp=(t%2.8)/2.8
- const flash=fp<0.05?Math.sin((fp/0.05)*Math.PI):0
- const recoil=fp<0.015?Math.min(1,fp/0.015):Math.max(0,1-(fp-0.015)/0.14)
- const charge=Math.max(0,(fp-0.08)/0.92)
- const u=s.userData
- // Tail
- if(u.tailPivot){u.tailPivot.rotation.z=Math.cos(t*4)*0.06+Math.max(0,recoil)*0.35}
- if(u.tailChain){u.tailChain.forEach((seg,i)=>{const bk=Math.max(0,recoil)*0.3*(1+i*0.35)+Math.sin(t*1.5+i*0.7)*0.03;const bb=seg.userData.baseBend;seg.rotation.z=(bb||0)-bk;seg.rotation.x=Math.cos(t*2+i)*0.04})}
- // Stinger
- if(u.stinger){u.stinger.material.emissiveIntensity=1.4+charge*4.0+flash*3.5;const sv=1+flash*0.4;u.stinger.scale.set(sv,sv,sv)}
- // Pincers
- if(u.pincers){u.pincers.forEach((p,i)=>{const op=charge*0.15+flash*0.25;p.pivot.rotation.z=p.side*(Math.sin(t*1.8+i*2.1)*0.08+op);p.jaw.rotation.x=0.35+op*0.3;p.arm.rotation.x=-0.35-op*0.15})}
- // Legs
- if(u.legs){u.legs.forEach(l=>{const st=Math.sin(t*10+l.phase);const lf=Math.max(0,st);l.segs[0].rotation.z=(l.segs[0].userData.baseBend||0.95)-lf*0.25;l.segs[0].rotation.x=Math.cos(t*10+l.phase)*0.22;l.segs[1].rotation.z=(l.segs[1].userData.baseBend||-1.40)+lf*0.35;l.segs[2].rotation.z=(l.segs[2].userData.baseBend||-0.30)+lf*0.15})}
- // Body
- if(u.body){u.body.rotation.z=Math.sin(t*5)*0.03+recoil*0.08;u.body.rotation.x=-recoil*0.04}
- s.rotation.z=Math.sin(t*1.1)*0.04
- s.position.y=Math.abs(Math.sin(t*10))*0.03
+// ---------- Constants ----------
+const LSEG = [{length:0.20,width:0.10,baseBend:0.85},{length:0.16,width:0.08,baseBend:-1.3},{length:0.10,width:0.05,baseBend:-0.2}];
+const LCFG = [{side:-1,z:0.34,phase:0},{side:-1,z:0.12,phase:3.14159},{side:-1,z:-0.08,phase:0},{side:-1,z:-0.26,phase:3.14159},{side:1,z:0.34,phase:0},{side:1,z:0.12,phase:3.14159},{side:1,z:-0.08,phase:0},{side:1,z:-0.26,phase:3.14159}];
+const TLSEG = [{len:0.26,w:0.22,bend:0.08},{len:0.22,w:0.18,bend:0.28},{len:0.18,w:0.14,bend:0.5},{len:0.15,w:0.10,bend:0.6},{len:0.12,w:0.07,bend:-0.15}];
+
+// ---------- Build Model ----------
+function mkScorpion() {
+  const o = new THREE.Group();
+
+  // Abdomen — expanded plates + lateral bulge
+  const abn = new THREE.Mesh(BVox([
+    // Layered plates with wider color ramp
+    {size:[0.90,0.13,1.00],pos:[0,-0.09,-0.14],color:0x3e2a10},
+    {size:[0.86,0.04,1.02],pos:[0,-0.02,-0.14],color:0x6e4a24},
+    {size:[0.82,0.10,0.88],pos:[0,-0.06,-0.10],color:0x634220},
+    {size:[0.76,0.08,0.76],pos:[0,-0.02,-0.06],color:0x7a5230},
+    {size:[0.71,0.03,0.78],pos:[0,0.02,-0.02],color:0x8e6a44},
+    {size:[0.66,0.06,0.60],pos:[0,0.03,0.00],color:0x8e6038},
+    {size:[0.56,0.05,0.46],pos:[0,0.02,0.06],color:0xa27040},
+    {size:[0.50,0.03,0.48],pos:[0,0.05,0.10],color:0xb8804a},
+    // Central spine ridges — 3D carapace cross-section
+    {size:[0.12,0.05,0.95],pos:[0,0.07,-0.10],color:0x7a5230},
+    {size:[0.46,0.08,0.80],pos:[0,0.06,-0.08],color:0x523818},
+    // Lateral bulge for volume
+    {size:[0.06,0.06,0.18],pos:[-0.47,-0.04,-0.10],color:0x6e4a24},
+    {size:[0.06,0.06,0.18],pos:[0.47,-0.04,-0.10],color:0x6e4a24},
+    {size:[0.05,0.05,0.16],pos:[-0.42,-0.02,-0.04],color:0x7a5230},
+    {size:[0.05,0.05,0.16],pos:[0.42,-0.02,-0.04],color:0x7a5230},
+    {size:[0.05,0.05,0.14],pos:[-0.40,0.01,0.02],color:0x8e6038},
+    {size:[0.05,0.05,0.14],pos:[0.40,0.01,0.02],color:0x8e6038},
+  ]), new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x3a2210,emissiveIntensity:0.3,shininess:20,flatShading:true}));
+  abn.position.z = -0.10;
+  o.add(abn);
+
+  // Cephalothorax — expanded shield with carina
+  const cep = new THREE.Mesh(BVox([
+    {size:[0.74,0.15,0.26],pos:[0,0.02,0.38],color:0x3e2a12},
+    {size:[0.60,0.05,0.16],pos:[0,0.07,0.36],color:0x523818},
+    {size:[0.36,0.08,0.14],pos:[0,-0.01,0.48],color:0x2a1c0c},
+    {size:[0.28,0.13,0.24],pos:[-0.50,0.05,0.24],color:0x523818},
+    {size:[0.28,0.13,0.24],pos:[0.50,0.05,0.24],color:0x523818},
+    {size:[0.20,0.09,0.18],pos:[-0.64,-0.02,0.30],color:0x634220},
+    {size:[0.20,0.09,0.18],pos:[0.64,-0.02,0.30],color:0x634220},
+    {size:[0.06,0.06,0.10],pos:[-0.40,0.05,0.40],color:0x7a5230},
+    {size:[0.06,0.06,0.10],pos:[0.40,0.05,0.40],color:0x7a5230},
+    {size:[0.22,0.06,0.08],pos:[0,0.04,0.46],color:0x6e4a24},
+    {size:[0.10,0.04,0.06],pos:[-0.54,0.03,0.42],color:0x6e4a24},
+    {size:[0.10,0.04,0.06],pos:[0.54,0.03,0.42],color:0x6e4a24},
+  ]), new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x2e1a0a,emissiveIntensity:0.2,shininess:30,flatShading:true}));
+  cep.position.z = 0.36;
+  o.add(cep);
+
+  // Eyes
+  o.add(new THREE.Mesh(BVox([
+    {size:[0.42,0.12,0.22],pos:[0,0.02,0.42],color:0x2e1e10},
+    {size:[0.36,0.06,0.14],pos:[0,0.06,0.40],color:0x3e2a18},
+    {size:[0.18,0.10,0.06],pos:[-0.18,0.06,0.50],color:0x0e0a06},
+    {size:[0.18,0.10,0.06],pos:[0.18,0.06,0.50],color:0x0e0a06},
+    {size:[0.06,0.05,0.06],pos:[-0.22,0.07,0.52],color:0x1a2a1a},
+    {size:[0.05,0.04,0.05],pos:[-0.16,0.08,0.54],color:0x1a2a1a},
+    {size:[0.06,0.05,0.06],pos:[0.22,0.07,0.52],color:0x1a2a1a},
+    {size:[0.05,0.04,0.05],pos:[0.16,0.08,0.54],color:0x1a2a1a},
+    {size:[0.03,0.02,0.03],pos:[-0.22,0.08,0.54],color:0xffdd66},
+    {size:[0.03,0.02,0.03],pos:[0.22,0.08,0.54],color:0xffdd66},
+    {size:[0.06,0.04,0.12],pos:[-0.08,0.05,0.48],color:0x3e2a18},
+    {size:[0.06,0.04,0.12],pos:[0.08,0.05,0.48],color:0x3e2a18},
+    {size:[0.14,0.06,0.10],pos:[0,0,0.54],color:0x1a0e06},
+    {size:[0.06,0.08,0.06],pos:[-0.06,-0.06,0.56],color:0x2a1c0c},
+    {size:[0.06,0.08,0.06],pos:[0.06,-0.06,0.56],color:0x2a1c0c},
+  ]), new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x000000,emissiveIntensity:0,flatShading:true})));
+
+
+  // Separate glow-only mesh for eye highlights
+  const eyeHL = new THREE.Mesh(BVox([
+    {size:[0.03,0.02,0.03],pos:[-0.22,0.08,0.54],color:0xffdd66},
+    {size:[0.03,0.02,0.03],pos:[0.22,0.08,0.54],color:0xffdd66},
+  ]), new THREE.MeshPhongMaterial({color:0xffdd66,emissive:0xffaa00,emissiveIntensity:0.6,flatShading:true}));
+  eyeHL.position.set(0,0.04,0.50);
+  o.add(eyeHL);
+  o.userData.eyeHL = eyeHL;
+
+  // Tail chain
+  // Tail chain — base mount at rear of abdomen, slightly elevated
+  const tMt = new THREE.Group(); tMt.position.set(0,0.07,-0.32); o.add(tMt);
+  const tg = TLSEG.map(s => tailGeo(s.w, s.len, 0x7a5230, 0x5a3c1a));
+  const tCh = bTCh(tMt, tg, TLSEG.map(s=>({...s,baseBend:s.bend})), new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x6e4a24,emissiveIntensity:0.3,flatShading:true}));
+
+  // Stinger — improved proportions
+  const stinger = new THREE.Mesh(BVox([
+    {size:[0.08,0.08,0.26],pos:[0,0,0],color:0x3a2210},
+    {size:[0.14,0.14,0.10],pos:[0,0.04,0.12],color:0xcc8800},
+    {size:[0.05,0.07,0.05],pos:[0,0.08,0.19],color:0xffc000},
+    {size:[0.03,0.05,0.05],pos:[0,0.12,0.23],color:0xffd844},
+  ]), new THREE.MeshPhongMaterial({vertexColors:true,emissive:0xffb800,emissiveIntensity:0.5,flatShading:true}));
+  stinger.position.z = TLSEG[4].len + 0.02;
+  tCh[4].add(stinger);
+
+  // Pincers
+  const pMat = new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x624218,emissiveIntensity:0.8,flatShading:true});
+  const armB = [{size:[0.18,0.08,0.26],pos:[0,0,0.06],color:0x5a3c1a},{size:[0.12,0.08,0.06],pos:[0,0,0.20],color:0x82582e},{size:[0.10,0.06,0.22],pos:[0,0.02,0.30],color:0x7a5230},{size:[0.08,0.05,0.16],pos:[0,0,0.50],color:0x6e4a24},{size:[0.06,0.04,0.12],pos:[0,0,0.62],color:0x8e6038},{size:[0.04,0.04,0.04],pos:[0,0.02,0.69],color:0xa27040}];
+  const legGeoArr = LSEG.map(s => limbGeo(s, 0x8a6030, 0x4a2e14));
+
+  o.userData.pincers = [-1, 1].map(side => {
+    const piv = new THREE.Group(); piv.position.set(side*0.46,0.04,0.22); piv.rotation.y = -side*0.3; o.add(piv);
+    const arm = piv.add(new THREE.Mesh(BVox(armB), pMat)); arm.position.z=0.10; arm.rotation.x=-0.35;
+    const jw = piv.add(new THREE.Mesh(BVox(mirB(armB)), pMat)); jw.position.z=0.52; jw.rotation.x=0.35;
+    const spur = piv.add(new THREE.Mesh(new THREE.BoxGeometry(0.04,0.04,0.14), new THREE.MeshPhongMaterial({color:0x5a3c1a,flatShading:true,emissive:0x3a2210,emissiveIntensity:0.5})));
+    spur.position.set(side*0.08, 0.02, 0.20);
+    return { pivot:piv, arm,jw, spur, side };
+  });
+
+  // Legs
+  o.userData.legs = LCFG.map(c => {
+    const lm = new THREE.Group(); lm.position.set(c.side*0.55,-0.10,c.z); lm.rotation.y=c.side>0?0:Math.PI; o.add(lm);
+    const segs = limbChain(lm, legGeoArr, LSEG.map(s=>({...s,baseBend:s.baseBend})), new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x3a2210,emissiveIntensity:0.5,flatShading:true}));
+    const spur = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.06), new THREE.MeshPhongMaterial({color:0x5a3c1a,flatShading:true}));
+    spur.position.y = -LSEG[0].length/2; lm.add(spur);
+    return { mount:lm, segs, spur, phase:c.phase, side:c.side };
+  });
+
+  o.userData.tPiv = tMt; o.userData.tCh = tCh; o.userData.stinger = stinger;
+  return o;
 }
 
-// Renderer setup
-const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true})
-renderer.setSize(window.innerWidth,window.innerHeight)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2))
-renderer.toneMapping=THREE.ACESFilmicToneMapping
-renderer.toneMappingExposure=1.0
-document.body.appendChild(renderer.domElement)
-const scene=new THREE.Scene()
-scene.background=new THREE.Color(0x1a1a2e)
-const camera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,0.1,100)
-camera.position.set(0,1.5,5)
-const controls=new OrbitControls(camera,renderer.domElement)
-controls.enableDamping=true
-controls.dampingFactor=0.08
-controls.target.set(0,0,0)
-const composer=new EffectComposer(renderer)
-composer.addPass(new RenderPass(scene,camera))
-composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth,window.innerHeight),1.2,0.4,0.85))
-scene.add(new THREE.AmbientLight(0x404060,0.6))
-const dl=new THREE.DirectionalLight(0xffffff,1.2)
-dl.position.set(3,5,4)
-scene.add(dl)
-const fl=new THREE.DirectionalLight(0x8888ff,0.3)
-fl.position.set(-3,2,-2)
-scene.add(fl)
-const rl=new THREE.DirectionalLight(0xffa040,0.2)
-rl.position.set(0,-2,-4)
-scene.add(rl)
-// Stars
-const sg=new THREE.BufferGeometry(),sv=[]
-for(let i=0;i<500;i++)sv.push((Math.random()-0.5)*60,(Math.random()-0.5)*30,-10-Math.random()*20)
-sg.setAttribute('position',new THREE.Float32BufferAttribute(sv,3))
-scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:0.08,transparent:true,opacity:0.6})))
-
-// State
-let alien=null
-
-function resetView(){
- if(alien){scene.remove(alien);alien=null}
- alien=makeScorpion()
- const b=new THREE.Box3().setFromObject(alien)
- const sz=b.getSize(new THREE.Vector3()),ct=b.getCenter(new THREE.Vector3())
- alien.position.sub(ct)
- const mx=Math.max(sz.x,sz.y,sz.z)
- alien.scale.setScalar(2.0/mx)
- scene.add(alien)
- camera.position.set(0,1.5,5)
- controls.target.set(0,0,0)
- controls.update()
- composer.render()
- document.getElementById('msg').textContent='Drag to orbit · Scroll to zoom · S = Screenshot'
-}
-function takeShot(){
- composer.render()
- const a=document.createElement('a')
- a.download='scorpion-preview.png'
- a.href=renderer.domElement.toDataURL('image/png')
- a.click()
- document.getElementById('msg').textContent='Screenshot saved!'
- setTimeout(()=>{document.getElementById('msg').textContent='Drag to orbit · Scroll to zoom · S = Screenshot'},2500)
+// The preview uses the production model so close-up inspection cannot drift
+// away from the version used in the formation and bestiary.
+function buildRosterScorpion() {
+  const o = createAlienPreview(7);
+  const d = o.userData;
+  o.tPiv = d.tailPivot;
+  o.tCh = d.tailChain;
+  o.stinger = d.stinger;
+  o.pincers = d.pincers.map(p => ({ ...p, arm: p.upperArm, jw: p.jaw }));
+  o.legs = d.legs.map(l => ({ ...l, segs: l.segments }));
+  o.abdomen = d.abdomen;
+  o.cephalo = d.cephalo;
+  o.eyeHL = d.eyeHighlights;
+  return o;
 }
 
-// Events
-document.querySelector('#ui button').addEventListener('click',()=>{if(alien)resetView();else resetView()})
-document.getElementById('shotBtn').addEventListener('click',takeShot)
-window.addEventListener('keydown',e=>{
- if(e.key==='r'||e.key==='R')resetView()
- if(e.key==='s'||e.key==='S')takeShot()
-})
-window.addEventListener('resize',()=>{
- camera.aspect=window.innerWidth/window.innerHeight
- camera.updateProjectionMatrix()
- renderer.setSize(window.innerWidth,window.innerHeight)
- composer.setSize(window.innerWidth,window.innerHeight)
-})
+// ---------- Animation ----------
+function animScorpion(o, state) {
+  if (!o._t0) o._t0 = Math.random()*100;
+  const t = o._t0 + Date.now()*0.001;
+  const b = Math.sin(t*2.5)*0.04;
 
-// Loop
-(function loop(){
- requestAnimationFrame(loop)
- if(alien)animScorpion(alien)
- controls.update()
- composer.render()
-})()
+  // Tail pivot
+  if (o.tPiv) {
+    let a = 0;
+    if (state==='stand') a = Math.sin(t*0.6)*0.03;
+    else if (state==='idle') a = Math.sin(t*0.7)*0.20;
+    else if (state==='walk') a = Math.sin(t*0.9)*0.12;
+    else if (state==='charge') a = 0.55+Math.sin(t*1.5)*0.04;
+    else if (state==='strike') {
+      if (!o._sp) { o._sp=true; o._sa=t+0.6; }
+      const st=Math.min(1,Math.max(0,(t-o._sa)*3)), sf=st<0.5?st*2:2-st*2;
+      a=0.7*sf-0.4*Math.max(0,st-0.5)*2;
+      if (st>=1) o._sp=false;
+    }
+    o.tPiv.rotation.z = a;
+  }
 
-resetView()
-</script></body></html>
+  // Tail segments
+  if (o.tCh) o.tCh.forEach((seg,i)=>{
+    const bb=seg.userData.baseBend||0, tp=o.tPiv?o.tPiv.rotation.z:0;
+    let f=0;
+    if (state==='stand') f=Math.sin(t*1.2+i*0.6)*0.015;
+    else if (state==='idle') f=Math.sin(t*0.7+i*0.5)*0.025;
+    else if (state==='walk') f=Math.sin(t*0.9+i*0.4)*0.02;
+    else if (state==='charge') f=i*0.06;
+    else if (state==='strike'&&o._sp&&o._sa) { const st=Math.min(1,Math.max(0,(t-o._sa)*3)),sf=st<0.5?st*2:2-st*2; f=sf*i*0.12; }
+    seg.rotation.z = bb - tp*(0.3+i*0.15) + f;
+    seg.rotation.x = Math.cos(t*1.5+i)*0.025;
+  });
+
+  // Stinger
+  if (o.stinger) {
+    let int=0.5, sc=1;
+    if (state==='charge'){int=1.0+Math.sin(t*4)*0.6;sc=1+Math.sin(t*3)*0.06;}
+    else if (state==='strike'&&o._sp&&o._sa){const st=Math.min(1,Math.max(0,(t-o._sa)*3)),sf=st<0.5?st*2:2-st*2;int=0.5+sf*3.5;sc=1+sf*0.25;}
+    else if (state==='stand') int=0.5+Math.sin(t*3)*0.15;
+    else if (state==='idle') int=0.6+Math.sin(t*2)*0.4;
+    else if (state==='walk') int=0.6+Math.sin(t*3)*0.3;
+    o.stinger.material.emissiveIntensity=int; o.stinger.scale.set(sc,sc,sc);
+  }
+
+  // Pincers
+  if (o.pincers) o.pincers.forEach(p=>{
+    let yw=0,jo=0,at=-0.35;
+    if (state==='stand') yw=Math.sin(t*1.5)*0.04;
+    else if (state==='idle') jo=Math.sin(t*2.5)*0.04;
+    else if (state==='walk') {yw=Math.sin(t*2)*0.08; jo=Math.sin(t*3)*0.05;}
+    else if (state==='charge') {yw=0.15;jo=0.12;at=-0.50;}
+    else if (state==='strike') jo=-0.05;
+    p.pivot.rotation.z=p.side*(Math.sin(t*1.8)*0.03+yw);
+    p.jw.rotation.x=0.35+jo; p.arm.rotation.x=at;
+  });
+
+  // Legs
+  if (o.legs) o.legs.forEach(leg=>{
+    if (state==='walk') {
+      const step=Math.sin(t*6+leg.phase),lift=Math.max(0,step);
+      leg.segs[0].rotation.z=(leg.segs[0].userData.baseBend||0.85)-lift*0.30;
+      leg.segs[0].rotation.x=Math.cos(t*6+leg.phase)*0.25;
+      leg.segs[1].rotation.z=(leg.segs[1].userData.baseBend||-1.30)+lift*0.40;
+      leg.segs[2].rotation.z=(leg.segs[2].userData.baseBend||-0.20)+lift*0.18;
+    } else {
+      const s=Math.sin(t*1.8+leg.phase)*0.02;
+      leg.segs[0].rotation.z=(leg.segs[0].userData.baseBend||0.85)+s;
+      leg.segs[0].rotation.x=Math.cos(t*2+leg.phase)*0.04;
+      leg.segs[1].rotation.z=leg.segs[1].userData.baseBend||-1.30;
+      leg.segs[2].rotation.z=leg.segs[2].userData.baseBend||-0.20;
+    }
+  });
+
+  // Eye highlights — glow independently of body
+  if (o.eyeHL) {
+    let h = 0.6;
+    if (state==='stand') h = 0.6 + Math.sin(t*1.5)*0.15;
+    else if (state==='idle') h = 0.7 + Math.sin(t*2)*0.2;
+    else if (state==='walk') h = 0.7 + Math.sin(t*2.5)*0.18;
+    else if (state==='charge') h = 1.2 + Math.sin(t*4)*0.5;
+    else if (state==='strike') h = 2.0;
+    o.eyeHL.material.emissiveIntensity = h;
+  }
+
+  // Overall
+  o.rotation.z = state==='walk'?Math.sin(t*8)*0.06:Math.sin(t*1.2)*0.05;
+  o.position.y = state==='walk'?Math.abs(Math.sin(t*8))*0.04:b*1.5;
+}
+
+// ---------- Renderer ----------
+const ren=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+ren.setSize(innerWidth,innerHeight); ren.setPixelRatio(Math.min(devicePixelRatio,2));
+ren.toneMapping=THREE.ACESFilmicToneMapping; ren.toneMappingExposure=1.0;
+document.body.appendChild(ren.domElement);
+
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0f0c08);
+const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,100); cam.position.set(3,2,5);
+const ctrl=new OrbitControls(cam,ren.domElement); ctrl.enableDamping=true; ctrl.dampingFactor=0.08;
+
+const comp=new EffectComposer(ren); comp.addPass(new RenderPass(scene,cam)); comp.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.0,0.4,0.85));
+
+scene.add(new THREE.AmbientLight(0x404030,0.5));
+const dl=new THREE.DirectionalLight(0xffeedd,1.3); dl.position.set(3,5,4); scene.add(dl);
+const fl=new THREE.DirectionalLight(0x6677aa,0.4); fl.position.set(-3,2,-2); scene.add(fl);
+const rl=new THREE.DirectionalLight(0xff9944,0.25); rl.position.set(-2,-1,-3); scene.add(rl);
+
+const grd=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.MeshPhongMaterial({color:0x1a1510,transparent:true,opacity:0.6}));
+grd.rotation.x=-Math.PI/2; grd.position.y=-0.6; scene.add(grd);
+
+// ---------- State ----------
+let alien=null, curState='idle';
+
+function resetView() {
+  if (alien) scene.remove(alien);
+  alien = buildRosterScorpion();
+  const b=new THREE.Box3().setFromObject(alien), sz=b.getSize(new THREE.Vector3()), ct=b.getCenter(new THREE.Vector3());
+  alien.position.sub(ct);
+  alien.scale.setScalar(2.0/Math.max(sz.x,sz.y,sz.z));
+  scene.add(alien); cam.position.set(3,2,5); ctrl.target.set(0,0,0); ctrl.update();
+}
+function takeShot() {
+  comp.render();
+  const a = document.createElement('a');
+  a.download = 'scorpion-'+curState+'.png';
+  a.href = ren.domElement.toDataURL('image/png');
+  a.click();
+  document.getElementById('msg').textContent='Screenshot saved: scorpion-'+curState+'.png';
+  setTimeout(()=>{document.getElementById('msg').textContent='Click animation · S = Screenshot · R = Reset'},3000);
+}
+
+/* ---------- Event wiring ---------- */
+['stand','idle','walk','charge','strike'].forEach(name=>{
+  document.getElementById(name).addEventListener('click',()=>{
+    curState=name;
+    document.querySelectorAll('#ui button').forEach(b=>b.classList.remove('on'));
+    document.getElementById(name).classList.add('on');
+    document.getElementById('bar').textContent='Scorpion — Row 7 — '+name.toUpperCase()+' mode — drag to rotate';
+  });
+});
+document.getElementById('reset').addEventListener('click',()=>{ resetView(); curState='idle'; document.querySelectorAll('#ui button').forEach(b=>b.classList.remove('on')); document.getElementById('idle').classList.add('on'); });
+document.getElementById('shotBtn').addEventListener('click',takeShot);
+window.addEventListener('keydown',e=>{if(e.key==='r')resetView();if(e.key==='s')takeShot()});
+window.addEventListener('resize',()=>{ cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); ren.setSize(innerWidth,innerHeight); comp.setSize(innerWidth,innerHeight) });
+
+/* ---------- Loop ---------- */
+(function loop(){ requestAnimationFrame(loop); if(alien) animScorpion(alien,curState); ctrl.update(); comp.render() })();
+
+resetView();
+document.getElementById('idle').dispatchEvent(new Event('click'));
+</script>
+</html>

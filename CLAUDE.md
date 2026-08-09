@@ -41,7 +41,7 @@ npm run package    # Build + bump version + create zip for distribution
 | Module | Purpose |
 |--------|---------|
 | `player.js` | Player spaceship creation and movement |
-| `aliens.js` | 7 alien types (Octopus, Crab, Squid, UFO, Tank, Beetle, Invader) with unique animations and Kamikaze Swoop behavior |
+| `aliens.js` | 8 alien types (Octopus, Crab, Squid, UFO, Tank, Beetle, Invader, Scorpion) with unique animations and Kamikaze Swoop behavior |
 | `missiles.js` | Player missiles, alien missiles (standard, homing, web bombs, blaster bolts), UFO missiles, collision detection, interception system |
 | `particles.js` | Explosion and trail particle systems |
 | `audio.js` | Procedural Web Audio API sound synthesis (explosions, firing, level complete, hyperspace, boss warnings) |
@@ -69,7 +69,7 @@ npm run package    # Build + bump version + create zip for distribution
 - Row 4: Tank (sloped armour, rolling tread belts, rotating turret, recoiling gun, fires homing missiles, 20 points)
 - Row 5: Beetle (splitting elytra, buzzing flight wings, creeping gait, glowing web-bomb sac, fires web bombs, 10 points)
 - Row 6: Invader (layered 1-bit plates, recessed optics, two-frame sprite march, recoiling blaster cannon, fires blaster bolts, 0 points)
-- Row 7: Scorpion (segmented arachnid carapace, S-curved tail with glowing stinger, pedipalp pincers, 8-legged tripod gait, fires mortar-arcing venom darts)
+- Row 7: Scorpion (compact burnt-orange carapace, raised five-segment tail with glowing stinger, chunky pedipalp pincers, 8-legged tripod gait, fires mortar-arcing venom darts)
 
 **Voxel Sculpt System**: The rebuilt alien models, plus the bonus UFO, share one construction approach — read this before adding or editing a model. The shared helpers below now live in `js/voxel.js`, not `aliens.js`, so both `aliens.js` and `bonus-ufo.js` import from there.
 - `buildVoxelGeometry(boxes)` merges a list of `{size, pos, rotX/rotY/rotZ, color}` boxes into a **single** geometry, baking each box's colour into vertex colours. Detail then costs vertices rather than draw calls, so an elaborate part stays one mesh. Materials rendering it must set `vertexColors: true`.
@@ -91,7 +91,7 @@ npm run package    # Build + bump version + create zip for distribution
 **Animation**: Time-based with per-entity `animationOffset` for variety. Aliens animate even after game over via `animateAlien()`.
 
 **Animation invariants** — each of these has already caused a silent failure in this codebase, so violating them produces no error, just missing motion:
-- **Merge, never replace, `userData`.** Model builders stash references to their moving parts there (`tentacles`, `cannon`, `legs`, `lights`...). `createAliens()` replacing the object once killed per-part animation for *all seven* alien types at once.
+- **Merge, never replace, `userData`.** Model builders stash references to their moving parts there (`tentacles`, `cannon`, `legs`, `lights`...). `createAliens()` replacing the object once killed per-part animation for all eight alien types at once.
 - **Clone any material you animate per-instance.** A material shared across meshes holds one value: the UFO's eight ring lights shared one material, so the chase effect wrote the same intensity eight times and never chased. The same applies between aliens — each instance needs its own material to pulse on its own `animationOffset`.
 - **The formation owns `position.x` / `position.z`.** Animation must never accumulate into them; a per-frame nudge walks the alien out of formation (the tank's recoil used to drift it backwards forever). Put the motion in rotation, or in a child mesh's local transform.
 - **Guard `position.y` while swooping.** `updateSwoop()` owns Y during a kamikaze dive, so hover/bob animation must check `!alien.userData.isSwooping`.
