@@ -15,7 +15,7 @@ A modern 3D recreation of the classic Space Invaders arcade game built with THRE
 - **Lives System**: Start with 3 lives - survive as long as you can!
 
 ### Aliens
-The game features 7 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
+The game features 8 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
 
 1. **Octopus Aliens** (Top Row - Purple)
    - **Sculpted voxel mantle**: tapering domed hood with a crest, brow ridge, cheek plates and side fins
@@ -76,17 +76,18 @@ The game features 7 rows of aliens, each with distinctive 3D designs and dramati
    - **Fires Web Bombs** - slow projectiles that create danger zones!
    - Worth 10 points
 
-7. **Invader Aliens** (Row 7 - White)
-   - **Classic retro 1-bit arcade style** with symmetrical silhouette
-   - **Two short antennae** that sway and bob
-   - **Center blaster cannon** with charging glow effect
-   - **Marching feet** with alternating step animation
-   - **Fires fast Blaster Bolts** - straight-shooting high-speed projectiles!
-   - Worth 0 points (bonus row)
+8. **Scorpion Aliens** (Row 7 - Dark Orange)
+    - **Segmented arachnid carapace** with a pronounced S-curve body and raised rear section
+    - **Jointed tail** with 4 segments that undulate in a wave
+    - **Glowing stinger** at the tail tip that pulses with venom
+    - **Pedipalp pincers** that snap at the front with jointed arms
+    - **Segment front legs** and **8 jointed walking legs** with tripod gait
+    - **Fires venom darts** - slow-arcing mortar projectiles that drop from above!
+    - Worth 5 points
 
 ### Bestiary Gallery
 A field guide reached from the **BESTIARY** option on the landing page (or the **B** key):
-- Browse all 7 alien types one at a time, rendered large and centred on a slowly turning display
+- Browse all 8 alien types one at a time, rendered large and centred on a slowly turning display
 - Each model runs its full in-game animation - tentacle curls, snapping claws, chase lights, rolling treads and all
 - Shows the alien's name, row colour, point value, behaviour summary and armament
 - **← / →** (or the on-screen arrows) page between types and wrap around at both ends

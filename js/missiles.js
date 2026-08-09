@@ -16,6 +16,7 @@ let ufoMissiles = [];
 let webBombs = [];
 let webZones = [];
 let blasterBolts = [];
+let venomDarts = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -270,8 +271,8 @@ function checkMissileCollision(missile, missileIndex, scene, scoreCallback, game
             createExplosion(alien.position, scene);
             playExplosion(1.0);
 
-            // Update score (6 rows: row 0 = 60pts down to row 5 = 10pts)
-            const points = (6 - alien.userData.row) * 10;
+            // Update score (8 rows: row 0 = 60pts down to row 7 = 0pts)
+            const points = Math.max(0, (6 - alien.userData.row) * 10);
             scoreCallback(points);
 
             // Remove alien
@@ -544,6 +545,52 @@ function createBlasterBolt(position) {
     return group;
 }
 
+// ---------------------------------------------------------------------------
+// Scorpion venom dart — mortar arc: launches upward, then dives toward player
+// ---------------------------------------------------------------------------
+
+function createVenomDart(position) {
+    const group = new THREE.Group();
+
+    // Glowing amber warhead — larger and brighter than a standard missile
+    const warheadGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+    const warheadMaterial = new THREE.MeshPhongMaterial({
+        color: 0xcc8800,
+        emissive: 0xffaa00,
+        emissiveIntensity: 5.0,
+        flatShading: true
+    });
+    const warhead = new THREE.Mesh(warheadGeometry, warheadMaterial);
+    group.add(warhead);
+
+    // Inner core
+    const coreGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const coreMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffcc44,
+        emissive: 0xffdd44,
+        emissiveIntensity: 8.0
+    });
+    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+    core.position.z = 0.12;
+    group.add(core);
+
+    group.position.copy(position);
+    group.position.y = -0.1;
+
+    // Velocity — shoots upward initially, then arcs down toward player.
+    // Horizontal homing computed here with a slight random spread.
+    const spread = (Math.random() - 0.5) * 0.3;
+
+    group.userData.isVenomDart = true;
+    group.userData.speed = 0.28;
+    group.userData.upwardSpeed = 0.05 + Math.random() * 0.03; // upward component
+    group.userData.homingX = spread;
+    group.userData.maxHeight = 3 + Math.random() * 2.5; // peak altitude
+    group.userData.hasPeaked = false;
+
+    return group;
+}
+
 // Aliens fire missiles
 export function alienFire(scene) {
     const aliens = getAliens();
@@ -570,6 +617,12 @@ export function alienFire(scene) {
                 // Invader aliens fire fast blaster bolts
                 missile = createBlasterBolt(randomAlien.position);
                 blasterBolts.push(missile);
+                scene.add(missile);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 7) {
+                // Scorpion aliens fire venom darts — mortar arc toward player
+                missile = createVenomDart(randomAlien.position);
+                venomDarts.push(missile);
                 scene.add(missile);
                 continue; // Skip adding to alienMissiles
             } else {
@@ -1025,6 +1078,75 @@ export function updateBlasterBolts(player, scene, gameActive, livesCallback, gam
     }
 }
 
+// ---------------------------------------------------------------------------
+// Scorpion venom darts — mortar arc: launches upward, then dives toward player
+// ---------------------------------------------------------------------------
+
+export function updateVenomDarts(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = venomDarts.length - 1; i >= 0; i--) {
+        const dart = venomDarts[i];
+
+        // Phase 1 — upward acceleration; Phase 2 — gravity + homing X toward player
+        if (!dart.userData.hasPeaked) {
+            dart.position.z += dart.userData.speed;
+            dart.position.y += dart.userData.upwardSpeed;
+            dart.position.x += dart.userData.homingX * 0.02;
+        } else {
+            // Gravity curves the descent
+            dart.position.z += dart.userData.speed * 1.1;
+            dart.position.y -= (dart.userData.upwardSpeed * 1.8);
+            dart.position.x += dart.userData.homingX * 0.03;
+        }
+
+        // Rotate to match flight direction (tells player it's coming from above)
+        dart.rotation.x = time * 12;
+        dart.rotation.z = time * 9;
+
+        // Pulsing amber glow
+        const pulse = 1 + Math.sin(time * 8) * 0.12;
+        dart.scale.set(pulse, pulse, pulse);
+
+        // Check if peak reached (start coming down)
+        if (dart.position.y >= dart.userData.maxHeight) {
+            dart.userData.hasPeaked = true;
+        }
+
+        // Barriers
+        if (checkBarrierCollision(dart.position, 0.2, scene)) {
+            createExplosion(dart.position, scene);
+            scene.remove(dart);
+            venomDarts.splice(i, 1);
+            continue;
+        }
+
+        // Off screen — removed after reaching player area
+        if (dart.position.z > 20 || dart.position.y < -5) {
+            scene.remove(dart);
+            venomDarts.splice(i, 1);
+            continue;
+        }
+
+        // Player collision
+        if (gameActive) {
+            const distance = dart.position.distanceTo(player.position);
+            if (distance < 1.3) {
+                scene.remove(dart);
+                venomDarts.splice(i, 1);
+
+                createExplosion(dart.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 // Check if aliens should fire
 export function checkAlienFire(scene) {
     const currentTime = Date.now();
@@ -1042,12 +1164,14 @@ export function resetMissiles(scene) {
     webBombs.forEach(bomb => scene.remove(bomb));
     webZones.forEach(zone => scene.remove(zone));
     blasterBolts.forEach(bolt => scene.remove(bolt));
+    venomDarts.forEach(dart => scene.remove(dart));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
     webBombs = [];
     webZones = [];
     blasterBolts = [];
+    venomDarts = [];
     lastAlienFireTime = 0;
 }
 

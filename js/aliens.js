@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { playSwoopWarning } from './audio.js';
 import { ALIEN_ROWS, ALIEN_COLS, ALIEN_SPACING } from './constants.js';
-import { buildVoxelGeometry, mirrorBoxes, saucerTier, buildLimbSegmentGeometry, buildLimbChain } from './voxel.js';
+import { buildVoxelGeometry, mirrorBoxes, saucerTier, buildLimbSegmentGeometry, buildLimbChain, buildTailChain, buildTailSegmentGeometry } from './voxel.js';
 
 let aliens = [];
 let alienDirection = 1;
@@ -49,8 +49,8 @@ export function createAliens(scene, customRows = null, customCols = null) {
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            // Cycle through 7 alien types based on row
-            const alienType = row % 7;
+            // Cycle through 8 alien types based on row
+            const alienType = row % 8;
             const alien = createAlien(alienType);
             alien.position.x = startX + col * ALIEN_SPACING;
             alien.position.z = startZ - row * ALIEN_SPACING;
@@ -122,6 +122,9 @@ function createAlien(row) {
             break;
         case 6: // Invader style - classic retro arcade invader
             createInvaderAlien(group);
+            break;
+        case 7: // Scorpion style - arachnid with segmented tail and venom darts
+            createScorpionAlien(group);
             break;
     }
 
@@ -1708,6 +1711,224 @@ function createInvaderAlien(group) {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Scorpion (row 7) - segmented arachnid with venom arc
+// ---------------------------------------------------------------------------
+
+// Body — flat carapace with a pronounced cephalic shield and a segmented
+// abdomen that tapers toward the tail join.
+const SCORPION_BODY = [
+    { size: [0.86, 0.10, 0.94], pos: [0, -0.11, -0.08], color: 0x5a3c1a },   // abdomen base
+    { size: [0.82, 0.08, 0.82], pos: [0, -0.06, -0.06], color: 0x6e4a24 },   // abdomen mid
+    { size: [0.78, 0.06, 0.70], pos: [0, -0.03, -0.04], color: 0x82582e },   // abdomen front
+    // Shoulder humps — the pedipalp pivot sits between them
+    { size: [0.22, 0.10, 0.20], pos: [-0.44, -0.06, 0.18], color: 0x5a3c1a },
+    { size: [0.22, 0.10, 0.20], pos: [0.44, -0.06, 0.18], color: 0x5a3c1a },
+    // Pronotum (head shield)
+    { size: [0.68, 0.14, 0.24], pos: [0, 0.02, 0.36], color: 0x3e2a12 },
+    { size: [0.56, 0.05, 0.14], pos: [0, 0.06, 0.34], color: 0x523818 },     // shield bevel
+    // Front mandible ridge
+    { size: [0.34, 0.08, 0.12], pos: [0, -0.02, 0.46], color: 0x2a1c0c },
+    // Small lateral spines along the abdomen
+    { size: [0.08, 0.06, 0.08], pos: [-0.48, -0.04, -0.20], color: 0x6e4a24 },
+    { size: [0.08, 0.06, 0.08], pos: [0.48, -0.04, -0.20], color: 0x6e4a24 },
+    { size: [0.08, 0.06, 0.08], pos: [-0.48, -0.02, -0.26], color: 0x523818 },
+    { size: [0.08, 0.06, 0.08], pos: [0.48, -0.02, -0.26], color: 0x523818 },
+    { size: [0.08, 0.06, 0.08], pos: [-0.44, 0.00, -0.32], color: 0x3e2a12 },
+    { size: [0.08, 0.06, 0.08], pos: [0.44, 0.00, -0.32], color: 0x3e2a12 }
+];
+
+// Compound eyes — two dark sockets with a pale reflective slit
+const SCORPION_HEAD = [
+    { size: [0.30, 0.08, 0.18], pos: [0, 0.04, 0.38], color: 0x1a120c },      // eye socket
+    { size: [0.12, 0.06, 0.06], pos: [-0.12, 0.05, 0.44], color: 0x2a2012 }, // left eye
+    { size: [0.12, 0.06, 0.06], pos: [0.12, 0.05, 0.44], color: 0x2a2012 },  // right eye
+    { size: [0.09, 0.04, 0.04], pos: [-0.12, 0.05, 0.455], color: 0x4a3c24 }, // left slit
+    { size: [0.09, 0.04, 0.04], pos: [0.12, 0.05, 0.455], color: 0x4a3c24 }  // right slit
+];
+
+// Tail segments — the signature S-curve, built as a chain of 4 tapered segments
+// that extend upward from their joint, each one bending slightly to form the
+// arc. Origin of each segment sits at its lower joint.
+const SCORPION_TAIL_SEGMENTS = [
+    { length: 0.30, width: 0.16, bend: 0.0 },    // base segment — nearly vertical
+    { length: 0.26, width: 0.13, bend: 0.22 },   // curves back (negative direction)
+    { length: 0.22, width: 0.11, bend: 0.30 },   // more curve
+    { length: 0.18, width: 0.09, bend: -0.05 }   // near-tip — straightens slightly
+];
+
+// Stinger (aculeus) — a tapered poison spike, the very tip of the tail
+const SCORPION_STINGER = [
+    { size: [0.08, 0.14, 0.08], pos: [0, 0.05, 0], color: 0x2a1c0c },        // shaft
+    { size: [0.05, 0.06, 0.05], pos: [0, 0.14, 0], color: 0xffd000 },        // bulb
+    { size: [0.03, 0.04, 0.03], pos: [0, 0.17, 0], color: 0xffd800 }         // tip
+];
+
+// Pedipalp (pincer) — a jointed grasping limb at the front
+// One side only; the other is mirrored via mirrorBoxes()
+const SCORPION_PINCER = [
+    { size: [0.20, 0.10, 0.28], pos: [0, 0, 0.10], color: 0x5a3c1a },        // upper arm
+    { size: [0.14, 0.08, 0.26], pos: [0, 0.02, 0.26], color: 0x6e4a24 },     // forearm
+    { size: [0.12, 0.06, 0.22], pos: [0, 0.00, 0.40], color: 0x82582e },     // claw base
+    { size: [0.10, 0.05, 0.18], pos: [0, 0.00, 0.52], color: 0x6e4a24 },     // lower pincer
+    { size: [0.08, 0.04, 0.16], pos: [0, 0.00, 0.64], color: 0x82582e }      // upper pincer
+];
+
+// Legs — four per side, each a three-segment chain
+const SCORPION_LEG_SEGMENTS = [
+    { length: 0.22, width: 0.10, baseBend: 0.95 },  // femur — splayed wide
+    { length: 0.18, width: 0.08, baseBend: -1.40 },  // tibia — down
+    { length: 0.12, width: 0.06, baseBend: -0.30 }   // tarsus — slight forward slope
+];
+
+const SCORPION_LEG_MOUNTS = [
+    { side: -1, z: 0.34, phase: 0 },
+    { side: -1, z: 0.12, phase: Math.PI },
+    { side: -1, z: -0.08, phase: 0 },
+    { side: -1, z: -0.26, phase: Math.PI },
+    { side: 1, z: 0.34, phase: 0 },
+    { side: 1, z: 0.12, phase: Math.PI },
+    { side: 1, z: -0.08, phase: 0 },
+    { side: 1, z: -0.26, phase: Math.PI }
+];
+
+// Geometries and materials are built once and cached — the scorpion follows
+// the same lazy registry pattern as all other alien types.
+
+let scorpionParts = null;
+
+function getScorpionParts() {
+    if (scorpionParts) return scorpionParts;
+
+    scorpionParts = {
+        bodyGeometry: buildVoxelGeometry(SCORPION_BODY),
+        headGeometry: buildVoxelGeometry(SCORPION_HEAD),
+tailGeometries: SCORPION_TAIL_SEGMENTS.map(s =>
+            buildTailSegmentGeometry(s, 0x9e6a28, 0x5a3c1a)
+        ),
+        stingerGeometry: buildVoxelGeometry(SCORPION_STINGER),
+        pincerGeometries: {
+            '-1': buildVoxelGeometry(SCORPION_PINCER),
+            '1': buildVoxelGeometry(mirrorBoxes(SCORPION_PINCER))
+        },
+        legGeometries: SCORPION_LEG_SEGMENTS.map(s =>
+            buildLimbSegmentGeometry(s, 0x8a6030, 0x4a2e14)
+        ),
+        bodyMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x3a2210,
+            emissiveIntensity: 0.85,
+            shininess: 25,
+            flatShading: true
+        }),
+        headMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x1a0e06,
+            emissiveIntensity: 0.6,
+            flatShading: true
+        }),
+        // Cloned per instance — these animate
+        stingerMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0xffd800,
+            emissiveIntensity: 1.5,
+            flatShading: true
+        }),
+        pincerMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x624218,
+            emissiveIntensity: 1.0,
+            flatShading: true
+        })
+    };
+
+    return scorpionParts;
+}
+
+function createScorpionAlien(group) {
+    const parts = getScorpionParts();
+
+    // Body
+    const body = new THREE.Mesh(parts.bodyGeometry, parts.bodyMaterial);
+    body.castShadow = true;
+    group.add(body);
+    group.userData.body = body;
+
+    // Head
+    group.add(new THREE.Mesh(parts.headGeometry, parts.headMaterial));
+
+    // Tail chain — segments extend backward from their join, bending to form the
+    // S-curve. Origin of the chain is at the tail base, mounted on the body.
+    const mount = new THREE.Group();
+    mount.position.set(0, 0.04, -0.36);
+    group.add(mount);
+
+    const tailChain = buildTailChain(
+        mount,
+        parts.tailGeometries,
+        SCORPION_TAIL_SEGMENTS,
+        parts.bodyMaterial
+    );
+
+    // Stinger on the tip of the final segment
+    const stingerMesh = new THREE.Mesh(parts.stingerGeometry, parts.stingerMaterial.clone());
+    stingerMesh.position.z = SCORPION_TAIL_SEGMENTS[3].length;
+    tailChain[3].add(stingerMesh);
+
+    // Pincers on jointed arms at the front of the body
+    group.userData.pincers = [-1, 1].map(side => {
+        const pivot = new THREE.Group();
+        pivot.position.set(side * 0.44, 0.04, 0.36);
+        // Local +X is outward on both sides, Z rotation points forward
+        pivot.rotation.y = -side * 0.3;
+        group.add(pivot);
+
+        // Pincer: upper arm and jaw segments, each a nested chain
+        const upperArm = new THREE.Mesh(
+            parts.pincerGeometries[side],
+            parts.pincerMaterial
+        );
+        upperArm.position.z = 0.10;
+        upperArm.rotation.x = -0.35;
+        pivot.add(upperArm);
+
+        // Jaw — the lower pincer opens independently
+        const jaw = new THREE.Mesh(
+            parts.pincerGeometries[side],
+            parts.pincerMaterial
+        );
+        jaw.position.z = 0.36;
+        jaw.rotation.x = 0.35;
+        pivot.add(jaw);
+
+        return { pivot, upperArm, jaw, side };
+    });
+
+    // Tail is stored for animation
+    group.userData.tailChain = tailChain;
+    group.userData.tailPivot = mount;
+    group.userData.stinger = stingerMesh;
+
+    // Eight legs — tripod gait: legs 0,2,3 lift together on each side
+    group.userData.legs = SCORPION_LEG_MOUNTS.map(config => {
+        const legMount = new THREE.Group();
+        legMount.position.set(config.side * 0.50, -0.08, config.z);
+        // Local +X points outward on both sides
+        legMount.rotation.y = config.side > 0 ? 0 : Math.PI;
+        group.add(legMount);
+
+        const segments = buildLimbChain(
+            legMount,
+            parts.legGeometries,
+            SCORPION_LEG_SEGMENTS,
+            parts.bodyMaterial,
+            -1
+        );
+
+        return { mount: legMount, segments, phase: config.phase, side: config.side };
+    });
+}
+
 // Animate a single alien
 export function animateAlien(alien) {
     const time = Date.now() * 0.001 + alien.userData.animationOffset;
@@ -2275,6 +2496,102 @@ export function animateAlien(alien) {
             // which owns Y.
             if (!alien.userData.isSwooping) {
                 alien.position.y = Math.abs(swing) * 0.05;
+            }
+            break;
+        }
+
+        case 7: { // Scorpion - stalking arachnid with venom dart arc
+            const scorpion = alien.userData;
+
+            // Fire cycle: stinger charges with a slow glow build, then the
+            // tail flicks up and down in a whip as the dart fires, then
+            // the tail settles back and the stinger cools.
+            const firePhase = (time % 2.8) / 2.8;
+            const flash = firePhase < 0.05
+                ? Math.sin((firePhase / 0.05) * Math.PI) : 0;
+            const recoil = firePhase < 0.015
+                ? firePhase / 0.015
+                : Math.max(0, 1 - (firePhase - 0.015) / 0.14);
+            const charge = Math.max(0, (firePhase - 0.08) / 0.92);
+
+            // Tail flick: the base of the tail chain lifts (extension) as
+            // the tip drives downward on the strike.  The tail pivot's Z
+            // rotation swings the whole chain upward; each segment follows
+            // by a damped bend that propagates to the stinger.
+            if (scorpion.tailPivot) {
+                const lift = Math.cos(time * 4) * 0.06;
+                const flick = Math.max(0, recoil) * 0.35;
+                scorpion.tailPivot.rotation.z = lift + flick;
+            }
+
+            // Each tail segment amplifies the flick as it approaches the tip
+            if (scorpion.tailChain) {
+                scorpion.tailChain.forEach((seg, i) => {
+                    const amplify = 1 + i * 0.35;
+                    const baseFlick = Math.max(0, recoil) * 0.3 * amplify;
+                    // Override base bend with the flick; keep ambient sway
+                    const ambient = Math.sin(time * 1.5 + i * 0.7) * 0.03;
+                    const bendTarget = seg.userData.baseBend - baseFlick + ambient;
+                    seg.rotation.z = bendTarget;
+                    seg.rotation.x = Math.cos(time * 2 + i) * 0.04;
+                });
+            }
+
+            // Stinger glows hotter as it charges, blinding flash on strike
+            if (scorpion.stinger) {
+                scorpion.stinger.material.emissiveIntensity = 1.4
+                    + charge * 4.0
+                    + flash * 3.5;
+                // Bulb swells on the strike
+                const swell = 1 + flash * 0.4;
+                scorpion.stinger.scale.set(swell, swell, swell);
+            }
+
+            // Pincers — ambient open/close, then snap wide on the charge
+            if (scorpion.pincers) {
+                scorpion.pincers.forEach((pincer, i) => {
+                    const ambient = Math.sin(time * 1.8 + i * 2.1) * 0.08;
+                    const open = charge * 0.15 + flash * 0.25;
+                    // Yaw swings the pincer arm outward
+                    pincer.pivot.rotation.z = pincer.side * (ambient + open);
+                    // Jaw opens
+                    pincer.jaw.rotation.x = 0.35 + open * 0.3;
+                    pincer.upperArm.rotation.x = -0.35 - open * 0.15;
+                });
+            }
+
+            // Eight legs in a tripod gait — legs 1 and 3 on each side are
+            // the driving pair of the tripod (they lift while the other
+            // three are planted).
+            if (scorpion.legs) {
+                scorpion.legs.forEach(leg => {
+                    const step = Math.sin(time * 10 + leg.phase);
+                    const lift = Math.max(0, step);
+                    // Hip swing
+                    leg.segments[0].rotation.z = leg.segments[0].userData.baseBend
+                        - lift * 0.25;
+                    leg.segments[0].rotation.x = Math.cos(time * 10 + leg.phase) * 0.22;
+                    // Knee bend
+                    leg.segments[1].rotation.z = leg.segments[1].userData.baseBend
+                        + lift * 0.35;
+                    // Tarsus — lifts slightly on stride
+                    leg.segments[2].rotation.z = leg.segments[2].userData.baseBend
+                        + lift * 0.15;
+                });
+            }
+
+            // Body bobs and subtly arcs toward the direction of the strike
+            if (scorpion.body) {
+                scorpion.body.rotation.z = Math.sin(time * 5) * 0.03
+                    + recoil * 0.08;
+                scorpion.body.rotation.x = -recoil * 0.04;
+            }
+
+            alien.rotation.z = Math.sin(time * 1.1) * 0.04;
+
+            // Gentle stomp — body dips as a rear leg plants.  Skipped mid-swoop.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = Math.abs(Math.sin(time * 10)) * 0.03;
             }
             break;
         }

@@ -61,30 +61,32 @@ npm run package    # Build + bump version + create zip for distribution
 
 ### Key Patterns
 
-**Alien Types by Row**: Each row (0-6) has distinct geometry, animation, and behavior:
+**Alien Types by Row**: Each row (0-7) has distinct geometry, animation, and behavior:
 - Row 0: Octopus (sculpted voxel mantle, 6 jointed tentacles that curl, blinking eyes, pulsing vents, 60 points)
 - Row 1: Crab (tiered carapace, jointed pincers, tripod walking gait, swivelling eye stalks, 50 points)
 - Row 2: Squid (tapered mantle, undulating fins, six-arm crown wave, lashing feeding tentacles, jet siphon flash, 40 points)
 - Row 3: UFO (layered saucer hull, counter-rotating light collar, canopy pilot, scan beam, 30 points)
 - Row 4: Tank (sloped armour, rolling tread belts, rotating turret, recoiling gun, fires homing missiles, 20 points)
 - Row 5: Beetle (splitting elytra, buzzing flight wings, creeping gait, glowing web-bomb sac, fires web bombs, 10 points)
-- Row 6: Invader (layered 1-bit plates, recessed optics, two-frame sprite march, recoiling blaster cannon, fires blaster bolts, 0 points bonus row)
+- Row 6: Invader (layered 1-bit plates, recessed optics, two-frame sprite march, recoiling blaster cannon, fires blaster bolts, 0 points)
+- Row 7: Scorpion (segmented arachnid carapace, S-curved tail with glowing stinger, pedipalp pincers, 8-legged tripod gait, fires mortar-arcing venom darts)
 
 **Voxel Sculpt System**: The rebuilt alien models, plus the bonus UFO, share one construction approach — read this before adding or editing a model. The shared helpers below now live in `js/voxel.js`, not `aliens.js`, so both `aliens.js` and `bonus-ufo.js` import from there.
 - `buildVoxelGeometry(boxes)` merges a list of `{size, pos, rotX/rotY/rotZ, color}` boxes into a **single** geometry, baking each box's colour into vertex colours. Detail then costs vertices rather than draw calls, so an elaborate part stays one mesh. Materials rendering it must set `vertexColors: true`.
 - `mirrorBoxes(boxes)` builds the opposite half of a symmetrical part. Use it instead of `scale.x = -1`, which inverts normals and breaks lighting on that half.
 - `saucerTier(width, depth, height, y, color)` unions three boxes into a disc with cut corners — reads far rounder than a box (UFO hull).
 - `buildLimbSegmentGeometry()` + `buildLimbChain()` build jointed limbs: each segment's origin sits at its joint and parents the next, so a bend propagates down the limb rather than swinging it rigidly. Used by crab arms/legs/eye stalks and beetle legs.
-- Each rebuilt type caches its geometries and static materials in a lazily-built module-level registry (`getOctopusParts()`, `getCrabParts()`, `getSquidParts()`, `getUfoParts()`, `getTankParts()`, `getBeetleParts()`, `getInvaderParts()`, `getBonusUfoParts()`), shared by every instance (or, for the bonus UFO, every spawn).
+- Each rebuilt type caches its geometries and static materials in a lazily-built module-level registry (`getOctopusParts()`, `getCrabParts()`, `getSquidParts()`, `getUfoParts()`, `getTankParts()`, `getBeetleParts()`, `getInvaderParts()`, `getScorpionParts()`, `getBonusUfoParts()`), shared by every instance (or, for the bonus UFO, every spawn).
 - The bonus UFO is **not** in the Bestiary gallery, so unlike the alien models it can only be verified in gameplay — allow up to ~20s per spawn.
-- **All seven rows are now rebuilt.** Row 6 (Invader) is the deliberate exception to "more detail is better": it is the 1-bit homage row, so it gains depth through layered plates and bevels while keeping a crisp, symmetrical, hard-edged silhouette. Do not organicise it.
+- **All eight rows are now rebuilt.** Row 6 (Invader) is the deliberate exception to "more detail is better": it is the 1-bit homage row, so it gains depth through layered plates and bevels while keeping a crisp, symmetrical, hard-edged silhouette. Do not organicise it.
 - **Give the colour ramp room, and keep emissive low enough that it doesn't erase it.** Emissive is added flat, on top of the vertex colours rather than through them, so a bright emissive floods every tier equally. The Invader originally ran a `0xffffff → 0xeaeaea → 0xcccccc` ramp (~8% of value) under a `0x9e9e9e` emissive at 1.15, and the whole sculpt flattened into one white mass under bloom — all the bevel detail was present and invisible. Spread the ramp wide, tint it, and let the plate colours carry the form.
-- Keep a model's half-width under ~0.95 — `ALIEN_SPACING` is 2, and the missile collision radius is 1.2 from the group origin. Measure the **animated peak**, not the rest pose: a limb at full extension is what actually overlaps the neighbouring column. Rows 0, 1, 3 and 5 currently exceed this at peak (up to 1.28 on the UFO) and are outstanding cleanup.
+- Keep a model's half-width under ~0.95 — `ALIEN_SPACING` is 2, and the missile collision radius is 1.2 from the group origin. Measure the **animated peak**, not the rest pose: a limb at full extension is what actually overlaps the neighbouring column. Row 3 (UFO) hull half-width is ~1.68 (saucerTier-based) which exceeds the collision radius — the UFO reads as a distinct saucer shape rather than an invader, but this is an outstanding cleanup item. Other rows (0, 1, 5) have peak animated limbs that may approach 0.95; keep an eye on them before adding new detail.
 
 **Missile System**: Three separate arrays managed in `missiles.js`:
 - `missiles` - Player projectiles (can intercept alien missiles)
 - `alienMissiles` - Standard red missiles, tank homing missiles, beetle web bombs, invader blaster bolts
 - `ufoMissiles` - Special bonus UFO missiles with shrapnel
+- `venomDarts` - Scorpion mortar-arcing venom darts with two-phase flight (upward launch then gravity-driven dive)
 
 **Animation**: Time-based with per-entity `animationOffset` for variety. Aliens animate even after game over via `animateAlien()`.
 

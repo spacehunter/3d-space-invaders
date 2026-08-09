@@ -67,9 +67,18 @@ const BESTIARY_ENTRIES = [
         row: 6,
         points: 0,
         color: '#ffffff',
-        tagline: 'ROW 7 - WHITE - BONUS ROW',
+        tagline: 'ROW 7 - WHITE',
         description: 'Classic 1-bit arcade silhouette rebuilt in layered pale steel plates with bevelled edges and cyan recessed optics. It marches in a hard two-frame sprite flip rather than a smooth walk, antennae sway above the crown, and the centre blaster cannon charges, flashes and recoils into its housing on each shot.',
         weapon: 'Blaster bolts - straight-shooting, high speed'
+    },
+    {
+        name: 'SCORPION',
+        row: 7,
+        points: 0,
+        color: '#cc8800',
+        tagline: 'ROW 8 - EARTHY BROWN',
+        description: 'Segmented arachnid carapace with a sweeping S-curved tail and a glowing stinger at the tip. Pedipalp pincers open and close, eight legs walk a tripod gait, the tail flicks up on charge and whips down on the strike, and amber venom darts arc upward in a mortar trajectory before diving for the player.',
+        weapon: 'Venom darts — mortar-arcing, launches upward then dives'
     }
 ];
 

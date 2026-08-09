@@ -45,6 +45,14 @@ export function buildLimbSegmentGeometry(segment, color, trimColor) {
     ]);
 }
 
+// Tail segment — extends backward along +Z from its origin (scorpion tail)
+export function buildTailSegmentGeometry(segment, color, trimColor) {
+    return buildVoxelGeometry([
+        { size: [segment.width, segment.width, segment.length], pos: [0, 0, -segment.length / 2], color },
+        { size: [segment.width + 0.04, segment.width + 0.04, 0.03], pos: [0, 0, -segment.length + 0.01], color: trimColor }
+    ]);
+}
+
 // Chain meshes so each segment is the next one's pivot
 export function buildLimbChain(mount, geometries, segments, material, offsetSign) {
     const chain = [];
@@ -52,9 +60,28 @@ export function buildLimbChain(mount, geometries, segments, material, offsetSign
     segments.forEach((segment, j) => {
         const mesh = new THREE.Mesh(geometries[j], material);
         mesh.position.y = j === 0 ? 0 : offsetSign * segments[j - 1].length;
-        const bend = segment.baseBend !== undefined ? segment.baseBend : segment.baseTilt;
-        mesh.rotation.z = bend;
+        const bend = segment.baseBend !== undefined ? segment.baseBend
+            : segment.baseTilt !== undefined ? segment.baseTilt : segment.bend;
         mesh.userData.baseBend = bend;
+        mesh.rotation.z = bend;
+        parent.add(mesh);
+        parent = mesh;
+        chain.push(mesh);
+    });
+    return chain;
+}
+
+// Same as buildLimbChain but segments run along +Z (for tails)
+export function buildTailChain(mount, geometries, segments, material) {
+    const chain = [];
+    let parent = mount;
+    segments.forEach((segment, j) => {
+        const mesh = new THREE.Mesh(geometries[j], material);
+        mesh.position.z = j === 0 ? 0 : segments[j - 1].length;
+        const bend = segment.baseBend !== undefined ? segment.baseBend
+            : segment.baseTilt !== undefined ? segment.baseTilt : segment.bend;
+        mesh.userData.baseBend = bend;
+        mesh.rotation.z = bend;
         parent.add(mesh);
         parent = mesh;
         chain.push(mesh);
