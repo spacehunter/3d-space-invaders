@@ -79,7 +79,7 @@ export function createAliens(scene, customRows = null, customCols = null) {
  * anything to a scene, so it can be called while a game is in progress without
  * corrupting the formation. The caller owns the returned Group.
  *
- * @param {number} type - alien type 0-6 (same numbering as the row types)
+ * @param {number} type - alien type 0-8 (same numbering as the row types)
  * @returns {THREE.Group} an alien ready to be passed to animateAlien()
  */
 export function createAlienPreview(type) {

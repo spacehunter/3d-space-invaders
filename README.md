@@ -472,7 +472,7 @@ Tested on:
   - **Beetle** - wing cases that split open into buzzing flight, creeping gait, glowing web-bomb sac
   - **Scorpion** - compact burnt-orange carapace, raised five-segment tail, amber stinger, snapping pincers and tripod gait
   - **Wasp** - charcoal thorax, amber warning stripes, smoky wings, wingstorm animation and fast needle volleys
-  - **Per-part animation restored across all eight types** - claws, legs, chase lights, cannons and marching feet had been silently inert
+  - **Per-part animation restored across all nine types** - claws, legs, chase lights, cannons, marching feet and Wasp wings are animated independently
 - ✅ **Bestiary Gallery** - Browse every alien model up close from the landing page
 - ✅ **Settings Panel** - Comprehensive game customization!
   - Audio controls (Master, SFX, Music volumes, Mute All)
