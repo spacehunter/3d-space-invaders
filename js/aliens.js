@@ -3161,6 +3161,96 @@ export function animateAlien(alien) {
             }
             break;
         }
+
+        case 8: { // Wasp - hover, wingstorm, sting lunge
+            const wasp = alien.userData;
+            const t = time;
+            const phase = (t % 8.4) / 8.4;
+            const windup = phase >= 0.24 && phase < 0.40
+                ? Math.sin(((phase - 0.24) / 0.16) * Math.PI / 2)
+                : phase >= 0.40 && phase < 0.54 ? 1 : 0;
+            const charge = phase >= 0.40 && phase < 0.62
+                ? Math.sin(Math.min(1, (phase - 0.40) / 0.22) * Math.PI / 2)
+                : phase >= 0.62 && phase < 0.72 ? 1 : 0;
+            const storm = phase >= 0.54 && phase < 0.78
+                ? Math.sin(Math.min(1, (phase - 0.54) / 0.24) * Math.PI)
+                : 0;
+            const lunge = phase >= 0.70 && phase < 0.84
+                ? Math.sin(Math.min(1, (phase - 0.70) / 0.14) * Math.PI)
+                : 0;
+            const recoil = phase >= 0.84 ? Math.max(0, 1 - (phase - 0.84) / 0.16) : 0;
+            const hover = Math.sin(t * 2.2) * 0.035;
+
+            // The body pivot carries the display motion; formation x/z remain
+            // untouched so the Wasp cannot drift away from its column.
+            if (wasp.bodyPivot) {
+                wasp.bodyPivot.rotation.x = -charge * 0.08 - lunge * 0.24 + recoil * 0.10;
+                wasp.bodyPivot.rotation.z = Math.sin(t * 1.4) * 0.035 + lunge * 0.04;
+                wasp.bodyPivot.position.y = hover + windup * 0.025 - lunge * 0.04;
+            }
+
+            // Paired wings fold, snap open, then beat out of phase. The edge
+            // accents carry the bright event while the transparent panels keep
+            // the voxel silhouette visible under bloom.
+            if (wasp.wings) {
+                wasp.wings.forEach(wing => {
+                    const fold = 1 - Math.min(1, windup + storm * 0.2 + lunge * 0.35);
+                    const beat = storm * Math.sin(t * (42 + wing.pair * 5) + wing.pair * 1.7);
+                    wing.hinge.rotation.z = wing.side * (
+                        0.16 + fold * 0.46 + beat * (0.045 + wing.pair * 0.012)
+                    );
+                    wing.hinge.rotation.x = Math.sin(t * 2 + wing.pair) * 0.03
+                        + storm * Math.sin(t * 28 + wing.pair) * 0.04;
+                    wing.edge.material.emissiveIntensity = 0.8 + storm * 2.8 + charge * 1.2;
+                    wing.wing.material.opacity = 0.24 + storm * 0.16;
+                });
+            }
+
+            if (wasp.abdomenPivot) {
+                wasp.abdomenPivot.rotation.x = -charge * 0.18 - lunge * 0.36 + recoil * 0.12;
+                wasp.abdomenPivot.rotation.z = Math.sin(t * 1.7) * 0.025;
+            }
+
+            if (wasp.stinger) {
+                const strike = Math.max(charge, lunge * 1.5);
+                wasp.stinger.material.emissiveIntensity = 0.75 + strike * 3.4 + storm * 1.2;
+                wasp.stinger.scale.set(
+                    1 + strike * 0.18,
+                    1 + strike * 0.18,
+                    1 + strike * 0.32
+                );
+            }
+
+            if (wasp.eyes) {
+                wasp.eyes.material.emissiveIntensity = 1.8 + windup * 1.5 + charge * 2.4 + lunge * 1.2;
+                wasp.eyes.scale.y = 1 + storm * 0.10;
+            }
+
+            if (wasp.mandibles) {
+                wasp.mandibles.forEach(mandible => {
+                    const jaw = 0.06 + charge * 0.24 + lunge * 0.12;
+                    mandible.mesh.rotation.x = mandible.side * jaw + Math.sin(t * 9 + mandible.side) * 0.035;
+                });
+            }
+
+            if (wasp.legs) {
+                wasp.legs.forEach(leg => {
+                    const step = Math.sin(t * 8 + leg.phase);
+                    const lift = Math.max(0, step) * (1 - storm * 0.75);
+                    leg.segments[0].rotation.z = leg.segments[0].userData.baseBend - lift * 0.30 - charge * 0.08;
+                    leg.segments[0].rotation.x = Math.cos(t * 8 + leg.phase) * 0.22 * (1 - charge * 0.7);
+                    leg.segments[1].rotation.z = leg.segments[1].userData.baseBend + lift * 0.38 + charge * 0.10;
+                    leg.segments[2].rotation.z = leg.segments[2].userData.baseBend + lift * 0.16;
+                });
+            }
+
+            // Y is formation-safe during a swoop; only the child body pivot
+            // receives hover motion while the swoop controller owns the group.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = Math.abs(hover) + windup * 0.03 - lunge * 0.02;
+            }
+            break;
+        }
     }
 }
 
