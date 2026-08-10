@@ -17,6 +17,7 @@ let webBombs = [];
 let webZones = [];
 let blasterBolts = [];
 let venomDarts = [];
+let waspNeedles = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -545,6 +546,54 @@ function createBlasterBolt(position) {
     return group;
 }
 
+// Create Wasp needle - compact amber projectile with a bright stinger core
+function createWaspNeedle(position) {
+    const group = new THREE.Group();
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.10, 0.10, 0.48),
+        new THREE.MeshPhongMaterial({
+            color: 0xff9d16,
+            emissive: 0xff7a00,
+            emissiveIntensity: 5.0,
+            flatShading: true
+        })
+    );
+    group.add(body);
+
+    const core = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.05, 0.34),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffc0,
+            emissive: 0xffe066,
+            emissiveIntensity: 8.0,
+            flatShading: true
+        })
+    );
+    group.add(core);
+
+    const tip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.07, 0.07, 0.12),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            emissive: 0xfff2a8,
+            emissiveIntensity: 9.0,
+            flatShading: true
+        })
+    );
+    tip.position.z = 0.28;
+    group.add(tip);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z += 0.78;
+    group.userData.isWaspNeedle = true;
+    group.userData.speed = 0.46;
+    group.userData.createdAt = Date.now();
+
+    return group;
+}
+
 // ---------------------------------------------------------------------------
 // Scorpion venom dart — mortar arc: launches upward, then dives toward player
 // ---------------------------------------------------------------------------
@@ -623,6 +672,12 @@ export function alienFire(scene) {
                 // Scorpion aliens fire venom darts — mortar arc toward player
                 missile = createVenomDart(randomAlien.position);
                 venomDarts.push(missile);
+                scene.add(missile);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 8) {
+                // Wasp aliens fire fast amber needles
+                missile = createWaspNeedle(randomAlien.position);
+                waspNeedles.push(missile);
                 scene.add(missile);
                 continue; // Skip adding to alienMissiles
             } else {
@@ -1147,6 +1202,51 @@ export function updateVenomDarts(player, scene, gameActive, livesCallback, gameO
     }
 }
 
+// Update Wasp needles (Wasp weapon)
+export function updateWaspNeedles(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = waspNeedles.length - 1; i >= 0; i--) {
+        const needle = waspNeedles[i];
+
+        needle.position.z += needle.userData.speed;
+        needle.rotation.x = time * 14;
+        needle.rotation.z = time * 10;
+
+        const pulse = 1 + Math.sin(time * 12) * 0.12;
+        needle.scale.set(pulse, pulse, 1 + (pulse - 1) * 0.4);
+
+        if (checkBarrierCollision(needle.position, 0.14, scene)) {
+            createExplosion(needle.position, scene);
+            scene.remove(needle);
+            waspNeedles.splice(i, 1);
+            continue;
+        }
+
+        if (needle.position.z > 20) {
+            scene.remove(needle);
+            waspNeedles.splice(i, 1);
+            continue;
+        }
+
+        if (gameActive) {
+            const distance = needle.position.distanceTo(player.position);
+            if (distance < 1.2) {
+                scene.remove(needle);
+                waspNeedles.splice(i, 1);
+
+                createExplosion(needle.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 // Check if aliens should fire
 export function checkAlienFire(scene) {
     const currentTime = Date.now();
@@ -1165,6 +1265,7 @@ export function resetMissiles(scene) {
     webZones.forEach(zone => scene.remove(zone));
     blasterBolts.forEach(bolt => scene.remove(bolt));
     venomDarts.forEach(dart => scene.remove(dart));
+    waspNeedles.forEach(needle => scene.remove(needle));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
@@ -1172,10 +1273,11 @@ export function resetMissiles(scene) {
     webZones = [];
     blasterBolts = [];
     venomDarts = [];
+    waspNeedles = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles };
 }
