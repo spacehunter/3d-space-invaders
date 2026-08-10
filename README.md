@@ -4,9 +4,9 @@ A modern 3D recreation of the classic Space Invaders arcade game built with THRE
 
 ## Current Project Status
 
-As of 2026-08-09, all 8 alien rows have distinct rebuilt voxel models and animations. The Row 7 Scorpion has completed a Beetle-inspired consistency pass: its compact burnt-orange carapace, raised segmented tail, chunky pincers, eight-legged tripod gait, and amber stinger now read clearly at formation distance. Venom-dart gameplay is unchanged.
+As of 2026-08-09, all 9 alien rows have distinct rebuilt voxel models and animations. The Row 8 Wasp adds a charcoal thorax, amber warning stripes, smoky voxel wings, a spectacular wingstorm cycle, and fast amber needle volleys while keeping the same formation-safe animation rules as the existing roster.
 
-Latest validation: `npm run build` passes. Run `npm run dev` and open `http://localhost:5173/` to test the game, or `/alien-preview.html` to inspect the Scorpion directly.
+Latest validation: `npm run build` passes. Run the dev server with the browser-safe host command below and open `http://127.0.0.1:5173/` to test the game, or `http://127.0.0.1:5173/alien-preview.html` to inspect the Scorpion directly.
 
 ## Features
 
@@ -21,7 +21,7 @@ Latest validation: `npm run build` passes. Run `npm run dev` and open `http://lo
 - **Lives System**: Start with 3 lives - survive as long as you can!
 
 ### Aliens
-The game features 8 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
+The game features 9 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
 
 1. **Octopus Aliens** (Top Row - Purple)
    - **Sculpted voxel mantle**: tapering domed hood with a crest, brow ridge, cheek plates and side fins
@@ -89,11 +89,19 @@ The game features 8 rows of aliens, each with distinctive 3D designs and dramati
     - **Chunky pedipalp pincers** that snap at the front
     - **8 jointed walking legs** with a clear alternating tripod gait
     - **Fires venom darts** - slow-arcing mortar projectiles that drop from above!
-    - Worth 5 points
+    - Worth 0 points
+
+9. **Wasp Aliens** (Row 8 - Amber)
+    - **Compact charcoal thorax** with amber-and-black warning stripes, angular face plates and a bright terminal stinger
+    - **Two pairs of smoky voxel wings** that fold, vibrate, snap open and beat through a spectacular wingstorm sequence
+    - **Six jointed legs** driven by alternating tripod shifts while the body hovers and leans into a sting lunge
+    - **Compound eyes and mandibles** that intensify and open during the charge
+    - **Fires amber needles** - fast, straight-flying stinger volleys
+    - Worth 0 points
 
 ### Bestiary Gallery
 A field guide reached from the **BESTIARY** option on the landing page (or the **B** key):
-- Browse all 8 alien types one at a time, rendered large and centred on a slowly turning display
+- Browse all 9 alien types one at a time, rendered large and centred on a slowly turning display
 - Each model runs its full in-game animation - tentacle curls, snapping claws, chase lights, rolling treads and all
 - Shows the alien's name, row colour, point value, behaviour summary and armament
 - **← / →** (or the on-screen arrows) page between types and wrap around at both ends
@@ -357,13 +365,32 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 ### Quick Start
 ```bash
 npm install        # Install dependencies
-npm run dev        # Start dev server with hot reload (http://localhost:5173)
+npm run dev -- --host 0.0.0.0 --strictPort  # Start dev server on port 5173
 ```
+
+### Local Server Access
+
+Use these exact HTTP addresses after starting Vite:
+
+- **This Mac:** `http://127.0.0.1:5173/` (also works as `http://localhost:5173/`)
+- **Another device on the same Wi-Fi:** `http://192.168.0.61:5173/` (use the Mac's current LAN address if it changes)
+- **Scorpion preview:** append `/alien-preview.html` to either address
+
+Do not use `172.23.7.133`; that is a tunnel/VPN interface address and is not the browser-facing LAN address. Do not use `https://`; Vite serves plain HTTP locally. If the terminal reports a different port, use that reported port rather than a stale `5173` URL.
+
+If a browser reports that the server is down, verify the server and port from the same Mac:
+
+```bash
+curl -I http://127.0.0.1:5173/
+lsof -nP -iTCP:5173 -sTCP:LISTEN
+```
+
+The first command should return `HTTP/1.1 200 OK`, and the second should show Vite listening on `*:5173`.
 
 ### Build Commands
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Development server with hot reload |
+| `npm run dev -- --host 0.0.0.0 --strictPort` | Development server with hot reload on port 5173 |
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Preview production build locally |
 | `npm run package` | Build + bump version + create `3d-space-invaders.zip` for distribution |
@@ -429,7 +456,7 @@ Tested on:
 
 ## Performance
 
-- Renders 88 aliens (8 rows × 11 columns) with individual animations
+- Renders 99 aliens (9 rows × 11 columns) with individual animations
 - Hundreds of particles for explosions and trails
 - Thousands of animated stars
 - Runs at 60 FPS on modern hardware
@@ -437,13 +464,14 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
-- ✅ **Alien Model Overhaul** - All eight alien types now use distinct voxel sculpts and animations!
+- ✅ **Alien Model Overhaul** - All nine alien types now use distinct voxel sculpts and animations!
   - **Octopus** - domed mantle, six jointed tentacles that curl a wave down their length, blinking hooded eyes, pulsing collar vents
   - **Crab** - tiered carapace, jointed pincers that thrust as the jaws snap, alternating tripod gait, swivelling eye stalks
   - **UFO** - layered saucer hull, counter-rotating light collar, pilot visible in the canopy, downward scan beam
   - **Tank** - sloped armour, tread belts that roll at the formation's actual speed, rotating turret, recoiling gun
   - **Beetle** - wing cases that split open into buzzing flight, creeping gait, glowing web-bomb sac
   - **Scorpion** - compact burnt-orange carapace, raised five-segment tail, amber stinger, snapping pincers and tripod gait
+  - **Wasp** - charcoal thorax, amber warning stripes, smoky wings, wingstorm animation and fast needle volleys
   - **Per-part animation restored across all eight types** - claws, legs, chase lights, cannons and marching feet had been silently inert
 - ✅ **Bestiary Gallery** - Browse every alien model up close from the landing page
 - ✅ **Settings Panel** - Comprehensive game customization!

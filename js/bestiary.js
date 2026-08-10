@@ -79,6 +79,15 @@ const BESTIARY_ENTRIES = [
         tagline: 'ROW 8 - EARTHY BROWN',
         description: 'Segmented arachnid carapace with a sweeping S-curved tail and a glowing stinger at the tip. Pedipalp pincers open and close, eight legs walk a tripod gait, the tail flicks up on charge and whips down on the strike, and amber venom darts arc upward in a mortar trajectory before diving for the player.',
         weapon: 'Venom darts — mortar-arcing, launches upward then dives'
+    },
+    {
+        name: 'WASP',
+        row: 8,
+        points: 0,
+        color: '#ffb52e',
+        tagline: 'ROW 9 - AMBER',
+        description: 'Compact voxel wasp with a charcoal thorax, amber warning stripes, compound eyes and a bright stinger. Six legs shift in alternating tripods while both pairs of smoky wings fold, vibrate, snap open and beat through a spectacular wingstorm before a sharp sting lunge.',
+        weapon: 'Amber needles — fast, straight-flying stinger volleys'
     }
 ];
 
