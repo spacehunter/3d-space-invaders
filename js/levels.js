@@ -27,7 +27,7 @@ const SCALING = {
 const CAPS = {
     maxAlienSpeed: 0.15,
     minFireInterval: 500,
-    maxRows: 7,
+    maxRows: 8,
     maxCols: 11,
     maxSwoopThreshold: 15,
     maxPowerUpDropRate: 0.25
