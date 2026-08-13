@@ -44,9 +44,6 @@ tick anything.
       any defining feature of: OCTOPUS, CRAB, SQUID, UFO, TANK, BEETLE, INVADER,
       SCORPION, WASP, SENTINEL, WARDEN, SPIRE. Run
       `node verify-invader.mjs 12 <NAME>` until it exits 0.
-|- [ ] **Fix Voidworm reachability.** Verify `node verify-invader.mjs 13 VOIDWORM` —
-      it first appears at LEVEL 10 which is reasonable. But check that the
-      bestiary entry and model are fully consistent (no silent failures).
 
 ## Phase 4 — improve the skill itself
 
