@@ -15,7 +15,7 @@ tick anything.
       top row from the highest type instead of the lowest. Do not raise
       `alienRows`. Done when the verifier's "reachable in normal play" check
       passes.
-- [ ] **The V-pattern is a lie.** `js/bestiary.js` promises "a spread of three
+|- [x] **The V-pattern is a lie.** `js/bestiary.js` promises "a spread of three
       projectiles in a wide V-pattern"; the firing branch (`row === 11` in
       `js/missiles.js`) creates ONE shard with random drift. Make it fire three
       on real diverging angles. Done when the verifier's "bestiary claim matches
