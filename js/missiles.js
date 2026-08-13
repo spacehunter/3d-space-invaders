@@ -28,6 +28,7 @@ let nexusSpirals = [];
 let eclipseLasers = [];
 let eclipseWormholes = [];
 let prismBeams = [];
+let basiliskBlades = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -974,6 +975,16 @@ export function alienFire(scene) {
                 const beam = createApexBeam(randomAlien.position, direction);
                 prismBeams.push(beam);
                 scene.add(beam);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 17) {
+                // Basilisk aliens fire twin fang blades — two projectiles that
+                // orbit a shared centre while closing on the player.
+                const blade0 = createBasiliskBlade(randomAlien.position, 0);
+                basiliskBlades.push(blade0);
+                scene.add(blade0);
+                const blade1 = createBasiliskBlade(randomAlien.position, 1);
+                basiliskBlades.push(blade1);
+                scene.add(blade1);
                 continue; // Skip adding to alienMissiles
             } else {
                 // Regular missiles for other aliens
@@ -2413,6 +2424,94 @@ function createApexBeam(position, direction) {
     return group;
 }
 
+// Create Basilisk fang blade — one of a twin pair that orbit a shared centre
+// while travelling toward the player. phaseIndex 0/1 picks opposite sides of
+// the orbit.
+function createBasiliskBlade(position, phaseIndex) {
+    const group = new THREE.Group();
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.10, 0.10, 0.44),
+        new THREE.MeshPhongMaterial({
+            color: 0x8fd84a, emissive: 0x6abf3a,
+            emissiveIntensity: 5.0, flatShading: true
+        })
+    );
+    group.add(body);
+
+    const tip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.06, 0.14),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff, emissive: 0xe8ff8a,
+            emissiveIntensity: 8.5, flatShading: true
+        })
+    );
+    tip.position.z = 0.28;      // offset on the mesh, not baked in the geometry
+    group.add(tip);
+
+    group.position.copy(position);
+    group.position.y = 0;       // required: play happens on the y=0 plane
+    group.position.z += 0.78;   // clear the firing alien's own hitbox
+    group.userData.isBasiliskBlade = true;
+    group.userData.speed = 0.40;
+    group.userData.baseX = position.x;       // orbit centre stays on the launch column
+    group.userData.centerZ = group.position.z;
+    group.userData.startZ = group.position.z;
+    group.userData.phaseOffset = phaseIndex * Math.PI;  // diametrically opposed
+    return group;
+}
+
+// Update Basilisk fang blades (twin orbiting projectile weapon)
+export function updateBasiliskBlades(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = basiliskBlades.length - 1; i >= 0; i--) {
+        const p = basiliskBlades[i];
+
+        // --- flight model: the shared centre advances +Z; each blade orbits it.
+        // The orbit radius tightens as the pair closes on the player, so the
+        // blades converge from a wide sweep into a near-single point.
+        const travel = p.userData.centerZ - p.userData.startZ;
+        p.userData.centerZ += p.userData.speed;
+        const radius = Math.max(0.10, 0.55 - travel * 0.028);
+        const angle = travel * 0.85 + p.userData.phaseOffset;
+        p.position.x = p.userData.baseX + Math.cos(angle) * radius;
+        p.position.z = p.userData.centerZ;
+        p.rotation.x = time * 12;   // tumble about the long axis
+
+        // --- barriers ---
+        if (checkBarrierCollision(p.position, 0.14, scene)) {
+            createExplosion(p.position, scene);
+            scene.remove(p);
+            basiliskBlades.splice(i, 1);
+            continue;
+        }
+
+        // --- off-screen cleanup (never let the array grow unbounded) ---
+        if (p.userData.centerZ > 20) {
+            scene.remove(p);
+            basiliskBlades.splice(i, 1);
+            continue;
+        }
+
+        // --- player ---
+        if (gameActive) {
+            if (p.position.distanceTo(player.position) < 1.2) {
+                scene.remove(p);
+                basiliskBlades.splice(i, 1);
+
+                createExplosion(p.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 // Check if aliens should fire
 export function checkAlienFire(scene) {
     const currentTime = Date.now();
@@ -2491,6 +2590,7 @@ export function resetMissiles(scene) {
     eclipseLasers.forEach(laser => scene.remove(laser));
     eclipseWormholes.forEach(wh => scene.remove(wh));
     prismBeams.forEach(beam => scene.remove(beam));
+    basiliskBlades.forEach(blade => scene.remove(blade));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
@@ -2507,10 +2607,11 @@ export function resetMissiles(scene) {
     ravenNeedles = [];
     nexusSpirals = [];
     prismBeams = [];
+    basiliskBlades = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores, ravenNeedles, nexusSpirals, prismBeams };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores, ravenNeedles, nexusSpirals, prismBeams, basiliskBlades };
 }
