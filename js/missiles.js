@@ -711,26 +711,87 @@ function createHaloWave(position) {
 function createSpireShard(position) {
     const group = new THREE.Group();
 
-    // Diamond body — elongated octahedron made from a box with scale trickery
-    const body = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 0.12, 0.36),
-        new THREE.MeshPhongMaterial({
-            color: 0xffd700, emissive: 0xff9900,
-            emissiveIntensity: 5.0, flatShading: true
-        })
-    );
+    // --- faceted crystal body ---
+    // Build an elongated diamond (octahedron with stretched z) from 8 triangular faces.
+    // Each pair of opposite faces gets a different vertex colour to give a crystal
+    // colour ramp — deep amethyst → gold → amber → white core.
+    const h = 0.18; // half-length along z
+    const r = 0.14; // half-width along x/y in the middle
+    const rEnd = 0.04; // half-width at the pointed ends
+
+    const pos = [
+        // front+back tips
+        [ 0,  0, -h], [ 0,  0,  h],
+        // middle ring — 4 vertices
+        [ r,  0,  0], [ 0,  r,  0], [-r,  0,  0], [ 0, -r,  0]
+    ];
+    // 8 faces: 4 pointing toward -z, 4 toward +z
+    const faces = [
+        [0,4,5], [0,5,6], [0,6,7], [0,7,4],   // -z half
+        [1,5,4], [1,6,5], [1,7,6], [1,4,7]    // +z half
+    ];
+    const colRamp = [0x8B3FC9, 0xA855F7, 0xDAA520, 0xFFD700, 0xFFF2CC];
+
+    const vertPositions = [];
+    const vertColors    = [];
+    const vertNormals   = [];
+
+    for (const f of faces) {
+        const v0 = pos[f[0]], v1 = pos[f[1]], v2 = pos[f[2]];
+        // face normal (cross product)
+        const ex = v1[0]-v0[0], ey = v1[1]-v0[1], ez = v1[2]-v0[2];
+        const fx = v2[0]-v0[0], fy = v2[1]-v0[1], fz = v2[2]-v0[2];
+        let nx = ey*fz - ez*fy, ny = ez*fx - ex*fz, nz = ex*fy - ey*fx;
+        const len = Math.sqrt(nx*nx + ny*ny + nz*nz) || 1;
+        nx /= len; ny /= len; nz /= len;
+
+        // pick colour from ramp based on face index in array (0-7)
+        const ci = Math.min(Math.floor(f[0] / 2), colRamp.length - 1);
+        const c   = new THREE.Color(colRamp[ci]);
+        for (const v of [v0, v1, v2]) {
+            vertPositions.push(v[0], v[1], v[2]);
+            vertColors.push(c.r, c.g, c.b);
+            vertNormals.push(nx, ny, nz);
+        }
+    }
+
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(vertPositions, 3));
+    geom.setAttribute('color',    new THREE.Float32BufferAttribute(vertColors, 3));
+    geom.setAttribute('normal',   new THREE.Float32BufferAttribute(vertNormals, 3));
+    geom.computeBoundingSphere();
+
+    const bodyMat = new THREE.MeshPhongMaterial({
+        vertexColors: true,
+        emissive: 0xff9900,
+        emissiveIntensity: 2.5,
+        flatShading: true,
+        shininess: 120,
+        transparent: true,
+        opacity: 0.92
+    });
+    const body = new THREE.Mesh(geom, bodyMat);
     group.add(body);
 
-    // Bright tip
-    const tip = new THREE.Mesh(
-        new THREE.BoxGeometry(0.06, 0.06, 0.10),
-        new THREE.MeshPhongMaterial({
-            color: 0xffffff, emissive: 0xfff2a8,
-            emissiveIntensity: 9.0, flatShading: true
-        })
-    );
-    tip.position.z = 0.18;
-    group.add(tip);
+    // Inner glow core — small bright diamond
+    const coreGeom = new THREE.BufferGeometry();
+    const cPos = [0, 0, -0.06,  0.03, 0, 0,  0, 0.03, 0,  0, -0.03, 0];
+    const cCol = [1, 1, 1,  1, 1, 1,  1, 1, 1,  1, 1, 1];
+    coreGeom.setAttribute('position', new THREE.Float32BufferAttribute(cPos, 3));
+    coreGeom.setAttribute('color',    new THREE.Float32BufferAttribute(cCol, 3));
+    coreGeom.computeBoundingSphere();
+    const coreMat = new THREE.MeshPhongMaterial({
+        vertexColors: true,
+        emissive: 0xffffff,
+        emissiveIntensity: 6.0,
+        flatShading: true,
+        transparent: true,
+        opacity: 0.8
+    });
+    const core = new THREE.Mesh(coreGeom, coreMat);
+    group.add(core);
+    group.userData.coreMesh = core;
+    group.userData.bodyMesh = body;
 
     group.position.copy(position);
     group.position.y = 0;
@@ -738,6 +799,15 @@ function createSpireShard(position) {
     group.userData.isSpireShard = true;
     group.userData.speed = 0.35;
     group.userData.createdAt = Date.now();
+
+    // Per-shard random tumbling — delta-based, not absolute-time
+    const angleDeg = Math.random() * 360;
+    const rad = angleDeg * Math.PI / 180;
+    group.userData.rotXSpeed = (0.8 + Math.random() * 2.4) * (Math.random() < 0.5 ? -1 : 1);
+    group.userData.rotYSpeed = (1.2 + Math.random() * 2.8) * (Math.random() < 0.5 ? -1 : 1);
+    group.userData.rotZSpeed = (0.5 + Math.random() * 1.6) * (Math.random() < 0.5 ? -1 : 1);
+    group.userData.lastTime = Date.now();
+    group.userData.shimmerTimer = Math.random() * 1000; // stagger shimmer bursts
 
     return group;
 }
@@ -1538,14 +1608,82 @@ export function updateHaloWaves(player, scene, gameActive, livesCallback, gameOv
 
 // Update Spire crystal shards (Spire weapon)
 export function updateSpireShards(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const particles = getParticles();
+
     for (let i = crystalShards.length - 1; i >= 0; i--) {
         const p = crystalShards[i];
 
-        // --- flight model: drift + tumble + trail shimmer ---
+        // --- delta-based tumbling (no absolute-time jitter) ---
+        const now = Date.now();
+        const dt = (now - p.userData.lastTime) / 1000; // seconds
+        p.userData.lastTime = now;
+
+        p.rotation.x += p.userData.rotXSpeed * dt;
+        p.rotation.y += p.userData.rotYSpeed * dt;
+        p.rotation.z += p.userData.rotZSpeed * dt;
+
+        // --- flight model: drift + forward ---
         p.position.z += p.userData.speed;
         p.position.x += (p.userData.driftX || 0);
-        p.rotation.x = Date.now() * 0.006;
-        p.rotation.y = Date.now() * 0.004;
+
+        // --- brief shimmer burst on core every ~600ms (not steady glow) ---
+        p.userData.shimmerTimer += dt * 1000;
+        const shimmerPeriod = 600;
+        const burstDuration = 120; // ms
+        const elapsed = p.userData.shimmerTimer % shimmerPeriod;
+        if (p.userData.bodyMesh && p.userData.coreMesh) {
+            if (elapsed < burstDuration) {
+                // Burst phase — bright core
+                const intensity = 1.0 - (elapsed / burstDuration); // fade out during burst
+                p.userData.coreMesh.material.emissiveIntensity = 6.0 + intensity * 8.0;
+                p.userData.bodyMesh.material.emissiveIntensity = 2.5 + intensity * 3.0;
+            } else {
+                p.userData.coreMesh.material.emissiveIntensity = 6.0;
+                p.userData.bodyMesh.material.emissiveIntensity = 2.5;
+            }
+        }
+
+        // --- trail particles (spawn every 40ms) ---
+        if (!p.userData.lastTrailTime || now - p.userData.lastTrailTime > 40) {
+            p.userData.lastTrailTime = now;
+
+            // Spawn 2-3 trail particles per crystal
+            const trailColor = Math.random() < 0.5 ? 0xA855F7 : 0xFFD700; // purple or gold
+
+            for (let j = 0; j < 2 + Math.floor(Math.random() * 2); j++) {
+                const trailGeom = new THREE.SphereGeometry(0.06, 6, 6);
+                const trailMat = new THREE.MeshPhongMaterial({
+                    color: trailColor,
+                    emissive: trailColor,
+                    emissiveIntensity: 3.5,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const trail = new THREE.Mesh(trailGeom, trailMat);
+
+                trail.position.copy(p.position);
+                trail.position.x += (Math.random() - 0.5) * 0.15;
+                trail.position.y += (Math.random() - 0.5) * 0.15;
+                trail.position.z += (Math.random() - 0.5) * 0.1;
+
+                trail.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02,
+                        -p.userData.speed * 0.3 + (Math.random() - 0.5) * 0.05
+                    ),
+                    life: 0.6 + Math.random() * 0.3,
+                    rotationSpeed: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.15,
+                        (Math.random() - 0.5) * 0.15,
+                        (Math.random() - 0.5) * 0.15
+                    )
+                };
+
+                particles.push(trail);
+                scene.add(trail);
+            }
+        }
 
         // --- barriers ---
         if (checkBarrierCollision(p.position, 0.14, scene)) {
