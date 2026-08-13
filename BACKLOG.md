@@ -44,6 +44,9 @@ tick anything.
       any defining feature of: OCTOPUS, CRAB, SQUID, UFO, TANK, BEETLE, INVADER,
       SCORPION, WASP, SENTINEL, WARDEN, SPIRE. Run
       `node verify-invader.mjs 12 <NAME>` until it exits 0.
+|- [ ] **Fix Voidworm reachability.** Verify `node verify-invader.mjs 13 VOIDWORM` —
+      it first appears at LEVEL 10 which is reasonable. But check that the
+      bestiary entry and model are fully consistent (no silent failures).
 
 ## Phase 4 — improve the skill itself
 
@@ -65,6 +68,7 @@ tick anything.
 2026-08-13 12:00 — Shard visual — passed — 1129b6b
 2026-08-14 08:30 — Invader #13 PRISM — passed — fb34a12
 2026-08-15 10:00 — Report skill friction — passed — 8587cdd
+2026-08-13 14:30 — Add VOIDWORM (row 13) — sinuous 7-segment body chain with undulating wave, fractal spore weapon (splits mid-flight) — 13/13 verification checks pass — 8bae133
 
 ## Phase 5 — boss arsenal expansion
 
