@@ -115,6 +115,15 @@ const BESTIARY_ENTRIES = [
         tagline: 'ROW 12 - CRYSTAL',
         description: 'A tall crystalline tower with stacked diamond tiers tapering to a sharp gold apex. Small gold accent crystals jut from the mid-section on all four sides. The entire tower rhythmically extends and retracts, and the crystal clusters pulse brightness in sync.',
         weapon: 'Crystal shards — a spread of three projectiles in a wide V-pattern'
+    },
+    {
+        name: 'PRISM',
+        row: 12,
+        points: 0,
+        color: '#9966dd',
+        tagline: 'ROW 13 - DIAMOND',
+        description: 'A floating crystal diamond frame with a hollow centre and four orbiting shards at each corner. The frame rotates on its Z axis while the corner shards pulse in sequence around the perimeter, creating a travelling light effect that completes a full circuit every 4 seconds.',
+        weapon: 'Serpentine beams — an elongated crystal projectile that travels in a sinusoidal wave'
     }
 ];
 

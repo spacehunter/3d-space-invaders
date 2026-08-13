@@ -21,6 +21,7 @@ let waspNeedles = [];
 let prismLances = [];
 let haloWaves = [];
 let crystalShards = [];
+let serpentineBeams = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -927,6 +928,12 @@ export function alienFire(scene) {
                 crystalShards.push(right);
                 scene.add(right);
                 continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 12) {
+                // Prism aliens fire a single serpentine beam — sinusoidal wave
+                const beam = createSerpentineBeam(randomAlien.position);
+                serpentineBeams.push(beam);
+                scene.add(beam);
+                continue; // Skip adding to alienMissiles
             } else {
                 // Regular missiles for other aliens
                 const missileGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.4);  // Elongated in Z to point forward
@@ -1718,6 +1725,149 @@ export function updateSpireShards(player, scene, gameActive, livesCallback, game
     }
 }
 
+// ---------------------------------------------------------------------------
+// Prism serpentine beam — travels in a sinusoidal wave
+// ---------------------------------------------------------------------------
+
+function createSerpentineBeam(position) {
+    const group = new THREE.Group();
+
+    // Elongated crystal beam — wider and longer than standard missile
+    const bodyGeom = new THREE.BoxGeometry(0.08, 0.08, 0.60);
+    const bodyMat = new THREE.MeshPhongMaterial({
+        color: 0xcc99ff,
+        emissive: 0x9966dd,
+        emissiveIntensity: 3.5,
+        flatShading: true,
+        transparent: true,
+        opacity: 0.95
+    });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    group.add(body);
+
+    // Core glow — white bright centre
+    const coreGeom = new THREE.BoxGeometry(0.04, 0.04, 0.50);
+    const coreMat = new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        emissive: 0xffffff,
+        emissiveIntensity: 5.0,
+        transparent: true,
+        opacity: 0.7,
+        flatShading: true
+    });
+    const core = new THREE.Mesh(coreGeom, coreMat);
+    group.add(core);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z += 0.78;
+    group.userData.isSerpentineBeam = true;
+    group.userData.speed = 0.32;
+    group.userData.waveAmplitude = 0.08 + Math.random() * 0.04; // lateral drift range
+    group.userData.waveFrequency = 4.0 + Math.random() * 2.0;   // wave cycles per second
+    group.userData.createdAt = Date.now();
+    group.userData.lastTrailTime = 0;
+
+    return group;
+}
+
+export function updateSerpentineBeams(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const particles = getParticles();
+
+    for (let i = serpentineBeams.length - 1; i >= 0; i--) {
+        const beam = serpentineBeams[i];
+
+        // Sinusoidal lateral drift (serpentine flight)
+        const t = (Date.now() * 0.001) + beam.userData.createdAt;
+        beam.position.x += Math.sin(t * beam.userData.waveFrequency) * beam.userData.waveAmplitude;
+
+        // Forward motion
+        beam.position.z += beam.userData.speed;
+
+        // Gentle body tilt following the wave slope
+        beam.rotation.z = Math.cos(t * beam.userData.waveFrequency) * 0.25;
+        beam.rotation.y = Math.sin(t * beam.userData.waveFrequency * 0.5) * 0.15;
+
+        // Core shimmer burst every ~500ms
+        beam.userData.shimmerTimer = (beam.userData.shimmerTimer || 0) + 16;
+        if (beam.userData.shimmerTimer > 500) {
+            beam.userData.shimmerTimer = 0;
+            beam.userData.shimmerPulse = 1.0;
+        }
+        if (beam.userData.shimmerPulse > 0) {
+            beam.userData.shimmerPulse -= 0.05;
+            beam.children.forEach(c => {
+                if (c.material.emissiveIntensity !== undefined) {
+                    c.material.emissiveIntensity = (c === beam.children[0] ? 3.5 : 5.0) + beam.userData.shimmerPulse * 3.0;
+                }
+            });
+        } else {
+            beam.children.forEach(c => {
+                if (c.material.emissiveIntensity !== undefined) {
+                    c.material.emissiveIntensity = c === beam.children[0] ? 3.5 : 5.0;
+                }
+            });
+        }
+
+        // Trail particles every ~60ms
+        const now = Date.now();
+        if (!beam.userData.lastTrailTime || now - beam.userData.lastTrailTime > 60) {
+            beam.userData.lastTrailTime = now;
+            const trailGeom = new THREE.SphereGeometry(0.04, 4, 4);
+            const trailColor = Math.random() < 0.5 ? 0x9966dd : 0xcc99ff;
+            const trailMat = new THREE.MeshPhongMaterial({
+                color: trailColor,
+                emissive: trailColor,
+                emissiveIntensity: 2.0,
+                transparent: true,
+                opacity: 0.7,
+                flatShading: true
+            });
+            const trail = new THREE.Mesh(trailGeom, trailMat);
+            trail.position.copy(beam.position);
+            trail.userData = {
+                velocity: new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.03,
+                    (Math.random() - 0.5) * 0.03,
+                    -beam.userData.speed * 0.2
+                ),
+                life: 0.4 + Math.random() * 0.2
+            };
+            particles.push(trail);
+            scene.add(trail);
+        }
+
+        // --- barriers ---
+        if (checkBarrierCollision(beam.position, 0.12, scene)) {
+            createExplosion(beam.position, scene);
+            scene.remove(beam);
+            serpentineBeams.splice(i, 1);
+            continue;
+        }
+
+        // --- off-screen cleanup ---
+        if (beam.position.z > 20) {
+            scene.remove(beam);
+            serpentineBeams.splice(i, 1);
+            continue;
+        }
+
+        // --- player collision ---
+        if (gameActive) {
+            if (beam.position.distanceTo(player.position) < 1.2) {
+                scene.remove(beam);
+                serpentineBeams.splice(i, 1);
+                createExplosion(beam.position, scene);
+                playExplosion(1.3);
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 // Check if aliens should fire
 export function checkAlienFire(scene) {
     const currentTime = Date.now();
@@ -1740,6 +1890,7 @@ export function resetMissiles(scene) {
     prismLances.forEach(lance => scene.remove(lance));
     haloWaves.forEach(wave => scene.remove(wave));
     crystalShards.forEach(shard => scene.remove(shard));
+    serpentineBeams.forEach(beam => scene.remove(beam));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
@@ -1751,10 +1902,11 @@ export function resetMissiles(scene) {
     prismLances = [];
     haloWaves = [];
     crystalShards = [];
+    serpentineBeams = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams };
 }

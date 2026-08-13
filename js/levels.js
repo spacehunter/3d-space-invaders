@@ -31,7 +31,7 @@ const CAPS = {
     // silently kept the Wasp (type 8) out of every wave despite it being fully
     // implemented; 10 admits both the Wasp and the Sentinel. 12 admits the
     // Spire too.
-    maxRows: 12,
+    maxRows: 13,
     maxCols: 11,
     maxSwoopThreshold: 15,
     maxPowerUpDropRate: 0.25
