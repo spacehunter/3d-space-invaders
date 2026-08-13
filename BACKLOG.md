@@ -33,7 +33,7 @@ tick anything.
 - [x] **Model polish.** More silhouette contrast: sharper tier stepping, a
       clearer gold apex, better read against the dark background at distance.
       Check the colour-at-distance section in SKILL.md.
-- [ ] **Shard visual.** Make the crystal shards read as crystal — tumble on
+- [x] **Shard visual.** Make the crystal shards read as crystal — tumble on
       their own axis, faceted colour, short trail. They must stay readable
       against the starfield.
 
@@ -62,3 +62,4 @@ tick anything.
 2026-08-12 01:15 — SPIRE animation pass — passed — 74c5faa
 2026-08-12 01:30 — SPIRE telegraph the shot — passed — 242f6b0
 2026-08-12 02:00 — SPIRE model polish — passed — e6a0f36
+2026-08-13 12:00 — Shard visual — passed — 1129b6b
