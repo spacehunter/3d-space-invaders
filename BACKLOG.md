@@ -68,7 +68,7 @@ tick anything.
 
 ## Phase 5 — boss arsenal expansion
 
-|- [ ] **Boss #6 — ECLIPSE.** Add a 6th boss type that appears every 30 levels
+|- [x] **Boss #6 — ECLIPSE.** Add a 6th boss type that appears every 30 levels
       (L30, L60, L90…) instead of the 5-boss cycle. It is a dark matter sphere
       that phases in/out of visibility, fires a converging laser beam from its
       core, and spawns mini-wormholes that accelerate nearby player missiles

@@ -22,6 +22,7 @@ let prismLances = [];
 let haloWaves = [];
 let crystalShards = [];
 let serpentineBeams = [];
+let fractalSpores = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -934,6 +935,12 @@ export function alienFire(scene) {
                 serpentineBeams.push(beam);
                 scene.add(beam);
                 continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 13) {
+                // Voidworm aliens fire fractal spores — split mid-flight into 3
+                const spore = createVoidwormSpore(randomAlien.position);
+                fractalSpores.push(spore);
+                scene.add(spore);
+                continue; // Skip adding to alienMissiles
             } else {
                 // Regular missiles for other aliens
                 const missileGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.4);  // Elongated in Z to point forward
@@ -1771,6 +1778,118 @@ function createSerpentineBeam(position) {
     return group;
 }
 
+// Create Voidworm fractal spore — splits into 3 after 0.6s
+function createVoidwormSpore(position) {
+    const group = new THREE.Group();
+
+    // Main spore body — small faceted crystal
+    const bodyGeom = new THREE.BoxGeometry(0.08, 0.08, 0.20);
+    const bodyMat = new THREE.MeshPhongMaterial({
+        color: 0xc8a0ff,
+        emissive: 0x9b6dcf,
+        emissiveIntensity: 4.5,
+        flatShading: true
+    });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    group.add(body);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z += 0.78;
+    group.userData.isFractalSpore = true;
+    group.userData.speed = 0.35;
+    group.userData.splitTimer = 0;
+    group.userData.hasSplit = false;
+
+    return group;
+}
+
+// Update Voidworm fractal spores — split into 3 sub-projectiles mid-flight
+export function updateVoidwormSpores(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = fractalSpores.length - 1; i >= 0; i--) {
+        const spore = fractalSpores[i];
+
+        // Advance timer each frame
+        spore.userData.splitTimer += 0.016; // approx 60fps delta
+
+        // Split after 0.6 seconds into 3 diverging projectiles
+        if (!spore.userData.hasSplit && spore.userData.splitTimer >= 0.6) {
+            spore.userData.hasSplit = true;
+            scene.remove(spore);
+            fractalSpores.splice(i, 1);
+
+            // Spawn 3 sub-spores with diverging drift
+            [-0.55, 0, 0.55].forEach((drift, j) => {
+                const child = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.06, 0.06, 0.16),
+                    new THREE.MeshPhongMaterial({
+                        color: 0xe8d0ff,
+                        emissive: 0xc8a0ff,
+                        emissiveIntensity: 5.0,
+                        flatShading: true
+                    })
+                );
+                child.position.copy(spore.position);
+                child.userData.isFractalSporeSub = true;
+                child.userData.speed = 0.42;
+                child.userData.driftX = drift;
+                child.userData.createdAt = Date.now();
+                fractalSpores.push(child);
+                scene.add(child);
+            });
+            continue;
+        }
+
+        // If this is a sub-spore, apply lateral drift
+        if (spore.userData.isFractalSporeSub) {
+            spore.position.x += spore.userData.driftX * 0.016;
+        } else {
+            // Main spore drift — slight wobble
+            spore.position.x += Math.sin(time * 5.0 + i) * 0.002;
+        }
+
+        // Flight forward (+Z)
+        spore.position.z += spore.userData.speed;
+
+        // Spin the crystal
+        spore.rotation.x = time * 6.0;
+        spore.rotation.y = time * 4.0;
+
+        // --- barriers ---
+        if (checkBarrierCollision(spore.position, 0.14, scene)) {
+            createExplosion(spore.position, scene);
+            scene.remove(spore);
+            fractalSpores.splice(i, 1);
+            continue;
+        }
+
+        // --- off-screen cleanup ---
+        if (spore.position.z > 20) {
+            scene.remove(spore);
+            fractalSpores.splice(i, 1);
+            continue;
+        }
+
+        // --- player collision ---
+        if (gameActive) {
+            if (spore.position.distanceTo(player.position) < 1.2) {
+                scene.remove(spore);
+                fractalSpores.splice(i, 1);
+
+                createExplosion(spore.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 export function updateSerpentineBeams(player, scene, gameActive, livesCallback, gameOverCallback) {
     const particles = getParticles();
 
@@ -1891,6 +2010,7 @@ export function resetMissiles(scene) {
     haloWaves.forEach(wave => scene.remove(wave));
     crystalShards.forEach(shard => scene.remove(shard));
     serpentineBeams.forEach(beam => scene.remove(beam));
+    fractalSpores.forEach(spore => scene.remove(spore));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
@@ -1903,10 +2023,11 @@ export function resetMissiles(scene) {
     haloWaves = [];
     crystalShards = [];
     serpentineBeams = [];
+    fractalSpores = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores };
 }

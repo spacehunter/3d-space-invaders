@@ -49,8 +49,8 @@ export function createAliens(scene, customRows = null, customCols = null) {
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            // Cycle through 12 alien types based on row
-            const alienType = row % 13;
+            // Cycle through 13 alien types based on row
+            const alienType = row % 14;
             const alien = createAlien(alienType);
             alien.position.x = startX + col * ALIEN_SPACING;
             alien.position.z = startZ - row * ALIEN_SPACING;
@@ -79,7 +79,7 @@ export function createAliens(scene, customRows = null, customCols = null) {
  * anything to a scene, so it can be called while a game is in progress without
  * corrupting the formation. The caller owns the returned Group.
  *
- * @param {number} type - alien type 0-11 (same numbering as the row types)
+ * @param {number} type - alien type 0-13 (same numbering as the row types)
  * @returns {THREE.Group} an alien ready to be passed to animateAlien()
  */
 export function createAlienPreview(type) {
@@ -140,6 +140,9 @@ function createAlien(row) {
             break;
         case 12: // Prism style - crystal diamond frame with orbiting shards
             createPrismAlien(group);
+            break;
+        case 13: // Voidworm style - sinuous chain of 7 linked crystalline spheres
+            createVoidwormAlien(group);
             break;
     }
 
@@ -2921,6 +2924,118 @@ function createPrismAlien(group) {
     group.userData.shards = shards;
 }
 
+// ---------------------------------------------------------------------------
+// Voidworm (row 13) - a sinuous chain of 7 linked crystalline spheres
+// ---------------------------------------------------------------------------
+
+// A floating worm/serpent of segmented spheres with an undulating wave.
+// Silhouette: completely unlike any row — a sinuous chain, not a solid body.
+const VOIDWORM_DARK   = 0x2a0845;
+const VOIDWORM_SHADE  = 0x5c2f8e;
+const VOIDWORM_MID    = 0x9b6dcf;
+const VOIDWORM_BRIGHT = 0xc8a0ff;
+const VOIDWORM_HOT    = 0xe8d0ff;
+
+// Body segments — 7 spheres forming the worm chain, tapering at ends.
+const VOIDWORM_BODY = [
+    // Head (front, index 0 in animation)
+    { size: [0.26, 0.26, 0.30], pos: [0, 0, 0], color: VOIDWORM_BRIGHT },
+    // Segment 1
+    { size: [0.22, 0.22, 0.22], pos: [0, -0.26, 0], color: VOIDWORM_MID },
+    // Segment 2
+    { size: [0.20, 0.20, 0.20], pos: [0, -0.50, 0], color: VOIDWORM_MID },
+    // Segment 3 (middle, widest)
+    { size: [0.24, 0.24, 0.24], pos: [0, -0.74, 0], color: VOIDWORM_BRIGHT },
+    // Segment 4
+    { size: [0.20, 0.20, 0.20], pos: [0, -0.98, 0], color: VOIDWORM_MID },
+    // Segment 5
+    { size: [0.18, 0.18, 0.18], pos: [0, -1.22, 0], color: VOIDWORM_SHADE },
+    // Tail (end, smallest)
+    { size: [0.14, 0.14, 0.16], pos: [0, -1.42, 0], color: VOIDWORM_SHADE }
+];
+
+// Crown teeth — 4 small spikes at the front of the head.
+const VOIDWORM_TEETH = [
+    { size: [0.04, 0.08, 0.04], pos: [-0.08, 0.06, 0.16], color: VOIDWORM_HOT },
+    { size: [0.04, 0.08, 0.04], pos: [0.08, 0.06, 0.16], color: VOIDWORM_HOT },
+    { size: [0.04, 0.08, 0.04], pos: [-0.08, 0.06, -0.12], color: VOIDWORM_HOT },
+    { size: [0.04, 0.08, 0.04], pos: [0.08, 0.06, -0.12], color: VOIDWORM_HOT }
+];
+
+// Eyes — small bright spots on the head.
+const VOIDWORM_EYES = [
+    { size: [0.06, 0.06, 0.04], pos: [-0.12, 0.02, 0.14], color: 0xffffff },
+    { size: [0.06, 0.06, 0.04], pos: [0.12, 0.02, 0.14], color: 0xffffff }
+];
+
+let voidwormParts = null;
+
+function getVoidwormParts() {
+    if (voidwormParts) return voidwormParts;
+
+    voidwormParts = {
+        bodyGeometry: buildVoxelGeometry(VOIDWORM_BODY),
+        teethGeometry: buildVoxelGeometry(VOIDWORM_TEETH),
+        eyeGeometry: buildVoxelGeometry(VOIDWORM_EYES),
+        bodyMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: VOIDWORM_DARK,
+            emissiveIntensity: 0.55,
+            shininess: 60,
+            flatShading: true
+        }),
+        teethMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: VOIDWORM_HOT,
+            emissiveIntensity: 2.5,
+            flatShading: true
+        }),
+        eyeMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0xffffff,
+            emissiveIntensity: 2.0,
+            flatShading: true
+        })
+    };
+
+    return voidwormParts;
+}
+
+function createVoidwormAlien(group) {
+    const parts = getVoidwormParts();
+
+    const bodyPivot = new THREE.Group();
+    group.add(bodyPivot);
+    group.userData.bodyPivot = bodyPivot;
+
+    // Body chain
+    const body = new THREE.Mesh(parts.bodyGeometry, parts.bodyMaterial.clone());
+    body.castShadow = true;
+    bodyPivot.add(body);
+    group.userData.body = body;
+
+    // Crown teeth
+    const teeth = new THREE.Mesh(parts.teethGeometry, parts.teethMaterial.clone());
+    bodyPivot.add(teeth);
+    group.userData.teeth = teeth;
+
+    // Eyes
+    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
+    bodyPivot.add(eyes);
+    group.userData.eyes = eyes;
+
+    // Per-segment pivots for undulation (7 segments)
+    const segments = [];
+    const segmentPhases = [0, 0.35, 0.70, 1.05, 1.40, 1.75, 2.10];
+    for (let i = 0; i < 7; i++) {
+        const pivot = new THREE.Group();
+        pivot.position.y = -i * 0.24;
+        bodyPivot.add(pivot);
+        segments.push({ pivot, phase: segmentPhases[i] });
+    }
+    group.userData.segments = segments;
+}
+
 // Animate a single alien
 export function animateAlien(alien) {
     const time = Date.now() * 0.001 + alien.userData.animationOffset;
@@ -4222,6 +4337,46 @@ export function animateAlien(alien) {
             // Idle hover
             if (!alien.userData.isSwooping) {
                 alien.position.y = 0.03 + Math.sin(t * 0.7) * 0.02;
+            }
+            break;
+        }
+
+        case 13: { // Voidworm — undulating wave through 7 body segments
+            const self = alien.userData;
+            const t = time;
+            const period = 7.0;
+            const p = (t % period) / period;
+
+            // Undulating wave — each segment offsets by phase, rotating around Z.
+            // The wave travels back along the chain (tail to head).
+            if (self.segments) {
+                self.segments.forEach((seg, i) => {
+                    const wave = Math.sin(t * 3.5 + seg.phase) * 0.18;
+                    seg.pivot.rotation.z = wave;
+                });
+            }
+
+            // Crown teeth windup — open before firing, snap shut on burst.
+            // Period-based firing telegraph: teeth flare out at 0.30→0.40,
+            // snap shut at 0.40, burst flash at 0.40→0.46.
+            const windup = p >= 0.28 && p < 0.42
+                ? Math.sin(((p - 0.28) / 0.14) * Math.PI / 2)
+                : p >= 0.42 && p < 0.48 ? 1.0
+                : p >= 0.48 && p < 0.60
+                    ? Math.sin(((0.60 - p) / 0.12) * Math.PI / 2)
+                    : 0;
+
+            if (self.teeth) {
+                self.teeth.material.emissiveIntensity =
+                    1.5 + windup * 3.0;
+                // Teeth open: scale slightly outward during windup
+                const teethScale = 1.0 + windup * 0.35;
+                self.teeth.scale.setScalar(teethScale);
+            }
+
+            // Idle hover
+            if (!alien.userData.isSwooping) {
+                alien.position.y = 0.04 + Math.sin(t * 1.5) * 0.03;
             }
             break;
         }

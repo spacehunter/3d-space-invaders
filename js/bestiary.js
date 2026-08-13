@@ -124,6 +124,15 @@ const BESTIARY_ENTRIES = [
         tagline: 'ROW 13 - DIAMOND',
         description: 'A floating crystal diamond frame with a hollow centre and four orbiting shards at each corner. The frame rotates on its Z axis while the corner shards pulse in sequence around the perimeter, creating a travelling light effect that completes a full circuit every 4 seconds.',
         weapon: 'Serpentine beams — an elongated crystal projectile that travels in a sinusoidal wave'
+    },
+    {
+        name: 'VOIDWORM',
+        row: 13,
+        points: 0,
+        color: '#9b6dcf',
+        tagline: 'ROW 14 - VOID',
+        description: 'A sinuous chain of seven linked crystalline spheres with an undulating wave that travels the length of its body. Crown teeth flare open during weapon windup and snap shut on burst, while segments rotate in a travelling phase pattern.',
+        weapon: 'Fractal spores — a crystal projectile that splits mid-flight into diverging shards'
     }
 ];
 
