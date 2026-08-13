@@ -39,7 +39,7 @@ tick anything.
 
 ## Phase 3 — new invader with the improved skill
 
-- [ ] **Design and build invader #13** following SKILL.md end to end, including
+|- [x] **Design and build invader #13** following SKILL.md end to end, including
       the new "Rules for local models" and the headless verifier. Must not reuse
       any defining feature of: OCTOPUS, CRAB, SQUID, UFO, TANK, BEETLE, INVADER,
       SCORPION, WASP, SENTINEL, WARDEN, SPIRE. Run
@@ -63,3 +63,4 @@ tick anything.
 2026-08-12 01:30 — SPIRE telegraph the shot — passed — 242f6b0
 2026-08-12 02:00 — SPIRE model polish — passed — e6a0f36
 2026-08-13 12:00 — Shard visual — passed — 1129b6b
+2026-08-14 08:30 — Invader #13 PRISM — passed — fb34a12
