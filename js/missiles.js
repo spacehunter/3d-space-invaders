@@ -27,6 +27,7 @@ let ravenNeedles = [];
 let nexusSpirals = [];
 let eclipseLasers = [];
 let eclipseWormholes = [];
+let prismBeams = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -966,6 +967,13 @@ export function alienFire(scene) {
                 const s3 = createNexusSpiral(randomAlien.position, 3);
                 nexusSpirals.push(s3);
                 scene.add(s3);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 16) {
+                // Apex aliens fire a horizontal prismatic beam
+                const direction = Math.random() > 0.5 ? 1 : -1;
+                const beam = createApexBeam(randomAlien.position, direction);
+                prismBeams.push(beam);
+                scene.add(beam);
                 continue; // Skip adding to alienMissiles
             } else {
                 // Regular missiles for other aliens
@@ -2368,12 +2376,98 @@ export function updateEclipseWormholes(player, scene, gameActive, livesCallback,
     }
 }
 
+// Create Apex horizontal beam projectile - sweeps across the screen
+function createApexBeam(position, direction) {
+    const group = new THREE.Group();
+
+    // Beam body — long thin horizontal shard
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(1.4, 0.06, 0.12),
+        new THREE.MeshPhongMaterial({
+            color: 0xc77dff,
+            emissive: 0xa855f7,
+            emissiveIntensity: 7.0,
+            flatShading: true
+        })
+    );
+    group.add(body);
+
+    // Tip glow — bright accent at leading edge
+    const tipGeo = new THREE.BoxGeometry(0.06, 0.10, 0.10);
+    const tipMat = new THREE.MeshPhongMaterial({
+        color: 0xffeeff,
+        emissive: 0xffeeff,
+        emissiveIntensity: 9.0,
+        flatShading: true
+    });
+    const tip = new THREE.Mesh(tipGeo, tipMat);
+    tip.position.x = direction > 0 ? 0.73 : -0.73;
+    group.add(tip);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.userData.isApexBeam = true;
+    group.userData.direction = direction;
+    group.userData.speed = 0.38;
+
+    return group;
+}
+
 // Check if aliens should fire
 export function checkAlienFire(scene) {
     const currentTime = Date.now();
     if (currentTime - lastAlienFireTime > 1500) {  // Fire every 1.5 seconds
         alienFire(scene);
         lastAlienFireTime = currentTime;
+    }
+}
+
+// Update Apex horizontal beam projectiles
+export function updateApexBeams(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = prismBeams.length - 1; i >= 0; i--) {
+        const b = prismBeams[i];
+
+        // Horizontal sweep — moves left or right
+        b.position.x += b.userData.direction * b.userData.speed;
+
+        // Slight rotation for sparkle effect
+        b.rotation.z = time * 3.5;
+
+        // Pulsing glow
+        b.material.emissiveIntensity = 5.0 + Math.sin(time * 12) * 2.0;
+
+        // --- barriers ---
+        if (checkBarrierCollision(b.position, 0.4, scene)) {
+            createExplosion(b.position, scene);
+            scene.remove(b);
+            prismBeams.splice(i, 1);
+            continue;
+        }
+
+        // --- off-screen cleanup ---
+        if (b.position.x > 16 || b.position.x < -16) {
+            scene.remove(b);
+            prismBeams.splice(i, 1);
+            continue;
+        }
+
+        // --- player collision ---
+        if (gameActive) {
+            if (b.position.distanceTo(player.position) < 1.2) {
+                scene.remove(b);
+                prismBeams.splice(i, 1);
+
+                createExplosion(b.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
     }
 }
 
@@ -2396,6 +2490,7 @@ export function resetMissiles(scene) {
     nexusSpirals.forEach(spiral => scene.remove(spiral));
     eclipseLasers.forEach(laser => scene.remove(laser));
     eclipseWormholes.forEach(wh => scene.remove(wh));
+    prismBeams.forEach(beam => scene.remove(beam));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
@@ -2411,10 +2506,11 @@ export function resetMissiles(scene) {
     fractalSpores = [];
     ravenNeedles = [];
     nexusSpirals = [];
+    prismBeams = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores, ravenNeedles, nexusSpirals };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores, ravenNeedles, nexusSpirals, prismBeams };
 }

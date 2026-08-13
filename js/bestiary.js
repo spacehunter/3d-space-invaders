@@ -151,6 +151,15 @@ const BESTIARY_ENTRIES = [
         tagline: 'ROW 16 - CYAN CRYSTAL',
         description: 'An orbital station — a central glowing crystal core surrounded by four crystal arms in a cross pattern, with a counter-rotating energy ring between the arms. The arms rotate as a unit, the ring pulses, and all four arms snap inward as a wind-up telegraph before firing.',
         weapon: 'Spiral burst — four projectiles each following a corkscrew path toward the player'
+    },
+    {
+        name: 'APEX',
+        row: 16,
+        points: 0,
+        color: '#c77dff',
+        tagline: 'ROW 17 - PRISMATIC',
+        description: 'A floating geometric core with three orbiting prismatic shards that rotate around it in a cross pattern. The shards contract inward and brighten on weapon windup, then spring outward as the core pulses with a blinding flash before the shot.',
+        weapon: 'Horizontal beam — a prismatic shard sweeps across the screen, forcing the player to dodge vertically'
     }
 ];
 

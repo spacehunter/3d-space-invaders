@@ -3,7 +3,7 @@ import { initAudio } from './audio.js';
 import { getPlayer, updatePlayer, showPlayer, triggerPlayerFire } from './player.js';
 import { updateStarfield, setStarfieldSpeed } from './starfield.js';
 import { createAliens, updateAliens, animateAlien, getAliens, resetAliens, setAlienConfig } from './aliens.js';
-import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, updateWebBombs, updateBlasterBolts, updateVenomDarts, updateWaspNeedles, updatePrismLances, updateHaloWaves, updateSpireShards, updateSerpentineBeams, updateVoidwormSpores, updateRavenNeedles, updateNexusSpirals, checkAlienFire, resetMissiles, initUFOMissiles, setLevelCompleteCallback, updateEclipseLasers, updateEclipseWormholes } from './missiles.js';
+import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, updateWebBombs, updateBlasterBolts, updateVenomDarts, updateWaspNeedles, updatePrismLances, updateHaloWaves, updateSpireShards, updateSerpentineBeams, updateVoidwormSpores, updateRavenNeedles, updateNexusSpirals, checkAlienFire, resetMissiles, initUFOMissiles, setLevelCompleteCallback, updateEclipseLasers, updateEclipseWormholes, updateApexBeams } from './missiles.js';
 import { updateParticles, updateShrapnelParticles, resetParticles } from './particles.js';
 import { getMousePosition } from './input.js';
 import { isHighScore, showInitialEntry, updateHighScoreUI, hideInitialEntry, isInitialEntryActive } from './highscores.js';
@@ -529,6 +529,7 @@ export function update() {
     updateNexusSpirals(player, scene, gameActive, decreaseLives, gameOver);
     updateEclipseLasers(player, scene, gameActive, decreaseLives, gameOver);
     updateEclipseWormholes(player, scene, gameActive, decreaseLives, gameOver);
+    updateApexBeams(player, scene, gameActive, decreaseLives, gameOver);
     updateCamera(player, mouse.x, mouse.y);
     updateParticles(scene);
     updateShrapnelParticles(scene);
