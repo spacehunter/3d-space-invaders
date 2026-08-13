@@ -8,7 +8,7 @@ import { getBonusUFO, removeBonusUFO, setUFOMissileFireCallback } from './bonus-
 import { checkBarrierCollision } from './barriers.js';
 import { getCurrentBoss, damageBoss, getBossHitRadius } from './boss.js';
 
-import { getActivePowerUp, POWERUP_TYPES } from './powerups.js';
+import { getActivePowerUp, POWERUP_TYPES, consumeShield } from './powerups.js';
 
 let missiles = [];
 let alienMissiles = [];
@@ -24,6 +24,9 @@ let crystalShards = [];
 let serpentineBeams = [];
 let fractalSpores = [];
 let ravenNeedles = [];
+let nexusSpirals = [];
+let eclipseLasers = [];
+let eclipseWormholes = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -948,6 +951,14 @@ export function alienFire(scene) {
                 ravenNeedles.push(missile);
                 scene.add(missile);
                 continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 15) {
+                // Nexus aliens fire spiral burst — 4 projectiles in a rotating corkscrew
+                for (let i = 0; i < 4; i++) {
+                    const spiral = createNexusSpiral(randomAlien.position, i);
+                    nexusSpirals.push(spiral);
+                    scene.add(spiral);
+                }
+                continue; // Skip adding to alienMissiles
             } else {
                 // Regular missiles for other aliens
                 const missileGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.4);  // Elongated in Z to point forward
@@ -1236,10 +1247,21 @@ export function updateAlienMissiles(player, scene, gameActive, livesCallback, ga
                 createExplosion(missile.position, scene);
                 playExplosion(1.5);  // Extra loud for player hits!
 
-                // Decrease lives
-                const newLives = livesCallback();
-                if (newLives <= 0) {
-                    gameOverCallback(false);
+                // Shield check: absorb hit if shield active
+                if (consumeShield()) {
+                    console.log("Shield absorbed the hit!");
+                } else {
+                    // Decrease lives
+                    // Shield check: absorb hit if shield active
+                    if (consumeShield()) {
+                        console.log("Shield absorbed the hit!");
+                    } else {
+                        // Decrease lives
+                        const newLives = livesCallback();
+                        if (newLives <= 0) {
+                            gameOverCallback(false);
+                        }
+                    }
                 }
             }
         }
@@ -1334,10 +1356,21 @@ export function updateWebBombs(player, scene, gameActive, livesCallback, gameOve
                 scene.remove(zone);
                 webZones.splice(i, 1);
 
-                // Decrease lives
-                const newLives = livesCallback();
-                if (newLives <= 0) {
-                    gameOverCallback(false);
+                // Shield check: absorb hit if shield active
+                if (consumeShield()) {
+                    console.log("Shield absorbed the hit!");
+                } else {
+                    // Decrease lives
+                    // Shield check: absorb hit if shield active
+                    if (consumeShield()) {
+                        console.log("Shield absorbed the hit!");
+                    } else {
+                        // Decrease lives
+                        const newLives = livesCallback();
+                        if (newLives <= 0) {
+                            gameOverCallback(false);
+                        }
+                    }
                 }
                 continue;
             }
@@ -1391,10 +1424,21 @@ export function updateBlasterBolts(player, scene, gameActive, livesCallback, gam
                 createExplosion(bolt.position, scene);
                 playExplosion(1.3);
 
-                // Decrease lives
-                const newLives = livesCallback();
-                if (newLives <= 0) {
-                    gameOverCallback(false);
+                // Shield check: absorb hit if shield active
+                if (consumeShield()) {
+                    console.log("Shield absorbed the hit!");
+                } else {
+                    // Decrease lives
+                    // Shield check: absorb hit if shield active
+                    if (consumeShield()) {
+                        console.log("Shield absorbed the hit!");
+                    } else {
+                        // Decrease lives
+                        const newLives = livesCallback();
+                        if (newLives <= 0) {
+                            gameOverCallback(false);
+                        }
+                    }
                 }
             }
         }
@@ -1617,9 +1661,15 @@ export function updateHaloWaves(player, scene, gameActive, livesCallback, gameOv
                     createExplosion(player.position, scene);
                     playExplosion(1.3);
 
-                    const newLives = livesCallback();
-                    if (newLives <= 0) {
-                        gameOverCallback(false);
+                    // Shield check: absorb hit if shield active
+                    if (consumeShield()) {
+                        console.log("Shield absorbed the hit!");
+                    } else {
+                        // Decrease lives
+                        const newLives = livesCallback();
+                        if (newLives <= 0) {
+                            gameOverCallback(false);
+                        }
                     }
                 }
             }
@@ -1986,6 +2036,133 @@ export function updateVoidwormSpores(player, scene, gameActive, livesCallback, g
     }
 }
 
+// Create a spiral burst projectile from the Nexus.
+// angleIndex 0-3 gives 4 spirals with offset starting angles.
+export function createNexusSpiral(origin, angleIndex) {
+    const angle = (angleIndex * Math.PI * 2) / 4;
+    // Each spiral fires with a slight lateral offset so they diverge.
+    const speed = 0.35;
+    const spiralGeom = new THREE.BoxGeometry(0.1, 0.1, 0.3);
+    const spiralMat = new THREE.MeshPhongMaterial({
+        color: 0x4a7aff,
+        emissive: 0x7aaaff,
+        emissiveIntensity: 3.0,
+        flatShading: true
+    });
+    const spiral = new THREE.Mesh(spiralGeom, spiralMat);
+    spiral.position.copy(origin);
+    spiral.position.z -= 0.5;
+
+    // Spiral rotation direction alternates per projectile.
+    const direction = angleIndex % 2 === 0 ? 1 : -1;
+    spiral.userData = {
+        speed: speed,
+        spiralRadius: 0.15,
+        spiralFrequency: 8.0,
+        angle: angle,
+        direction: direction,
+        createdAt: Date.now() * 0.001,
+        shimmerPulse: 0,
+        shimmerTimer: 0
+    };
+    return spiral;
+}
+
+// Update Nexus spiral projectiles — corkscrew/spiral flight path.
+export function updateNexusSpirals(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const particles = getParticles();
+    const now = Date.now();
+
+    for (let i = nexusSpirals.length - 1; i >= 0; i--) {
+        const spiral = nexusSpirals[i];
+        const ud = spiral.userData;
+        const t = now * 0.001 + ud.createdAt;
+
+        // Corkscrew lateral motion: sinusoidal in X, offset by initial angle.
+        const driftX = Math.sin(t * ud.spiralFrequency * ud.direction + ud.angle) * ud.spiralRadius;
+        const driftZ = Math.cos(t * ud.spiralFrequency * ud.direction + ud.angle) * ud.spiralRadius * 0.3;
+
+        // Apply drift as position offsets (formation owns base X/Z).
+        spiral.position.x = spiral.position.x + driftX * 0.02;
+
+        // Forward motion.
+        spiral.position.z -= ud.speed;
+
+        // Spin the projectile on its own axis (crystal tumble).
+        spiral.rotation.x = t * 5.0 * ud.direction;
+        spiral.rotation.z = t * 3.0 * ud.direction;
+
+        // Core shimmer burst every ~400ms.
+        ud.shimmerTimer = (ud.shimmerTimer || 0) + 16;
+        if (ud.shimmerTimer > 400) {
+            ud.shimmerTimer = 0;
+            ud.shimmerPulse = 1.0;
+        }
+        if (ud.shimmerPulse > 0) {
+            ud.shimmerPulse -= 0.06;
+            spiral.material.emissiveIntensity = 3.0 + ud.shimmerPulse * 4.0;
+        } else {
+            spiral.material.emissiveIntensity = 3.0;
+        }
+
+        // Trail particles every ~80ms.
+        if (!spiral.userData.lastTrailTime || now - spiral.userData.lastTrailTime > 80) {
+            spiral.userData.lastTrailTime = now;
+            const trailColor = Math.random() < 0.5 ? 0x4a7aff : 0x99ccff;
+            const trailGeom = new THREE.SphereGeometry(0.03, 4, 4);
+            const trailMat = new THREE.MeshPhongMaterial({
+                color: trailColor,
+                emissive: trailColor,
+                emissiveIntensity: 1.5,
+                transparent: true,
+                opacity: 0.6,
+                flatShading: true
+            });
+            const trail = new THREE.Mesh(trailGeom, trailMat);
+            trail.position.copy(spiral.position);
+            trail.userData = {
+                velocity: new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.02,
+                    (Math.random() - 0.5) * 0.02,
+                    0.05
+                ),
+                life: 0.3 + Math.random() * 0.15
+            };
+            particles.push(trail);
+            scene.add(trail);
+        }
+
+        // --- barriers ---
+        if (checkBarrierCollision(spiral.position, 0.1, scene)) {
+            createExplosion(spiral.position, scene);
+            scene.remove(spiral);
+            nexusSpirals.splice(i, 1);
+            continue;
+        }
+
+        // --- off-screen cleanup ---
+        if (spiral.position.z > 20 || Math.abs(spiral.position.x) > 15) {
+            scene.remove(spiral);
+            nexusSpirals.splice(i, 1);
+            continue;
+        }
+
+        // --- player collision ---
+        if (gameActive) {
+            if (spiral.position.distanceTo(player.position) < 1.2) {
+                scene.remove(spiral);
+                nexusSpirals.splice(i, 1);
+                createExplosion(spiral.position, scene);
+                playExplosion(1.3);
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 export function updateSerpentineBeams(player, scene, gameActive, livesCallback, gameOverCallback) {
     const particles = getParticles();
 
@@ -2083,6 +2260,103 @@ export function updateSerpentineBeams(player, scene, gameActive, livesCallback, 
     }
 }
 
+// Update Eclipse laser beams — converging from boss core toward player X
+export function updateEclipseLasers(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = eclipseLasers.length - 1; i >= 0; i--) {
+        const beam = eclipseLasers[i];
+        const ud = beam.userData;
+
+        // Converge toward target X
+        beam.position.x += (ud.targetX - beam.position.x) * 0.02;
+
+        // Move downward toward player
+        beam.position.z += ud.speed;
+
+        // Pulsing emissive intensity
+        beam.material.emissiveIntensity = 4 + Math.sin(time * 12) * 2;
+
+        // --- barriers ---
+        if (checkBarrierCollision(beam.position, 0.15, scene)) {
+            createExplosion(beam.position, scene);
+            scene.remove(beam);
+            eclipseLasers.splice(i, 1);
+            continue;
+        }
+
+        // --- off-screen cleanup ---
+        if (beam.position.z > 20 || beam.position.y < -5) {
+            scene.remove(beam);
+            eclipseLasers.splice(i, 1);
+            continue;
+        }
+
+        // --- player collision ---
+        if (gameActive) {
+            if (beam.position.distanceTo(player.position) < 1.5) {
+                scene.remove(beam);
+                eclipseLasers.splice(i, 1);
+                createExplosion(beam.position, scene);
+                playExplosion(1.5);
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
+// Update Eclipse wormholes — slow-moving hazards that create a dangerous zone
+export function updateEclipseWormholes(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = eclipseWormholes.length - 1; i >= 0; i--) {
+        const wh = eclipseWormholes[i];
+        const ud = wh.userData;
+
+        // Slow drift toward player
+        wh.position.z += ud.speed;
+
+        // Rotate the ring
+        wh.rotation.x = time * ud.rotSpeed;
+        wh.rotation.y = time * ud.rotSpeed * 0.7;
+
+        // Pulsing glow
+        wh.material.emissiveIntensity = 3 + Math.sin(time * 6 + i) * 2;
+
+        // --- barriers ---
+        if (checkBarrierCollision(wh.position, 0.35, scene)) {
+            createExplosion(wh.position, scene);
+            scene.remove(wh);
+            eclipseWormholes.splice(i, 1);
+            continue;
+        }
+
+        // --- off-screen cleanup ---
+        if (wh.position.z > 20) {
+            scene.remove(wh);
+            eclipseWormholes.splice(i, 1);
+            continue;
+        }
+
+        // --- player collision ---
+        if (gameActive) {
+            if (wh.position.distanceTo(player.position) < 1.8) {
+                scene.remove(wh);
+                eclipseWormholes.splice(i, 1);
+                createExplosion(wh.position, scene);
+                playExplosion(1.3);
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 // Check if aliens should fire
 export function checkAlienFire(scene) {
     const currentTime = Date.now();
@@ -2108,6 +2382,9 @@ export function resetMissiles(scene) {
     serpentineBeams.forEach(beam => scene.remove(beam));
     fractalSpores.forEach(spore => scene.remove(spore));
     ravenNeedles.forEach(needle => scene.remove(needle));
+    nexusSpirals.forEach(spiral => scene.remove(spiral));
+    eclipseLasers.forEach(laser => scene.remove(laser));
+    eclipseWormholes.forEach(wh => scene.remove(wh));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
@@ -2122,10 +2399,11 @@ export function resetMissiles(scene) {
     serpentineBeams = [];
     fractalSpores = [];
     ravenNeedles = [];
+    nexusSpirals = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores, ravenNeedles };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores, ravenNeedles, nexusSpirals };
 }

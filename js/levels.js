@@ -29,9 +29,10 @@ const CAPS = {
     minFireInterval: 500,
     // One row per alien type. This was 8, which capped grid rows at 0-7 and so
     // silently kept the Wasp (type 8) out of every wave despite it being fully
-    // implemented; 10 admits both the Wasp and the Sentinel. 12 admits the
+    // 10 admits both the Wasp and the Sentinel. 12 admits the
     // Spire too. 13 admits the Prism too. 13 admits Voidworm too.
-    maxRows: 14,
+    // 15 admits the Nexus too.
+    maxRows: 16,
     maxCols: 11,
     maxSwoopThreshold: 15,
     maxPowerUpDropRate: 0.25

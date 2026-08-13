@@ -142,6 +142,15 @@ const BESTIARY_ENTRIES = [
         tagline: 'ROW 15 - STEEL',
         description: 'Compact bird-like form with swept-back wings, a sharp beak, crown crest feathers and taloned feet. The wings snap wide open on weapon windup, the beak clacks shut, and the crest pulses as the wings sweep back tight. Head bobs between snaps.',
         weapon: 'Accelerating zigzag needles — start slow with sharp lateral turns that accelerate toward the player'
+    },
+    {
+        name: 'NEXUS',
+        row: 15,
+        points: 0,
+        color: '#4a7aff',
+        tagline: 'ROW 16 - CYAN CRYSTAL',
+        description: 'An orbital station — a central glowing crystal core surrounded by four crystal arms in a cross pattern, with a counter-rotating energy ring between the arms. The arms rotate as a unit, the ring pulses, and all four arms snap inward as a wind-up telegraph before firing.',
+        weapon: 'Spiral burst — four projectiles each following a corkscrew path toward the player'
     }
 ];
 

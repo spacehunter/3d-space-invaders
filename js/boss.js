@@ -8,6 +8,10 @@ let currentBoss = null;
 let bossHealthBar = null;
 let bossPhase = 1;
 
+// Boss attack timing
+let bossAttackTimer = 0;
+let lastBossAttackTime = 0;
+
 // Boss type definitions with DRY configuration
 const BOSS_DEFINITIONS = {
     mothership: {
@@ -702,6 +706,13 @@ export function updateBoss(scene, player, deltaTime) {
     // Type-specific animations
     animateBossType(currentBoss, time);
 
+    // Boss attack firing — phase-based attack patterns
+    const now = Date.now();
+    if (now - lastBossAttackTime > 2000 && !userData.isInvulnerable) {
+        lastBossAttackTime = now;
+        fireBossAttack(currentBoss, scene);
+    }
+
     // Invulnerability flash effect
     if (userData.isInvulnerable) {
         const flash = Math.sin(time * 30) > 0;
@@ -710,6 +721,166 @@ export function updateBoss(scene, player, deltaTime) {
         currentBoss.visible = true;
     }
 }
+
+/**
+ * Fire boss attack based on current attack pattern index
+ * @param {THREE.Group} boss - Boss entity
+ * @param {THREE.Scene} scene - Game scene
+ */
+export function fireBossAttack(boss, scene) {
+    if (!boss || !boss.userData.attackPatterns) return;
+
+    const type = boss.userData.type;
+    const phase = boss.userData.phase;
+    const patternIndex = Math.min(phase - 1, boss.userData.attackPatterns.length - 1);
+    const pattern = boss.userData.attackPatterns[patternIndex];
+
+    // Eclipse attacks (phase 1-6): laserBeam or wormhole
+    if (type === 'eclipse') {
+        if (pattern === 'laserBeam') {
+            fireEclipseLaser(boss, scene);
+        } else if (pattern === 'wormhole') {
+            fireEclipseWormhole(boss, scene);
+        }
+        return;
+    }
+
+    // MotherShip attacks
+    if (type === 'mothership') {
+        if (pattern === 'sweepLaser') {
+            fireMotherShipLaser(boss, scene);
+        } else if (pattern === 'spawnDrones') {
+            fireMotherShipDrones(boss, scene);
+        } else if (pattern === 'barrage') {
+            fireMotherShipBarrage(boss, scene);
+        }
+        return;
+    }
+
+    // Hive Queen attacks
+    if (type === 'hiveQueen') {
+        if (pattern === 'webCluster') {
+            fireHiveQueenWebCluster(boss, scene);
+        } else if (pattern === 'spawnMinions') {
+            fireHiveQueenMinions(boss, scene);
+        } else if (pattern === 'acidRain') {
+            fireHiveQueenAcidRain(boss, scene);
+        }
+        return;
+    }
+
+    // Dreadnought attacks
+    if (type === 'dreadnought') {
+        if (pattern === 'tripleHoming') {
+            fireDreadnoughtTriple(boss, scene);
+        } else if (pattern === 'turretBarrage') {
+            fireDreadnoughtTurretBarrage(boss, scene);
+        } else if (pattern === 'railgun') {
+            fireDreadnoughtRailgun(boss, scene);
+        }
+        return;
+    }
+
+    // Phantom attacks
+    if (type === 'phantom') {
+        if (pattern === 'teleportStrike') {
+            firePhantomTeleport(boss, scene);
+        } else if (pattern === 'clones') {
+            firePhantomClones(boss, scene);
+        } else if (pattern === 'gravityWell') {
+            firePhantomGravityWell(boss, scene);
+        }
+        return;
+    }
+
+    // Titan attacks
+    if (type === 'titan') {
+        if (pattern === 'segmentSlam') {
+            fireTitanSegmentSlam(boss, scene);
+        } else if (pattern === 'solarFlare') {
+            fireTitanSolarFlare(boss, scene);
+        } else if (pattern === 'regenerate') {
+            fireTitanRegenerate(boss, scene);
+        }
+    }
+}
+
+// ============== BOSS ATTACK PROJECTILE FIRERS ==============
+
+/**
+ * Eclipse — converging laser beam from core to player position
+ */
+function fireEclipseLaser(boss, scene) {
+    const beamCount = 3;
+    for (let i = 0; i < beamCount; i++) {
+        const angle = ((i - 1) * 0.15); // spread ±0.15 rad
+        const laserGeom = new THREE.BoxGeometry(0.15, 0.15, 1.2);
+        const laserMat = new THREE.MeshPhongMaterial({
+            color: 0xe94560,
+            emissive: 0xe94560,
+            emissiveIntensity: 6.0,
+            flatShading: true
+        });
+        const beam = new THREE.Mesh(laserGeom, laserMat);
+        beam.position.copy(boss.userData.core ? boss.userData.core.getWorldPosition(new THREE.Vector3()) : boss.position);
+        beam.userData = {
+            speed: 0.5,
+            targetX: boss.position.x + Math.sin(angle) * 3,
+            converging: true,
+            angle: angle,
+            createdAt: Date.now()
+        };
+        scene.add(beam);
+        eclipseLasers.push(beam);
+    }
+}
+
+/**
+ * Eclipse — wormhole that accelerates player missiles backwards
+ */
+function fireEclipseWormhole(boss, scene) {
+    const count = 2;
+    for (let i = 0; i < count; i++) {
+        const offset = ((i - 0.5) * 3);
+        const whGeom = new THREE.RingGeometry(0.2, 0.45, 12);
+        const whMat = new THREE.MeshPhongMaterial({
+            color: 0x0a0a0a,
+            emissive: 0xe94560,
+            emissiveIntensity: 4.0,
+            transparent: true,
+            opacity: 0.8,
+            flatShading: true,
+            side: THREE.DoubleSide
+        });
+        const wh = new THREE.Mesh(whGeom, whMat);
+        wh.position.set(boss.position.x + offset, boss.position.y, boss.position.z + 2);
+        wh.userData = {
+            speed: 0.2,
+            radius: 0.35,
+            rotSpeed: 2.0 + Math.random(),
+            createdAt: Date.now()
+        };
+        scene.add(wh);
+        eclipseWormholes.push(wh);
+    }
+}
+
+// Generic boss attack firers for other boss types (placeholders)
+function fireMotherShipLaser(boss, scene) { fireEclipseLaser(boss, scene); }
+function fireMotherShipDrones(boss, scene) { fireEclipseWormhole(boss, scene); }
+function fireMotherShipBarrage(boss, scene) { fireEclipseLaser(boss, scene); }
+function fireHiveQueenWebCluster(boss, scene) { fireEclipseWormhole(boss, scene); }
+function fireHiveQueenMinions(boss, scene) { fireEclipseLaser(boss, scene); }
+function fireHiveQueenAcidRain(boss, scene) { fireEclipseWormhole(boss, scene); }
+function fireDreadnoughtTriple(boss, scene) { fireEclipseLaser(boss, scene); }
+function fireDreadnoughtTurretBarrage(boss, scene) { fireEclipseWormhole(boss, scene); }
+function fireDreadnoughtRailgun(boss, scene) { fireEclipseLaser(boss, scene); }
+function firePhantomTeleport(boss, scene) { fireEclipseWormhole(boss, scene); }
+function firePhantomClones(boss, scene) { fireEclipseLaser(boss, scene); }
+function firePhantomGravityWell(boss, scene) { fireEclipseWormhole(boss, scene); }
+function fireTitanSegmentSlam(boss, scene) { fireEclipseLaser(boss, scene); }
+function fireTitanSolarFlare(boss, scene) { fireEclipseWormhole(boss, scene); }
+function fireTitanRegenerate(boss, scene) { fireEclipseLaser(boss, scene); }
 
 /**
  * Type-specific boss animations
