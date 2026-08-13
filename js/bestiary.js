@@ -133,6 +133,15 @@ const BESTIARY_ENTRIES = [
         tagline: 'ROW 14 - VOID',
         description: 'A sinuous chain of seven linked crystalline spheres with an undulating wave that travels the length of its body. Crown teeth flare open during weapon windup and snap shut on burst, while segments rotate in a travelling phase pattern.',
         weapon: 'Fractal spores — a crystal projectile that splits mid-flight into diverging shards'
+    },
+    {
+        name: 'RAVEN',
+        row: 14,
+        points: 0,
+        color: '#5a5a7a',
+        tagline: 'ROW 15 - STEEL',
+        description: 'Compact bird-like form with swept-back wings, a sharp beak, crown crest feathers and taloned feet. The wings snap wide open on weapon windup, the beak clacks shut, and the crest pulses as the wings sweep back tight. Head bobs between snaps.',
+        weapon: 'Accelerating zigzag needles — start slow with sharp lateral turns that accelerate toward the player'
     }
 ];
 

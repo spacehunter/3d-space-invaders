@@ -4,7 +4,7 @@ A modern 3D recreation of the classic Space Invaders arcade game built with THRE
 
 ## Current Project Status
 
-As of 2026-08-12, all 12 alien rows have distinct rebuilt voxel models and animations. The newest is the Row 11 Spire, a tall crystalline tower with stacked diamond tiers and gold accent crystals that pulse and extend in a rhythmic cycle, firing crystal shards in a wide V-pattern.
+As of 2026-08-13, all 15 alien rows have distinct rebuilt voxel models and animations. The newest is the Row 14 Raven, a compact bird-like form with swept-back wings, sharp beak, crown crest and talons.
 
 Latest validation: `npm run build` passes. Run the dev server with the browser-safe host command below and open `http://127.0.0.1:5173/` to test the game, or `http://127.0.0.1:5173/alien-preview.html` to inspect the Scorpion directly.
 
@@ -21,7 +21,7 @@ Latest validation: `npm run build` passes. Run the dev server with the browser-s
 - **Lives System**: Start with 3 lives - survive as long as you can!
 
 ### Aliens
-The game features 12 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
+The game features 15 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
 
 1. **Octopus Aliens** (Top Row - Purple)
    - **Sculpted voxel mantle**: tapering domed hood with a crest, brow ridge, cheek plates and side fins
@@ -82,7 +82,15 @@ The game features 12 rows of aliens, each with distinctive 3D designs and dramat
    - **Fires Web Bombs** - slow projectiles that create danger zones!
    - Worth 10 points
 
-8. **Scorpion Aliens** (Row 7 - Burnt Orange)
+7. **Invader Aliens** (Row 7 - White)
+   - **Classic 1-bit arcade silhouette** rebuilt in layered pale steel plates with bevelled edges
+   - **Two-frame sprite march** - hard two-frame flip rather than smooth walk
+   - **Recessed cyan optics** and swaying antennae above the crown
+   - **Centre blaster cannon** that charges, flashes and recoils on each shot
+   - **Fires Blaster Bolts** - fast straight-shooting energy bolts!
+   - Worth 0 points
+
+8. **Scorpion Aliens** (Row 8 - Burnt Orange)
     - **Compact chunky carapace** with a dark underbody and a Beetle-consistent voxel silhouette
     - **Raised five-segment tail** that curls above the body and whips on strike
     - **Amber stinger** at the tail tip that pulses with venom
@@ -121,9 +129,30 @@ The game features 12 rows of aliens, each with distinctive 3D designs and dramat
     - **Fires crystal shards** - a spread of three golden projectiles in a wide V-pattern
     - Worth 0 points
 
+13. **Prism Aliens** (Row 13 - Diamond)
+    - **A floating crystal diamond frame** with a hollow centre and four orbiting shards at each corner
+    - **Frame rotation** — the diamond frame spins on its Z axis while the corner shards pulse in sequence around the perimeter
+    - **Traveling light effect** — the orbiting shards create a light that completes a full circuit every 4 seconds
+    - **Fires serpentine beams** — an elongated crystal projectile that travels in a sinusoidal wave
+    - Worth 0 points
+
+14. **Voidworm Aliens** (Row 14 - Void)
+    - **A sinuous chain of seven linked crystalline spheres** with an undulating wave that travels the length of the body
+    - **Crown teeth** flare open during weapon windup and snap shut on burst
+    - **Traveling phase pattern** — segments rotate in a wave from tail to head
+    - **Fires fractal spores** — a crystal projectile that splits mid-flight into three diverging shards!
+    - Worth 0 points
+
+15. **Raven Aliens** (Row 15 - Steel)
+    - **Compact bird-like form** with swept-back wings, sharp beak, crown crest feathers and taloned feet
+    - **Wings snap wide open** on weapon windup, beak clacks shut, then wings sweep back tight
+    - **Crest pulses** as the body bobs between snaps
+    - **Fires accelerating zigzag needles** — slow projectiles with sharp lateral turns that accelerate toward the player
+    - Worth 0 points
+
 ### Bestiary Gallery
 A field guide reached from the **BESTIARY** option on the landing page (or the **B** key):
-- Browse all 12 alien types one at a time, rendered large and centred on a slowly turning display
+- Browse all 15 alien types one at a time, rendered large and centred on a slowly turning display
 - Each model runs its full in-game animation - tentacle curls, snapping claws, chase lights, rolling treads and all
 - Shows the alien's name, row colour, point value, behaviour summary and armament
 - **← / →** (or the on-screen arrows) page between types and wrap around at both ends
@@ -216,6 +245,16 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
   - Golden diamond-shaped projectiles fired in a wide V-pattern
   - **Tumble as they travel**, leaving a shimmering trail
   - Slight horizontal drift gives each shard a unique arc
+|- **Serpentine Beams** (Row 12 - Prism Aliens):
+  - An elongated crystal projectile that travels in a sinusoidal wave
+  - **Smooth lateral oscillation** — the beam weaves side to side as it approaches
+|- **Fractal Spores** (Row 13 - Voidworm Aliens):
+  - A crystal projectile that **splits mid-flight** into three diverging shards after 0.6 seconds
+  - The sub-spores continue with lateral drift on independent paths
+|- **Accelerating Zigzag Needles** (Row 14 - Raven Aliens):
+  - Start slow (0.15 speed) with sharp lateral zigzag turns
+  - **Accelerate to full speed** (0.42) over 2 seconds of flight
+  - The zigzag frequency varies per shot, creating unpredictable paths
 
 ### Visual Effects
 - **Animated Starfield**: Thousands of stars flying toward you for immersive depth

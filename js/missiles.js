@@ -23,6 +23,7 @@ let haloWaves = [];
 let crystalShards = [];
 let serpentineBeams = [];
 let fractalSpores = [];
+let ravenNeedles = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -277,7 +278,7 @@ function checkMissileCollision(missile, missileIndex, scene, scoreCallback, game
             createExplosion(alien.position, scene);
             playExplosion(1.0);
 
-            // Update score (12 rows: row 0 = 60pts down to row N = 0pts)
+            // Update score (15 rows: row 0 = 60pts down to row 14 = 0pts)
             const points = Math.max(0, (6 - alien.userData.row) * 10);
             scoreCallback(points);
 
@@ -940,6 +941,12 @@ export function alienFire(scene) {
                 const spore = createVoidwormSpore(randomAlien.position);
                 fractalSpores.push(spore);
                 scene.add(spore);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 14) {
+                // Raven aliens fire accelerating zigzag needles
+                missile = createRavenNeedle(randomAlien.position);
+                ravenNeedles.push(missile);
+                scene.add(missile);
                 continue; // Skip adding to alienMissiles
             } else {
                 // Regular missiles for other aliens
@@ -1804,6 +1811,95 @@ function createVoidwormSpore(position) {
     return group;
 }
 
+// Create Raven needle — accelerating zigzag projectile
+function createRavenNeedle(position) {
+    const group = new THREE.Group();
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.06, 0.32),
+        new THREE.MeshPhongMaterial({
+            color: 0x7a7a9a, emissive: 0x5a5a7a,
+            emissiveIntensity: 5.0, flatShading: true
+        })
+    );
+    group.add(body);
+
+    const tip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.04, 0.08),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff, emissive: 0x9a9aba,
+            emissiveIntensity: 8.0, flatShading: true
+        })
+    );
+    tip.position.z = 0.18;
+    group.add(tip);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z += 0.78;
+    group.userData.isRavenNeedle = true;
+    group.userData.speed = 0.15;
+    group.userData.zigzagPhase = Math.random() * Math.PI * 2;
+    group.userData.zigzagSpeed = 6.0 + Math.random() * 3.0;
+    group.userData.createdAt = Date.now();
+
+    return group;
+}
+
+// Update Raven needles — accelerating zigzag flight
+export function updateRavenNeedles(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = ravenNeedles.length - 1; i >= 0; i--) {
+        const n = ravenNeedles[i];
+
+        // Accelerate from 0.15 to 0.42 over 2 seconds of flight
+        const age = (Date.now() - n.userData.createdAt) / 1000;
+        n.userData.speed = 0.15 + Math.min(age * 0.135, 0.27); // cap at 0.42
+
+        // Zigzag lateral drift
+        n.position.x += Math.sin(time * n.userData.zigzagSpeed + n.userData.zigzagPhase) * 0.012;
+
+        // Flight forward (+Z)
+        n.position.z += n.userData.speed;
+
+        // Spin the needle
+        n.rotation.x = time * 10.0;
+        n.rotation.y = time * 7.0;
+
+        // --- barriers ---
+        if (checkBarrierCollision(n.position, 0.12, scene)) {
+            createExplosion(n.position, scene);
+            scene.remove(n);
+            ravenNeedles.splice(i, 1);
+            continue;
+        }
+
+        // --- off-screen cleanup ---
+        if (n.position.z > 20) {
+            scene.remove(n);
+            ravenNeedles.splice(i, 1);
+            continue;
+        }
+
+        // --- player ---
+        if (gameActive) {
+            if (n.position.distanceTo(player.position) < 1.2) {
+                scene.remove(n);
+                ravenNeedles.splice(i, 1);
+
+                createExplosion(n.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 // Update Voidworm fractal spores — split into 3 sub-projectiles mid-flight
 export function updateVoidwormSpores(player, scene, gameActive, livesCallback, gameOverCallback) {
     const time = Date.now() * 0.001;
@@ -2011,6 +2107,7 @@ export function resetMissiles(scene) {
     crystalShards.forEach(shard => scene.remove(shard));
     serpentineBeams.forEach(beam => scene.remove(beam));
     fractalSpores.forEach(spore => scene.remove(spore));
+    ravenNeedles.forEach(needle => scene.remove(needle));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
@@ -2024,10 +2121,11 @@ export function resetMissiles(scene) {
     crystalShards = [];
     serpentineBeams = [];
     fractalSpores = [];
+    ravenNeedles = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores, ravenNeedles };
 }
