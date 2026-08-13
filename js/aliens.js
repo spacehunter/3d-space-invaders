@@ -49,8 +49,8 @@ export function createAliens(scene, customRows = null, customCols = null) {
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            // Cycle through 14 alien types based on row
-            const alienType = row % 17;
+            // Cycle through 18 alien types based on row
+            const alienType = row % 18;
             const alien = createAlien(alienType);
             alien.position.x = startX + col * ALIEN_SPACING;
             alien.position.z = startZ - row * ALIEN_SPACING;
@@ -79,7 +79,7 @@ export function createAliens(scene, customRows = null, customCols = null) {
  * anything to a scene, so it can be called while a game is in progress without
  * corrupting the formation. The caller owns the returned Group.
  *
- * @param {number} type - alien type 0-16 (same numbering as the row types)
+ * @param {number} type - alien type 0-17 (same numbering as the row types)
  * @returns {THREE.Group} an alien ready to be passed to animateAlien()
  */
 export function createAlienPreview(type) {
@@ -152,6 +152,9 @@ function createAlien(row) {
             break;
         case 16: // Apex style - floating geometric core with orbiting prismatic shards
             createApexAlien(group);
+            break;
+        case 17: // Basilisk style - two-headed serpent with twin arching necks and fanged heads
+            createBasiliskAlien(group);
             break;
     }
 
