@@ -952,12 +952,20 @@ export function alienFire(scene) {
                 scene.add(missile);
                 continue; // Skip adding to alienMissiles
             } else if (randomAlien.userData.row === 15) {
-                // Nexus aliens fire spiral burst — 4 projectiles in a rotating corkscrew
-                for (let i = 0; i < 4; i++) {
-                    const spiral = createNexusSpiral(randomAlien.position, i);
-                    nexusSpirals.push(spiral);
-                    scene.add(spiral);
-                }
+                // Nexus aliens fire a spiral burst — 4 projectiles, each
+                // corkscrewing around its own launch column toward the player.
+                const s0 = createNexusSpiral(randomAlien.position, 0);
+                nexusSpirals.push(s0);
+                scene.add(s0);
+                const s1 = createNexusSpiral(randomAlien.position, 1);
+                nexusSpirals.push(s1);
+                scene.add(s1);
+                const s2 = createNexusSpiral(randomAlien.position, 2);
+                nexusSpirals.push(s2);
+                scene.add(s2);
+                const s3 = createNexusSpiral(randomAlien.position, 3);
+                nexusSpirals.push(s3);
+                scene.add(s3);
                 continue; // Skip adding to alienMissiles
             } else {
                 // Regular missiles for other aliens
@@ -2051,17 +2059,20 @@ export function createNexusSpiral(origin, angleIndex) {
     });
     const spiral = new THREE.Mesh(spiralGeom, spiralMat);
     spiral.position.copy(origin);
-    spiral.position.z -= 0.5;
+    spiral.position.y = 0;       // play happens on the y=0 plane
+    spiral.position.z += 0.78;   // clear the firing alien's hitbox, toward the player
 
     // Spiral rotation direction alternates per projectile.
     const direction = angleIndex % 2 === 0 ? 1 : -1;
     spiral.userData = {
         speed: speed,
-        spiralRadius: 0.15,
+        spiralRadius: 0.35,
         spiralFrequency: 8.0,
         angle: angle,
         direction: direction,
+        baseX: origin.x,         // corkscrew oscillates around the launch column
         createdAt: Date.now() * 0.001,
+        lastTime: Date.now(),
         shimmerPulse: 0,
         shimmerTimer: 0
     };
@@ -2076,24 +2087,24 @@ export function updateNexusSpirals(player, scene, gameActive, livesCallback, gam
     for (let i = nexusSpirals.length - 1; i >= 0; i--) {
         const spiral = nexusSpirals[i];
         const ud = spiral.userData;
-        const t = now * 0.001 + ud.createdAt;
+        const elapsed = now * 0.001 - ud.createdAt;   // seconds since launch
+        const dt = Math.min((now - ud.lastTime) / 1000, 0.05);
+        ud.lastTime = now;
 
-        // Corkscrew lateral motion: sinusoidal in X, offset by initial angle.
-        const driftX = Math.sin(t * ud.spiralFrequency * ud.direction + ud.angle) * ud.spiralRadius;
-        const driftZ = Math.cos(t * ud.spiralFrequency * ud.direction + ud.angle) * ud.spiralRadius * 0.3;
+        // Corkscrew: oscillate around the launch column (baseX), never
+        // accumulate into it — accumulation walks the shot out of its lane.
+        const driftX = Math.sin(elapsed * ud.spiralFrequency + ud.angle) * ud.spiralRadius;
+        spiral.position.x = ud.baseX + driftX;
 
-        // Apply drift as position offsets (formation owns base X/Z).
-        spiral.position.x = spiral.position.x + driftX * 0.02;
-
-        // Forward motion.
-        spiral.position.z -= ud.speed;
+        // Forward motion — aliens sit at -Z and the player at +Z, so travel +Z.
+        spiral.position.z += ud.speed;
 
         // Spin the projectile on its own axis (crystal tumble).
-        spiral.rotation.x = t * 5.0 * ud.direction;
-        spiral.rotation.z = t * 3.0 * ud.direction;
+        spiral.rotation.x = elapsed * 5.0 * ud.direction;
+        spiral.rotation.z = elapsed * 3.0 * ud.direction;
 
         // Core shimmer burst every ~400ms.
-        ud.shimmerTimer = (ud.shimmerTimer || 0) + 16;
+        ud.shimmerTimer = (ud.shimmerTimer || 0) + dt * 1000;
         if (ud.shimmerTimer > 400) {
             ud.shimmerTimer = 0;
             ud.shimmerPulse = 1.0;
