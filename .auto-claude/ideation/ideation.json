@@ -1,0 +1,371 @@
+{
+  "id": "ideation-20260103-150900",
+  "project_id": "/Users/moog/Documents/3d-space-invaders",
+  "config": {
+    "enabled_types": [
+      "code_improvements",
+      "ui_ux_improvements",
+      "security_hardening"
+    ],
+    "include_roadmap_context": true,
+    "include_kanban_context": true,
+    "max_ideas_per_type": 5
+  },
+  "ideas": [
+    {
+      "id": "ci-001",
+      "type": "code_improvements",
+      "title": "Add More Power-up Types Using Existing System",
+      "description": "Extend the power-up system with new types like Shield (temporary invulnerability), Score Multiplier (2x points), and Slow Motion (slows alien movement). Each follows the existing POWERUP_TYPES pattern with spawn, update, and activate functions.",
+      "rationale": "The power-up system in powerups.js has a well-established pattern: POWERUP_TYPES enum, spawnPowerUp() for random spawning, updatePowerUps() for movement/collision, and activatePowerUp() for effects. Only 3 types exist currently (RAPID_FIRE, SPREAD_SHOT, BARRIER_REPAIR) but the infrastructure supports unlimited types with minimal code duplication.",
+      "builds_upon": [
+        "Power-up system (powerups.js)",
+        "Entity module pattern"
+      ],
+      "estimated_effort": "small",
+      "affected_files": [
+        "js/powerups.js",
+        "js/game.js"
+      ],
+      "existing_patterns": [
+        "POWERUP_TYPES enum extension",
+        "activatePowerUp switch/if pattern",
+        "timed effect pattern (activePowerUp + powerUpTimer)"
+      ],
+      "implementation_approach": "Add new entries to POWERUP_TYPES enum, add color/spawn logic in spawnPowerUp(), add activation logic in activatePowerUp(). For Shield: set player.userData.invulnerable = true for duration. For Score Multiplier: export multiplier value, use in updateScore(). For Slow Motion: reduce alienSpeed temporarily.",
+      "status": "draft",
+      "created_at": "2026-01-03T15:10:00.000Z"
+    },
+    {
+      "id": "ci-002",
+      "type": "code_improvements",
+      "title": "Add Procedural Audio for Missing Game Events",
+      "description": "Add procedural sound effects for power-up pickup, barrier damage, and score tick using the established Web Audio API synthesis pattern. Each sound would use oscillators with frequency sweeps and gain envelopes.",
+      "rationale": "audio.js contains a comprehensive procedural audio system with 15+ sound functions following the same pattern: check audioContext, get currentTime, create oscillators/gains, set frequency/gain envelopes, connect to destination, start/stop. Missing sounds for common game events: power-up collection (no audio feedback), barrier hits (silent destruction), and score increments.",
+      "builds_upon": [
+        "Procedural audio system (audio.js)"
+      ],
+      "estimated_effort": "trivial",
+      "affected_files": [
+        "js/audio.js",
+        "js/powerups.js",
+        "js/barriers.js"
+      ],
+      "existing_patterns": [
+        "playMissileFire() oscillator + gain pattern",
+        "playExplosion() multi-layer synthesis",
+        "frequency envelope with exponentialRampToValueAtTime"
+      ],
+      "implementation_approach": "Create playPowerUpPickup() with ascending pitch sweep (200Hz\u2192800Hz, 0.2s) similar to playLevelStart(). Create playBarrierHit() with short noise burst similar to explosion crack layer. Create playScoreTick() with quick blip (1000Hz, 0.05s). Export and call from respective modules.",
+      "status": "draft",
+      "created_at": "2026-01-03T15:10:00.000Z"
+    },
+    {
+      "id": "ci-003",
+      "type": "code_improvements",
+      "title": "Persist Game Statistics to localStorage",
+      "description": "Track and persist game statistics (total games played, aliens destroyed, power-ups collected, highest level reached, total playtime) using the existing localStorage persistence pattern from high scores and settings.",
+      "rationale": "The codebase already uses localStorage for high scores (HIGHSCORE_KEY in highscores.js) and glow settings (spaceInvaders3D_glowIntensity in main.js). The patterns for load/save are established: try/catch for JSON parse, consistent key naming (spaceInvaders3D_*), and functions for get/set operations.",
+      "builds_upon": [
+        "localStorage persistence pattern (highscores.js, main.js)",
+        "High score storage system"
+      ],
+      "estimated_effort": "small",
+      "affected_files": [
+        "js/stats.js (new)",
+        "js/game.js",
+        "js/main.js"
+      ],
+      "existing_patterns": [
+        "loadHighScores()/saveHighScores() pattern",
+        "localStorage.getItem/setItem with JSON",
+        "Key naming: spaceInvaders3D_*"
+      ],
+      "implementation_approach": "Create stats.js with loadStats(), saveStats(), incrementStat(), getStats(). Use 'spaceInvaders3D_stats' key. Call incrementStat('gamesPlayed') in initGame(), incrementStat('aliensDestroyed') in removeAlien(), etc. Display stats in UI panel similar to high scores.",
+      "status": "draft",
+      "created_at": "2026-01-03T15:10:00.000Z"
+    },
+    {
+      "id": "ci-004",
+      "type": "code_improvements",
+      "title": "Add New Alien Types Using Established Pattern",
+      "description": "Add 2-3 new alien types (Spider with web attacks, Scorpion with tail strike, Bomber with explosive death) using the established createXAlien() + animateAlien() switch pattern in aliens.js.",
+      "rationale": "aliens.js has 7 alien types (Octopus, Crab, Squid, UFO, Tank, Beetle, Invader) each following an identical pattern: createXAlien() function builds geometry with THREE.BoxGeometry and MeshPhongMaterial, stores animation parts in group.userData, and animateAlien() has a switch statement with per-type animation logic. The infrastructure fully supports adding new types.",
+      "builds_upon": [
+        "Alien type system (aliens.js)",
+        "BoxGeometry + MeshPhongMaterial pattern",
+        "Per-entity animation pattern"
+      ],
+      "estimated_effort": "medium",
+      "affected_files": [
+        "js/aliens.js",
+        "js/constants.js"
+      ],
+      "existing_patterns": [
+        "createXAlien(group) geometry builder pattern",
+        "animateAlien() switch(row) animation pattern",
+        "group.userData for storing animatable parts",
+        "7-type row cycling (row % 7)"
+      ],
+      "implementation_approach": "Add createSpiderAlien() with 8 legs in userData.legs array (follow Beetle leg pattern). Add case 7/8/9 in animateAlien() switch. Update row cycling to row % 10 for more types. Each type needs: body geometry, animated parts stored in userData, material with emissive glow, animation in switch statement.",
+      "status": "draft",
+      "created_at": "2026-01-03T15:10:00.000Z"
+    },
+    {
+      "id": "ci-005",
+      "type": "code_improvements",
+      "title": "Add Visual/Audio Settings Panel with Persistence",
+      "description": "Create a settings panel with additional user-configurable options (mute audio, particle density, screen shake toggle) that persist to localStorage, extending the existing glow slider implementation.",
+      "rationale": "main.js already implements a persisted glow intensity slider: loads from localStorage on init, updates on slider input, saves to localStorage. The pattern is clear: getElementById for control, addEventListener('input'), localStorage.setItem on change, localStorage.getItem on load. index.html has UI structure for controls.",
+      "builds_upon": [
+        "Glow slider persistence (main.js)",
+        "localStorage settings pattern",
+        "UI control structure (index.html)"
+      ],
+      "estimated_effort": "small",
+      "affected_files": [
+        "js/main.js",
+        "js/audio.js",
+        "js/particles.js",
+        "index.html"
+      ],
+      "existing_patterns": [
+        "glowSlider input handler pattern",
+        "localStorage.getItem/setItem for settings",
+        "spaceInvaders3D_* key naming convention"
+      ],
+      "implementation_approach": "Add checkbox inputs to index.html for mute/screenShake. In main.js, follow glowSlider pattern: load saved values, add event listeners, export getters. In audio.js, check isMuted before playing sounds. In particles.js, use particleDensity multiplier for particle counts. Each setting uses localStorage with pattern: 'spaceInvaders3D_settingName'.",
+      "status": "draft",
+      "created_at": "2026-01-03T15:10:00.000Z"
+    },
+    {
+      "id": "uiux-001",
+      "type": "ui_ux_improvements",
+      "title": "Add Keyboard Controls Support",
+      "description": "Implement keyboard input as an alternative to mouse-only controls, allowing players to use arrow keys or WASD for movement and spacebar for firing.",
+      "rationale": "The game currently only supports mouse input (input.js handles mousemove/mousedown only). Keyboard controls provide a more familiar gaming experience for many players and are essential for accessibility. Users without precise mouse control or those preferring traditional arcade-style controls are currently excluded.",
+      "category": "usability",
+      "affected_components": [
+        "js/input.js",
+        "js/player.js",
+        "index.html"
+      ],
+      "screenshots": [],
+      "current_state": "Input.js only registers mousemove, mousedown, and mouseup events. No keyboard event listeners exist anywhere in the codebase. Player movement is controlled exclusively by mouse X position.",
+      "proposed_change": "Add keydown/keyup event listeners in input.js to track arrow keys or WASD. Add a leftPressed/rightPressed state. Modify player.js updatePlayer() to accept keyboard input in addition to mouse. Add spacebar as alternative fire trigger. Update instructions in index.html to show keyboard controls.",
+      "user_benefit": "Players can choose their preferred control scheme. Those with motor control difficulties or those on laptops without precision mice can play effectively. Provides a more traditional arcade game feel.",
+      "status": "draft",
+      "created_at": "2026-01-03T11:25:00.000Z"
+    },
+    {
+      "id": "uiux-002",
+      "type": "ui_ux_improvements",
+      "title": "Add Audio Mute/Volume Control",
+      "description": "Add a UI control to mute or adjust the volume of game audio effects. Currently the game has an extensive procedural audio system but no way for users to control volume.",
+      "rationale": "The audio.js module generates procedural sounds for explosions, firing, level transitions, etc. There's no mute button or volume slider despite audio being a significant part of the experience. Users in shared spaces, those with audio sensitivity, or those who simply prefer silent play have no control option. The glow slider in settings shows UI patterns exist but audio controls are missing.",
+      "category": "usability",
+      "affected_components": [
+        "js/audio.js",
+        "js/main.js",
+        "index.html"
+      ],
+      "screenshots": [],
+      "current_state": "Audio system in audio.js creates sounds directly to audioContext.destination. No master gain node exists for volume control. The settings div only contains a glow intensity slider. No audio control UI exists in the HTML.",
+      "proposed_change": "Add a master GainNode in audio.js between all audio and the destination. Create a mute toggle button and/or volume slider in the settings section of index.html alongside the glow slider. Add localStorage persistence for audio settings similar to glow intensity. Style the control to match the existing cyan/retro aesthetic.",
+      "user_benefit": "Users can play in quiet environments, adjust audio to comfortable levels, or completely mute sounds while preserving visual effects. Respects user preference and environment.",
+      "status": "draft",
+      "created_at": "2026-01-03T11:25:00.000Z"
+    },
+    {
+      "id": "uiux-003",
+      "type": "ui_ux_improvements",
+      "title": "Add Pause Functionality with ESC Key",
+      "description": "Implement a pause system that allows players to pause and resume gameplay using the ESC key, with a visible pause overlay showing game controls and resume option.",
+      "rationale": "The game runs continuously once started with no way to pause. Players cannot take breaks, answer interruptions, or check controls mid-game. The gameActive flag in game.js tracks game state but there's no pause mechanism. This is a fundamental gameplay feature expected in any modern game.",
+      "category": "usability",
+      "affected_components": [
+        "js/game.js",
+        "js/input.js",
+        "index.html"
+      ],
+      "screenshots": [],
+      "current_state": "game.js has a gameActive boolean but no gamePaused state. The update loop runs unconditionally. No keydown handler for ESC exists. No pause overlay exists in the HTML.",
+      "proposed_change": "Add a gamePaused state in game.js. Add ESC keydown listener in input.js that toggles pause. Create a pause overlay in index.html styled similarly to gameOver div (semi-transparent background, cyan text). Show 'PAUSED' message with 'Press ESC to Resume' and list game controls. Modify update() to skip game logic when paused but continue rendering for visual freeze effect.",
+      "user_benefit": "Players can pause to handle interruptions, study the game state, or take breaks without losing progress. Essential for longer play sessions and accessibility.",
+      "status": "draft",
+      "created_at": "2026-01-03T11:25:00.000Z"
+    },
+    {
+      "id": "uiux-004",
+      "type": "ui_ux_improvements",
+      "title": "Add Screen Shake on Player Damage",
+      "description": "Implement a camera shake effect when the player takes damage (loses a life) to provide stronger visual feedback of the impact.",
+      "rationale": "When the player is hit by alien missiles (missiles.js line ~860), only an explosion particle and sound play. There's no camera feedback. The flashScreen() function exists in particles.js for shrapnel hits but isn't consistently used. Screen shake is a game design best practice for conveying impact and creates visceral feedback.",
+      "category": "visual",
+      "affected_components": [
+        "js/game.js",
+        "js/missiles.js",
+        "js/main.js"
+      ],
+      "screenshots": [],
+      "current_state": "When decreaseLives() is called in game.js, only the UI updates. missiles.js creates an explosion and plays a sound on player hit. No camera perturbation occurs. The camera in main.js has smooth interpolation but no shake system.",
+      "proposed_change": "Add a cameraShake() function in game.js or main.js that adds temporary random offsets to camera position. Call this on player damage. Use dampened oscillation (e.g., offset = amplitude * sin(time * frequency) * exp(-decay * time)). The effect should last ~300ms with decreasing intensity. Optionally add a red screen vignette flash for extra impact.",
+      "user_benefit": "Players immediately understand they've been hit through visceral visual feedback. Increases game feel and engagement. Makes damage more noticeable during intense gameplay.",
+      "status": "draft",
+      "created_at": "2026-01-03T11:25:00.000Z"
+    },
+    {
+      "id": "uiux-005",
+      "type": "ui_ux_improvements",
+      "title": "Add Collapsible Settings Menu with Gear Icon",
+      "description": "Replace the always-visible settings section at the bottom of the screen with a gear icon that expands to show settings, reducing screen clutter during gameplay.",
+      "rationale": "The current settings div with the glow slider is always visible at the bottom of the screen, taking up space and adding visual noise during gameplay. Modern games typically hide settings behind an icon. This would also make room for additional settings (audio controls, potentially more options) without cluttering the main view.",
+      "category": "usability",
+      "affected_components": [
+        "index.html",
+        "js/main.js"
+      ],
+      "screenshots": [],
+      "current_state": "The #settings div is positioned absolute at bottom center, always visible with the label 'GLOW INTENSITY' and a slider. It competes visually with the instructions text above it. No toggle/collapse mechanism exists.",
+      "proposed_change": "Add a gear icon (using CSS or unicode glyph) in the corner (e.g., bottom-right near version). Clicking the gear opens a settings panel with current glow slider plus future audio controls. Panel slides in/out or fades. Add CSS for panel styling matching retro aesthetic. Move instructions to be toggleable too or shown only on first visit.",
+      "user_benefit": "Cleaner gameplay view with less distraction. Settings accessible when needed but not constantly visible. Creates room for adding more settings without cluttering the screen.",
+      "status": "draft",
+      "created_at": "2026-01-03T11:25:00.000Z"
+    },
+    {
+      "id": "sec-001",
+      "type": "security_hardening",
+      "title": "Sanitize high score display to prevent stored XSS",
+      "description": "The updateHighScoresDisplay() function in highscores.js (lines 686-688) uses innerHTML with user-provided initials and scores loaded from localStorage. While the in-game UI restricts input to alphanumeric characters via the CHARACTERS constant, an attacker could directly manipulate localStorage to inject malicious HTML/JavaScript payloads.",
+      "rationale": "Stored XSS via innerHTML allows attackers to inject persistent malicious scripts. An attacker with localStorage access (browser DevTools, other XSS, malicious extension) could set initials to '<img src=x onerror=alert(document.domain)>' which would execute whenever high scores are displayed.",
+      "category": "input_validation",
+      "severity": "medium",
+      "affectedFiles": [
+        "js/highscores.js",
+        "js/game.js",
+        "js/boss.js"
+      ],
+      "vulnerability": "CWE-79: Improper Neutralization of Input During Web Page Generation (Cross-site Scripting)",
+      "currentRisk": "Attacker with localStorage access can inject persistent XSS. While game-only context limits impact, could be used for phishing overlays or credential harvesting if users treat the game page as trusted.",
+      "remediation": "Replace innerHTML with safe DOM APIs. For highscores.js line 686-688, use createElement/textContent: const div = document.createElement('div'); div.className = 'score-entry'; div.textContent = `${index + 1}. ${entry.initials} - ${entry.score}`. Alternatively, validate stored initials match /^[A-Z0-9]{1,3}$/ before rendering.",
+      "references": [
+        "https://owasp.org/www-community/attacks/xss/",
+        "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+      ],
+      "compliance": [
+        "OWASP Top 10 A03:2021"
+      ]
+    },
+    {
+      "id": "sec-002",
+      "type": "security_hardening",
+      "title": "Add localStorage data validation to prevent prototype pollution",
+      "description": "The loadHighScores() function uses JSON.parse() on localStorage data without schema validation. While wrapped in try-catch, malformed JSON with __proto__ or constructor properties could cause prototype pollution. The glow intensity in main.js also parses localStorage values without bounds checking.",
+      "rationale": "Prototype pollution can lead to unexpected behavior or security bypasses. Validating the structure of parsed data ensures it conforms to expected schema before being used in the application.",
+      "category": "input_validation",
+      "severity": "low",
+      "affectedFiles": [
+        "js/highscores.js",
+        "js/main.js"
+      ],
+      "vulnerability": "CWE-1321: Improperly Controlled Modification of Object Prototype Attributes",
+      "currentRisk": "Malformed localStorage data could pollute object prototypes. Glow intensity values are not validated to be within the expected 0-3 range.",
+      "remediation": "Add schema validation after JSON.parse: validate each entry has {initials: string (3 chars A-Z0-9), score: positive integer, date: positive integer}. Use Object.hasOwn() checks. For glow intensity, validate parseFloat result is finite and within [0,3] range. Consider using a simple schema validator function.",
+      "references": [
+        "https://portswigger.net/web-security/prototype-pollution",
+        "https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html"
+      ],
+      "compliance": [
+        "OWASP Top 10 A03:2021"
+      ]
+    },
+    {
+      "id": "sec-003",
+      "type": "security_hardening",
+      "title": "Implement Content Security Policy for defense-in-depth",
+      "description": "The application has no Content Security Policy (CSP) configured in index.html or via headers. CSP is a critical defense-in-depth mechanism that restricts which scripts, styles, and resources can be loaded and executed.",
+      "rationale": "CSP limits the impact of XSS vulnerabilities by whitelisting only trusted script sources. Even if XSS is possible, CSP can prevent execution of injected scripts. This is particularly important since the application uses inline styles extensively.",
+      "category": "configuration",
+      "severity": "medium",
+      "affectedFiles": [
+        "index.html",
+        "vite.config.js"
+      ],
+      "vulnerability": "CWE-693: Protection Mechanism Failure",
+      "currentRisk": "No defense-in-depth protection against script injection attacks. Any XSS vulnerability can execute arbitrary scripts without restriction.",
+      "remediation": "Add CSP meta tag to index.html head section: <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';\">. For CDN development mode, add https://cdn.jsdelivr.net and https://unpkg.com to script-src. For production hosting, configure CSP header at the web server level.",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
+        "https://content-security-policy.com/",
+        "https://owasp.org/www-project-secure-headers/"
+      ],
+      "compliance": [
+        "OWASP Top 10 A05:2021"
+      ]
+    },
+    {
+      "id": "sec-004",
+      "type": "security_hardening",
+      "title": "Add security headers configuration for production deployment",
+      "description": "The application lacks standard security headers that protect against common web vulnerabilities. When deployed to a static hosting platform, headers like X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy should be configured.",
+      "rationale": "Security headers provide defense-in-depth. X-Frame-Options prevents clickjacking (embedding game in malicious iframe), X-Content-Type-Options prevents MIME sniffing, and Permissions-Policy restricts browser feature access.",
+      "category": "configuration",
+      "severity": "low",
+      "affectedFiles": [
+        "vite.config.js"
+      ],
+      "vulnerability": "CWE-693: Protection Mechanism Failure",
+      "currentRisk": "Game could be embedded in malicious iframes for clickjacking. No restriction on browser feature access requests.",
+      "remediation": "Create a headers configuration for your deployment platform. For Netlify, create _headers file: /* X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy: geolocation=(), microphone=(), camera=(). For Vercel, use vercel.json headers config. For GitHub Pages, these headers are not configurable but CSP meta tag provides partial mitigation.",
+      "references": [
+        "https://securityheaders.com/",
+        "https://owasp.org/www-project-secure-headers/"
+      ],
+      "compliance": [
+        "OWASP Top 10 A05:2021"
+      ]
+    },
+    {
+      "id": "sec-005",
+      "type": "security_hardening",
+      "title": "Establish dependency update and audit cadence",
+      "description": "The project uses THREE.js v0.158.0 (released October 2023) and Vite v5.4.x. While no critical CVEs are currently known, the dependencies are over a year old. The vite-plugin-obfuscator package has limited maintenance activity and may introduce supply chain risk.",
+      "rationale": "Dependencies can have security vulnerabilities discovered after release. THREE.js is now at v0.170+ and may include security or stability fixes. Regular updates reduce technical debt and attack surface.",
+      "category": "dependencies",
+      "severity": "low",
+      "affectedFiles": [
+        "package.json",
+        "package-lock.json"
+      ],
+      "vulnerability": "CWE-1104: Use of Unmaintained Third Party Components",
+      "currentRisk": "Older dependencies may contain unpatched vulnerabilities. The vite-plugin-obfuscator package adds complexity with questionable security benefit - code obfuscation is not a security control.",
+      "remediation": "1. Run 'npm audit' periodically to check for known CVEs. 2. Consider updating THREE.js to latest stable (test 3D rendering thoroughly for breaking changes). 3. Set up Dependabot or Renovate for automated PR creation. 4. Evaluate whether vite-plugin-obfuscator is needed - obfuscation provides minimal protection and the package may have supply chain concerns.",
+      "references": [
+        "https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/",
+        "https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities"
+      ],
+      "compliance": [
+        "OWASP Top 10 A06:2021"
+      ]
+    }
+  ],
+  "project_context": {
+    "existing_features": [],
+    "tech_stack": [],
+    "target_audience": null,
+    "planned_features": []
+  },
+  "summary": {
+    "total_ideas": 15,
+    "by_type": {
+      "code_improvements": 5,
+      "ui_ux_improvements": 5,
+      "security_hardening": 5
+    },
+    "by_status": {
+      "draft": 15
+    }
+  },
+  "generated_at": "2026-01-03T15:09:00.916417",
+  "updated_at": "2026-01-03T15:09:00.916435"
+}

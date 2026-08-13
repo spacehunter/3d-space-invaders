@@ -1,0 +1,96 @@
+- generic [active] [ref=e1]:
+  - generic: "FPS: 60"
+  - generic: v1.0.8
+  - generic: LEVEL 1
+  - generic [ref=e2]:
+    - generic [ref=e3]: "SCORE: 0"
+    - generic [ref=e4]: "LIVES: 3"
+  - generic [ref=e5]:
+    - heading "HIGH SCORES" [level=3] [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]: 1. DAA - 1850
+      - generic [ref=e9]: 2. AAA - 1330
+      - generic [ref=e10]: 3. AAA - 1020
+      - generic [ref=e11]: 4. AAA - 850
+      - generic [ref=e12]: 5. AAA - 240
+  - generic [ref=e13]: "Move Mouse: Control Ship | Click: Fire Missile"
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - heading "⚙ SETTINGS" [level=2] [ref=e16]
+      - button "✕" [ref=e17] [cursor=pointer]
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - heading "◄ AUDIO ═══════════════════►" [level=3] [ref=e20]
+        - generic [ref=e21]:
+          - generic [ref=e22]:
+            - text: Master Volume
+            - generic [ref=e23]: 100%
+          - slider "Master Volume 100%" [ref=e24] [cursor=pointer]: "100"
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - text: SFX Volume
+            - generic [ref=e27]: 80%
+          - slider "SFX Volume 80%" [ref=e28] [cursor=pointer]: "80"
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - text: Music Volume
+            - generic [ref=e31]: 100%
+          - slider "Music Volume 100%" [ref=e32] [cursor=pointer]: "100"
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - text: Mute All
+            - generic [ref=e35]: "OFF"
+          - checkbox "Mute All OFF" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - heading "◄ VISUAL ════════════════════►" [level=3] [ref=e38]
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - text: Glow Intensity
+            - generic [ref=e41]: "0.35"
+          - slider "Glow Intensity 0.35" [ref=e42] [cursor=pointer]: "0.35"
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - text: Particle Density
+            - generic [ref=e45]: 100%
+          - slider "Particle Density 100%" [ref=e46] [cursor=pointer]: "100"
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - text: Show FPS
+            - generic [ref=e49]: "ON"
+          - checkbox "Show FPS ON" [checked] [ref=e50] [cursor=pointer]
+      - generic [ref=e51]:
+        - heading "◄ GAMEPLAY ══════════════════►" [level=3] [ref=e52]
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - text: Mouse Sensitivity
+            - generic [ref=e55]: 1.00x
+          - slider "Mouse Sensitivity 1.00x" [ref=e56] [cursor=pointer]: "1"
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - text: Debug Hitboxes
+            - generic [ref=e59]: "OFF"
+          - checkbox "Debug Hitboxes OFF" [ref=e60] [cursor=pointer]
+    - button "RESET DEFAULTS" [ref=e62] [cursor=pointer]
+  - button "⚙" [ref=e63] [cursor=pointer]
+  - generic [ref=e65]:
+    - heading "3D SPACE" [level=1] [ref=e66]
+    - heading "INVADERS" [level=1] [ref=e67]
+    - generic [ref=e69]:
+      - generic [ref=e70] [cursor=pointer]: NEW GAME
+      - generic [ref=e71] [cursor=pointer]: CONTINUE FROM LEVEL 2
+      - generic [ref=e72] [cursor=pointer]: ☠ BESTIARY
+      - generic [ref=e73] [cursor=pointer]: ⚙ SETTINGS
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - generic [ref=e76]: SPACE
+        - generic [ref=e77]: New Game
+      - generic [ref=e78]:
+        - generic [ref=e79]: C
+        - generic [ref=e80]: Continue
+      - generic [ref=e81]:
+        - generic [ref=e82]: B
+        - generic [ref=e83]: Bestiary
+      - generic [ref=e84]:
+        - generic [ref=e85]: S
+        - generic [ref=e86]: Settings
+    - generic [ref=e87]: 5 ALIEN TYPES • BOSS BATTLES • POWER-UPS

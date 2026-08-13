@@ -1,0 +1,3 @@
+[     246ms] [LOG] Particle density: 100 @ http://localhost:5173/js/main.js:172
+[     246ms] [LOG] Show hitboxes: false @ http://localhost:5173/js/main.js:177
+[    3025ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5173/favicon.ico:0

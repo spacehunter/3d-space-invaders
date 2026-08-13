@@ -1,0 +1,96 @@
+- generic [active] [ref=f15e1]:
+  - generic: "FPS: 60"
+  - generic: v1.0.8
+  - generic: LEVEL 1
+  - generic [ref=f15e2]:
+    - generic [ref=f15e3]: "SCORE: 0"
+    - generic [ref=f15e4]: "LIVES: 3"
+  - generic [ref=f15e5]:
+    - heading "HIGH SCORES" [level=3] [ref=f15e6]
+    - generic [ref=f15e7]:
+      - generic [ref=f15e8]: 1. DAA - 1850
+      - generic [ref=f15e9]: 2. AAA - 1330
+      - generic [ref=f15e10]: 3. AAA - 1020
+      - generic [ref=f15e11]: 4. AAA - 850
+      - generic [ref=f15e12]: 5. AAA - 240
+  - generic [ref=f15e13]: "Move Mouse: Control Ship | Click: Fire Missile"
+  - generic [ref=f15e14]:
+    - generic [ref=f15e15]:
+      - heading "⚙ SETTINGS" [level=2] [ref=f15e16]
+      - button "✕" [ref=f15e17] [cursor=pointer]
+    - generic [ref=f15e18]:
+      - generic [ref=f15e19]:
+        - heading "◄ AUDIO ═══════════════════►" [level=3] [ref=f15e20]
+        - generic [ref=f15e21]:
+          - generic [ref=f15e22]:
+            - text: Master Volume
+            - generic [ref=f15e23]: 100%
+          - slider "Master Volume 100%" [ref=f15e24] [cursor=pointer]: "100"
+        - generic [ref=f15e25]:
+          - generic [ref=f15e26]:
+            - text: SFX Volume
+            - generic [ref=f15e27]: 80%
+          - slider "SFX Volume 80%" [ref=f15e28] [cursor=pointer]: "80"
+        - generic [ref=f15e29]:
+          - generic [ref=f15e30]:
+            - text: Music Volume
+            - generic [ref=f15e31]: 100%
+          - slider "Music Volume 100%" [ref=f15e32] [cursor=pointer]: "100"
+        - generic [ref=f15e33]:
+          - generic [ref=f15e34]:
+            - text: Mute All
+            - generic [ref=f15e35]: "OFF"
+          - checkbox "Mute All OFF" [ref=f15e36] [cursor=pointer]
+      - generic [ref=f15e37]:
+        - heading "◄ VISUAL ════════════════════►" [level=3] [ref=f15e38]
+        - generic [ref=f15e39]:
+          - generic [ref=f15e40]:
+            - text: Glow Intensity
+            - generic [ref=f15e41]: "0.35"
+          - slider "Glow Intensity 0.35" [ref=f15e42] [cursor=pointer]: "0.35"
+        - generic [ref=f15e43]:
+          - generic [ref=f15e44]:
+            - text: Particle Density
+            - generic [ref=f15e45]: 100%
+          - slider "Particle Density 100%" [ref=f15e46] [cursor=pointer]: "100"
+        - generic [ref=f15e47]:
+          - generic [ref=f15e48]:
+            - text: Show FPS
+            - generic [ref=f15e49]: "ON"
+          - checkbox "Show FPS ON" [checked] [ref=f15e50] [cursor=pointer]
+      - generic [ref=f15e51]:
+        - heading "◄ GAMEPLAY ══════════════════►" [level=3] [ref=f15e52]
+        - generic [ref=f15e53]:
+          - generic [ref=f15e54]:
+            - text: Mouse Sensitivity
+            - generic [ref=f15e55]: 1.00x
+          - slider "Mouse Sensitivity 1.00x" [ref=f15e56] [cursor=pointer]: "1"
+        - generic [ref=f15e57]:
+          - generic [ref=f15e58]:
+            - text: Debug Hitboxes
+            - generic [ref=f15e59]: "OFF"
+          - checkbox "Debug Hitboxes OFF" [ref=f15e60] [cursor=pointer]
+    - button "RESET DEFAULTS" [ref=f15e62] [cursor=pointer]
+  - button "⚙" [ref=f15e63] [cursor=pointer]
+  - generic [ref=f15e65]:
+    - heading "3D SPACE" [level=1] [ref=f15e66]
+    - heading "INVADERS" [level=1] [ref=f15e67]
+    - generic [ref=f15e69]:
+      - generic [ref=f15e70] [cursor=pointer]: NEW GAME
+      - generic [ref=f15e71] [cursor=pointer]: CONTINUE FROM LEVEL 2
+      - generic [ref=f15e72] [cursor=pointer]: ☠ BESTIARY
+      - generic [ref=f15e73] [cursor=pointer]: ⚙ SETTINGS
+    - generic [ref=f15e74]:
+      - generic [ref=f15e75]:
+        - generic [ref=f15e76]: SPACE
+        - generic [ref=f15e77]: New Game
+      - generic [ref=f15e78]:
+        - generic [ref=f15e79]: C
+        - generic [ref=f15e80]: Continue
+      - generic [ref=f15e81]:
+        - generic [ref=f15e82]: B
+        - generic [ref=f15e83]: Bestiary
+      - generic [ref=f15e84]:
+        - generic [ref=f15e85]: S
+        - generic [ref=f15e86]: Settings
+    - generic [ref=f15e87]: 5 ALIEN TYPES • BOSS BATTLES • POWER-UPS

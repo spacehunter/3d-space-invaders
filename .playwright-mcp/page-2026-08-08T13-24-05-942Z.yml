@@ -1,0 +1,77 @@
+- generic [active] [ref=e1]:
+  - generic: "FPS: 120"
+  - generic: v1.0.8
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - heading "⚙ SETTINGS" [level=2] [ref=e16]
+      - button "✕" [ref=e17] [cursor=pointer]
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - heading "◄ AUDIO ═══════════════════►" [level=3] [ref=e20]
+        - generic [ref=e21]:
+          - generic [ref=e22]:
+            - text: Master Volume
+            - generic [ref=e23]: 100%
+          - slider "Master Volume 100%" [ref=e24] [cursor=pointer]: "100"
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - text: SFX Volume
+            - generic [ref=e27]: 80%
+          - slider "SFX Volume 80%" [ref=e28] [cursor=pointer]: "80"
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - text: Music Volume
+            - generic [ref=e31]: 100%
+          - slider "Music Volume 100%" [ref=e32] [cursor=pointer]: "100"
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - text: Mute All
+            - generic [ref=e35]: "OFF"
+          - checkbox "Mute All OFF" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - heading "◄ VISUAL ════════════════════►" [level=3] [ref=e38]
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - text: Glow Intensity
+            - generic [ref=e41]: "0.35"
+          - slider "Glow Intensity 0.35" [ref=e42] [cursor=pointer]: "0.35"
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - text: Particle Density
+            - generic [ref=e45]: 100%
+          - slider "Particle Density 100%" [ref=e46] [cursor=pointer]: "100"
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - text: Show FPS
+            - generic [ref=e49]: "ON"
+          - checkbox "Show FPS ON" [checked] [ref=e50] [cursor=pointer]
+      - generic [ref=e51]:
+        - heading "◄ GAMEPLAY ══════════════════►" [level=3] [ref=e52]
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - text: Mouse Sensitivity
+            - generic [ref=e55]: 1.00x
+          - slider "Mouse Sensitivity 1.00x" [ref=e56] [cursor=pointer]: "1"
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - text: Debug Hitboxes
+            - generic [ref=e59]: "OFF"
+          - checkbox "Debug Hitboxes OFF" [ref=e60] [cursor=pointer]
+    - button "RESET DEFAULTS" [ref=e62] [cursor=pointer]
+  - button "⚙" [ref=e63] [cursor=pointer]
+  - generic:
+    - generic:
+      - heading "BESTIARY" [level=2]
+      - generic: INVADER FIELD GUIDE
+    - generic [ref=e89] [cursor=pointer]: ‹
+    - generic [ref=e90] [cursor=pointer]: ›
+    - generic:
+      - generic:
+        - generic: CRAB
+        - generic: 50 PTS
+      - generic: ROW 2 - RED
+      - generic: Tiered armoured carapace with a serrated front rim and lateral spikes. Jointed pincer claws straighten and snap, six legs walk an alternating tripod gait, eye stalks swivel and duck, and molten shell seams glow hotter with every snap.
+      - generic: "ARMAMENT: Standard red missiles"
+      - generic: 2 / 7
+      - button "◄ BACK" [ref=e91] [cursor=pointer]
+      - generic: ← / → NAVIGATE • B RETURN

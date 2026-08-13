@@ -1,0 +1,11 @@
+[     134ms] [LOG] Particle density: 100 @ http://localhost:5173/js/main.js:161
+[     134ms] [LOG] Show hitboxes: false @ http://localhost:5173/js/main.js:166
+[    5404ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5173/favicon.ico:0
+[  250572ms] [LOG] Particle density: 100 @ http://localhost:5173/js/main.js:161
+[  250572ms] [LOG] Show hitboxes: false @ http://localhost:5173/js/main.js:166
+[  255581ms] [LOG] Particle density: 100 @ http://localhost:5173/js/main.js:161
+[  255581ms] [LOG] Show hitboxes: false @ http://localhost:5173/js/main.js:166
+[  261175ms] [LOG] Particle density: 100 @ http://localhost:5173/js/main.js:161
+[  261175ms] [LOG] Show hitboxes: false @ http://localhost:5173/js/main.js:166
+[  267922ms] [LOG] Particle density: 100 @ http://localhost:5173/js/main.js:161
+[  267922ms] [LOG] Show hitboxes: false @ http://localhost:5173/js/main.js:166
