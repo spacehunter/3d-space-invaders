@@ -21,6 +21,26 @@ tick anything.
       on real diverging angles. Done when the verifier's "bestiary claim matches
       code" check passes.
 
+## Phase 1.5 — fix the NEXUS weapon that never flies
+
+- [x] **NEXUS spirals hang frozen in space.** `node verify-invader.mjs 15 NEXUS`
+      fails 3/13: `updateNexusSpirals` is exported from `js/missiles.js` but
+      never imported or called in `js/game.js`, so all four spiral projectiles
+      spawn and hang motionless forever. The update loop itself is also broken:
+      it flies projectiles the wrong way (`position.z -= speed`, away from the
+      player, so they never reach the `z > 20` cleanup and the array grows
+      unbounded), the spawn offset pushes them further from the player, it never
+      sets `position.y = 0`, and its corkscrew drift accumulates into the X
+      position each frame instead of oscillating around the launch column. The
+      firing branch also hides its real count of 4 inside a `for` loop, which
+      fails the bestiary-claim check. Fix: import + call the updater in
+      `js/game.js`, correct the flight model (+Z toward the player, y=0 plane,
+      spawn offset +0.78 to clear the alien hitbox, oscillate X around a
+      captured `baseX`), and unroll the firing loop so the four
+      `createNexusSpiral` calls are visible. Done when
+      `node verify-invader.mjs 15 NEXUS` exits 0 and `verify-invader.mjs 11
+      SPIRE` still exits 0.
+
 ## Phase 2 — make it look good
 
 - [x] **Animation pass.** Read `references/animation-rules.md`. The `case 11:`
@@ -71,6 +91,7 @@ tick anything.
 2026-08-15 10:00 — Report skill friction — passed — 8587cdd
 2026-08-13 14:30 — Add VOIDWORM (row 13) — sinuous 7-segment body chain with undulating wave, fractal spore weapon (splits mid-flight) — 13/13 verification checks pass — 8bae133
 2026-08-15 12:00 — Add RAVEN (row 14) — compact bird form with wing-spread animation, accelerating zigzag needles weapon — 15/15 verification checks pass — 812f2b4
+2026-08-13 18:45 — NEXUS spirals hang frozen in space — passed — wired updateNexusSpirals into game.js, fixed flight model (+Z, y=0, baseX oscillation), unrolled firing branch — verify 15 NEXUS 13/13 — 4567ffd
 
 ## Phase 5 — boss arsenal expansion
 
