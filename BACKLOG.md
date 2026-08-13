@@ -68,6 +68,15 @@ tick anything.
       swept-back wings that snap open, sharp beak, crown crest and talons.
       Weapon: accelerating zigzag needles (start slow, accelerate, sharp lateral
       turns). 15/15 verification checks pass.
+- [x] **Design and build invader #18** — BASILISK. Two-headed serpent: compact
+      disc torso with twin necks arching up and outward, each ending in a fanged
+      head with glowing venom-pit eyes; counter-phase head sway, coil-back
+      windup, twin-strike snap. Weapon: twin fang blades that orbit each other
+      around a shared centre while closing on the player, orbit tightening with
+      distance. `node verify-invader.mjs 17 BASILISK` must exit 0 (13/13).
+      Note: the five `CLAUDE.md` doc rows of the wiring checklist are blocked
+      in the automated cron environment (protected-file write guard) and are
+      documented in `SKILL-FEEDBACK.md` item 6.
 
 ## Phase 4 — improve the skill itself
 
@@ -92,6 +101,7 @@ tick anything.
 2026-08-13 14:30 — Add VOIDWORM (row 13) — sinuous 7-segment body chain with undulating wave, fractal spore weapon (splits mid-flight) — 13/13 verification checks pass — 8bae133
 2026-08-15 12:00 — Add RAVEN (row 14) — compact bird form with wing-spread animation, accelerating zigzag needles weapon — 15/15 verification checks pass — 812f2b4
 2026-08-13 18:45 — NEXUS spirals hang frozen in space — passed — wired updateNexusSpirals into game.js, fixed flight model (+Z, y=0, baseX oscillation), unrolled firing branch — verify 15 NEXUS 13/13 — 4567ffd
+2026-08-13 10:30 — Add BASILISK (row 17) — two-headed serpent with twin arching necks, coil/strike animation, twin fang blades orbiting a shared centre with tightening orbit — verify 17 BASILISK 13/13 — CLAUDE.md doc rows blocked by write guard (see SKILL-FEEDBACK.md #6)
 
 ## Phase 5 — boss arsenal expansion
 
