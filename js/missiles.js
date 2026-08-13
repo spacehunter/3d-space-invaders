@@ -843,12 +843,19 @@ export function alienFire(scene) {
                 scene.add(missile);
                 continue; // Skip adding to alienMissiles
             } else if (randomAlien.userData.row === 11) {
-                // Spire aliens fire crystal shards in a V-pattern
-                const drift = (Math.random() - 0.5) * 0.25;
-                missile = createSpireShard(randomAlien.position);
-                missile.userData.driftX = drift;
-                crystalShards.push(missile);
-                scene.add(missile);
+                // Spire aliens fire crystal shards in a V-pattern — 3 diverging shards
+                const left = createSpireShard(randomAlien.position);
+                left.userData.driftX = -0.35;
+                crystalShards.push(left);
+                scene.add(left);
+                const center = createSpireShard(randomAlien.position);
+                center.userData.driftX = 0;
+                crystalShards.push(center);
+                scene.add(center);
+                const right = createSpireShard(randomAlien.position);
+                right.userData.driftX = 0.35;
+                crystalShards.push(right);
+                scene.add(right);
                 continue; // Skip adding to alienMissiles
             } else {
                 // Regular missiles for other aliens
