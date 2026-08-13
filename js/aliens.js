@@ -4877,6 +4877,57 @@ export function animateAlien(alien) {
             }
             break;
         }
+        case 17: { // Basilisk — counter-phase head sway, coil-back windup, twin strike snap
+            const self = alien.userData;
+            const t = time;
+            const period = 7.2;
+            const phase = (t % period) / period;
+
+            // Explicit phase windows: windup ramps and holds, the strike is a
+            // brief burst, recoil decays after it.
+            const windup = phase >= 0.50 && phase < 0.65
+                ? Math.sin(((phase - 0.50) / 0.15) * Math.PI / 2)
+                : phase >= 0.65 && phase < 0.70 ? 1 : 0;
+            const strike = phase >= 0.70 && phase < 0.82
+                ? Math.sin(((phase - 0.70) / 0.12) * Math.PI)
+                : 0;
+            const recoil = phase >= 0.82 ? Math.max(0, 1 - (phase - 0.82) / 0.18) : 0;
+
+            // Idle counter-phase head sway, independent of the strike cycle.
+            const sway = Math.sin(t * 1.9);
+
+            if (self.necks) {
+                self.necks.forEach(neck => {
+                    // Sway is counter-phase per side; windup coils the neck back,
+                    // the strike snaps it forward, recoil settles it.
+                    neck.pivot.rotation.z = neck.side * sway * 0.07
+                                          - strike * neck.side * 0.10;
+                    neck.pivot.rotation.x = -windup * 0.34
+                                          + strike * 0.52
+                                          - recoil * 0.10;
+                    // Eyes travel with their head and flash through the event.
+                    // Cloned per instance -> safe to write here.
+                    neck.eye.material.emissiveIntensity = 2.2 + windup * 2.4 + strike * 3.6;
+                });
+            }
+
+            // Body pivot carries the hover; a slight crouch on windup.
+            if (self.bodyPivot) {
+                self.bodyPivot.position.y = Math.sin(t * 2.2) * 0.03 - windup * 0.05;
+            }
+
+            // Torso compresses on windup and springs on the strike. Child-mesh
+            // scale only — the group's scale belongs to the swoop telegraph.
+            if (self.torso) {
+                self.torso.scale.y = 1 - windup * 0.14 + strike * 0.10;
+            }
+
+            // updateSwoop() owns Y during a kamikaze dive.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = 0.03 + Math.sin(t * 2.0) * 0.02;
+            }
+            break;
+        }
     }
 }
 
@@ -5252,11 +5303,11 @@ const BASILISK_NECK = [
     { size: [0.12, 0.20, 0.12], pos: [0.66, 0.43, 0.23], rotZ: -1.35, color: BASILISK_MID }
 ];
 
-// Eyes: glowing venom pits on the outer face of each head. One geometry, both
-// heads — the material is cloned per instance so the flare pulses out of phase.
-const BASILISK_EYES = [
-    { size: [0.07, 0.05, 0.05], pos: [ 0.58, 0.55, 0.365], color: BASILISK_HOT },
-    { size: [0.07, 0.05, 0.05], pos: [-0.58, 0.55, 0.365], color: BASILISK_HOT }
+// Eyes: one glowing venom pit per head, on the outer face. Each is parented
+// to its neck pivot so the eyes travel with the head through the strike;
+// materials are cloned per instance so the flare pulses out of phase.
+const BASILISK_EYE_RIGHT = [
+    { size: [0.07, 0.05, 0.05], pos: [0.58, 0.55, 0.365], color: BASILISK_HOT }
 ];
 
 // Head accents (both heads): brow crest spike and lower jaw — merged so the
@@ -5297,7 +5348,10 @@ function getBasiliskParts() {
         headGeometries: { '-1': headLeft, '1': headRight },
         accentGeometries: { '-1': accentLeft, '1': accentRight },
         fangGeometries: { '-1': fangsLeft, '1': fangsRight },
-        eyeGeometry: buildVoxelGeometry(BASILISK_EYES),
+        eyeGeometries: {
+            '-1': buildVoxelGeometry(mirrorBoxes(BASILISK_EYE_RIGHT)),
+            '1': buildVoxelGeometry(BASILISK_EYE_RIGHT)
+        },
         shellMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
             emissive: BASILISK_MID,
@@ -5365,12 +5419,11 @@ function createBasiliskAlien(group) {
         fangs.position.set(-side * 0.14, -0.02, -0.04);
         pivot.add(fangs);
 
-        return { pivot, side };
-    });
+        // Cloned per instance: emissiveIntensity is animated.
+        const eye = new THREE.Mesh(parts.eyeGeometries[side], parts.eyeMaterial.clone());
+        eye.position.set(-side * 0.14, -0.02, -0.04);
+        pivot.add(eye);
 
-    // Cloned: emissiveIntensity is animated per instance.
-    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
-    eyes.position.set(0, 0, 0);
-    bodyPivot.add(eyes);
-    group.userData.eyes = eyes;
+        return { pivot, side, eye };
+    });
 }
