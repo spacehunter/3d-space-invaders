@@ -27,7 +27,7 @@ tick anything.
       branch in `animateAlien` should make the extend/retract obvious at
       gameplay distance and give the crystal clusters a brief *burst* on fire,
       not a steady glow. No drift, growth or sinking after 30s.
-- [ ] **Telegraph the shot.** Add a short visible wind-up before SPIRE fires so
+|- [x] **Telegraph the shot.** Add a short visible wind-up before SPIRE fires so
       the player can react — apex brightens or the tower compresses, then
       releases. Keep it under ~400ms.
 - [ ] **Model polish.** More silhouette contrast: sharper tier stepping, a
@@ -60,3 +60,4 @@ tick anything.
 2026-08-12 00:00 — SPIRE reachability fix — passed — 0c1c21c
 2026-08-12 00:01 — The V-pattern is a lie — passed — aefa7ad
 2026-08-12 01:15 — SPIRE animation pass — passed — 74c5faa
+2026-08-12 01:30 — SPIRE telegraph the shot — passed — 242f6b0
