@@ -59,6 +59,16 @@ const BOSS_DEFINITIONS = {
         createGeometry: createTitanGeometry,
         attackPatterns: ['segmentSlam', 'segmentSlam', 'solarFlare', 'solarFlare', 'regenerate'],
         movePattern: 'massive'
+    },
+    eclipse: {
+        name: 'THE ECLIPSE',
+        baseHealth: 60,
+        phases: 6,
+        scale: 3.5,
+        colors: { primary: 0x0a0a0a, secondary: 0xe94560, eye: 0x00ffcc },
+        createGeometry: createEclipseGeometry,
+        attackPatterns: ['laserBeam', 'laserBeam', 'wormhole', 'wormhole', 'laserBeam', 'laserBeam'],
+        movePattern: 'void'
     }
 };
 
@@ -460,6 +470,89 @@ function createTitanGeometry(colors, scale) {
     return group;
 }
 
+function createEclipseGeometry(colors, scale) {
+    const group = new THREE.Group();
+
+    // Dark void sphere (main body)
+    const voidMaterial = new THREE.MeshPhongMaterial({
+        color: colors.primary,
+        emissive: colors.primary,
+        emissiveIntensity: 0.5,
+        flatShading: true
+    });
+
+    // Main sphere body
+    const sphereGeometry = new THREE.SphereGeometry(1.5 * scale, 12, 12);
+    const sphere = new THREE.Mesh(sphereGeometry, voidMaterial);
+    group.add(sphere);
+
+    // Glowing crack lines radiating across surface
+    const crackMaterial = new THREE.MeshPhongMaterial({
+        color: colors.secondary,
+        emissive: colors.secondary,
+        emissiveIntensity: 5.0
+    });
+
+    group.userData.cracks = [];
+    for (let i = 0; i < 8; i++) {
+        const crack = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1 * scale, 0.1 * scale, 0.3 * scale),
+            crackMaterial.clone()
+        );
+        crack.position.set(
+            (Math.random() - 0.5) * 1.5 * scale,
+            (Math.random() - 0.5) * 1.5 * scale,
+            (Math.random() - 0.5) * 1.5 * scale
+        );
+        crack.rotation.set(
+            Math.random() * Math.PI,
+            Math.random() * Math.PI,
+            Math.random() * Math.PI
+        );
+        group.add(crack);
+        group.userData.cracks.push(crack);
+    }
+
+    // Inner core (pulsing energy)
+    const coreMaterial = new THREE.MeshPhongMaterial({
+        color: colors.eye,
+        emissive: colors.eye,
+        emissiveIntensity: 8.0
+    });
+
+    const core = new THREE.Mesh(
+        new THREE.SphereGeometry(0.4 * scale, 8, 8),
+        coreMaterial
+    );
+    core.position.z = 0.3 * scale;
+    group.add(core);
+    group.userData.core = core;
+
+    // Orbiting mini wormholes
+    group.userData.wormholes = [];
+    const wormholeMaterial = new THREE.MeshPhongMaterial({
+        color: colors.secondary,
+        emissive: colors.secondary,
+        emissiveIntensity: 4.0,
+        transparent: true,
+        opacity: 0.6
+    });
+
+    for (let i = 0; i < 5; i++) {
+        const wormhole = new THREE.Mesh(
+            new THREE.RingGeometry(0.15 * scale, 0.3 * scale, 8),
+            wormholeMaterial.clone()
+        );
+        wormhole.userData.wormholeAngle = (i / 5) * Math.PI * 2;
+        wormhole.userData.wormholeRadius = 2.2 * scale;
+        wormhole.userData.wormholeSpeed = 0.01 + Math.random() * 0.01;
+        group.add(wormhole);
+        group.userData.wormholes.push(wormhole);
+    }
+
+    return group;
+}
+
 // ============== BOSS SPAWNING & MANAGEMENT ==============
 
 /**
@@ -594,6 +687,16 @@ export function updateBoss(scene, player, deltaTime) {
             // Minimal movement for massive boss
             currentBoss.position.y = Math.sin(time * 0.5) * 0.3;
             break;
+
+        case 'void':
+            // Phasing in/out of dimension
+            if (Math.random() < 0.003) {
+                currentBoss.position.x = (Math.random() - 0.5) * 14;
+                currentBoss.userData.visibilityToggle = true;
+            }
+            currentBoss.position.y = Math.sin(time * 1.5) * 1.0;
+            currentBoss.userData.visibilityToggle = false;
+            break;
     }
 
     // Type-specific animations
@@ -696,6 +799,39 @@ function animateBossType(boss, time) {
             if (boss.userData.vents) {
                 boss.userData.vents.forEach((vent, i) => {
                     vent.material.emissiveIntensity = 2 + Math.sin(time * 5 + i) * 1.5;
+                });
+            }
+            break;
+
+        case 'eclipse':
+            // Phasing in/out — flicker visibility
+            if (boss.userData.visibilityToggle) {
+                boss.visible = Math.sin(time * 40) > 0;
+            } else {
+                boss.visible = true;
+            }
+            // Crack lines pulsing
+            if (boss.userData.cracks) {
+                boss.userData.cracks.forEach((crack, i) => {
+                    const pulse = 3 + Math.sin(time * 6 + i * 0.7) * 4;
+                    crack.material.emissiveIntensity = pulse;
+                    crack.rotation.z += 0.02;
+                });
+            }
+            // Core deep pulse
+            if (boss.userData.core) {
+                const corePulse = 1 + Math.sin(time * 5) * 0.2;
+                boss.userData.core.scale.set(corePulse, corePulse, corePulse);
+                boss.userData.core.material.emissiveIntensity = 6 + Math.sin(time * 8) * 4;
+            }
+            // Orbiting wormholes
+            if (boss.userData.wormholes) {
+                boss.userData.wormholes.forEach(wh => {
+                    wh.userData.wormholeAngle += wh.userData.wormholeSpeed;
+                    wh.position.x = Math.cos(wh.userData.wormholeAngle) * wh.userData.wormholeRadius;
+                    wh.position.z = Math.sin(wh.userData.wormholeAngle) * wh.userData.wormholeRadius;
+                    wh.rotation.x = time * 2;
+                    wh.rotation.y = time * 1.5;
                 });
             }
             break;

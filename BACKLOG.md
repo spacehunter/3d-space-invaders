@@ -65,3 +65,14 @@ tick anything.
 2026-08-13 12:00 — Shard visual — passed — 1129b6b
 2026-08-14 08:30 — Invader #13 PRISM — passed — fb34a12
 2026-08-15 10:00 — Report skill friction — passed — 8587cdd
+
+## Phase 5 — boss arsenal expansion
+
+|- [ ] **Boss #6 — ECLIPSE.** Add a 6th boss type that appears every 30 levels
+      (L30, L60, L90…) instead of the 5-boss cycle. It is a dark matter sphere
+      that phases in/out of visibility, fires a converging laser beam from its
+      core, and spawns mini-wormholes that accelerate nearby player missiles
+      backwards. Design gate: must differ from all 5 existing bosses in
+      silhouette and attack pattern. Verify with `node verify-invader.mjs`
+      equivalent for bosses (check spawn wiring, model constants, animation
+      branch, weapon update fn, bestiary entry). Do NOT add to the alien roster.

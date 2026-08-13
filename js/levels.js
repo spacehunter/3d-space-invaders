@@ -1,7 +1,7 @@
 // Level configuration system - DRY design with base values and scaling formulas
 
 // Boss types that rotate every 5 levels
-export const BOSS_TYPES = ['mothership', 'hiveQueen', 'dreadnought', 'phantom', 'titan'];
+export const BOSS_TYPES = ['mothership', 'hiveQueen', 'dreadnought', 'phantom', 'titan', 'eclipse'];
 
 // Base configuration for level 1
 const BASE_CONFIG = {
@@ -69,6 +69,8 @@ function calculateCols(level) {
  * @returns {string|null} Boss type key or null if not a boss level
  */
 function getBossType(level) {
+    // Elite boss ECLIPSE appears every 30 levels
+    if (level % 30 === 0) return 'eclipse';
     if (level % 5 !== 0) return null;
     const bossIndex = (Math.floor(level / 5) - 1) % BOSS_TYPES.length;
     return BOSS_TYPES[bossIndex];
@@ -81,6 +83,8 @@ function getBossType(level) {
  */
 function getBossEnhancement(level) {
     if (level % 5 !== 0) return 0;
+    // Eclipse (elite boss at level 30, 60, 90…) has its own enhancement tier
+    if (level % 30 === 0) return Math.ceil(level / 30);
     return Math.ceil(level / (5 * BOSS_TYPES.length));
 }
 
@@ -178,7 +182,8 @@ export function getLevelDisplayName(level) {
             'hiveQueen': 'THE HIVE QUEEN',
             'dreadnought': 'THE DREADNOUGHT',
             'phantom': 'THE PHANTOM',
-            'titan': 'THE TITAN'
+            'titan': 'THE TITAN',
+            'eclipse': 'THE ECLIPSE'
         };
         return bossNames[config.bossType] || 'BOSS BATTLE';
     }
