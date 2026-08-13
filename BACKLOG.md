@@ -30,7 +30,7 @@ tick anything.
 |- [x] **Telegraph the shot.** Add a short visible wind-up before SPIRE fires so
       the player can react — apex brightens or the tower compresses, then
       releases. Keep it under ~400ms.
-- [ ] **Model polish.** More silhouette contrast: sharper tier stepping, a
+- [x] **Model polish.** More silhouette contrast: sharper tier stepping, a
       clearer gold apex, better read against the dark background at distance.
       Check the colour-at-distance section in SKILL.md.
 - [ ] **Shard visual.** Make the crystal shards read as crystal — tumble on
@@ -61,3 +61,4 @@ tick anything.
 2026-08-12 00:01 — The V-pattern is a lie — passed — aefa7ad
 2026-08-12 01:15 — SPIRE animation pass — passed — 74c5faa
 2026-08-12 01:30 — SPIRE telegraph the shot — passed — 242f6b0
+2026-08-12 02:00 — SPIRE model polish — passed — e6a0f36
