@@ -23,7 +23,7 @@ tick anything.
 
 ## Phase 2 — make it look good
 
-- [ ] **Animation pass.** Read `references/animation-rules.md`. The `case 11:`
+- [x] **Animation pass.** Read `references/animation-rules.md`. The `case 11:`
       branch in `animateAlien` should make the extend/retract obvious at
       gameplay distance and give the crystal clusters a brief *burst* on fire,
       not a steady glow. No drift, growth or sinking after 30s.
@@ -59,3 +59,4 @@ tick anything.
 (append one line per tick: `YYYY-MM-DD HH:MM — item — outcome — commit sha`)
 2026-08-12 00:00 — SPIRE reachability fix — passed — 0c1c21c
 2026-08-12 00:01 — The V-pattern is a lie — passed — aefa7ad
+2026-08-12 01:15 — SPIRE animation pass — passed — 74c5faa
