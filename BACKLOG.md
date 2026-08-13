@@ -1,0 +1,59 @@
+# Overnight backlog — SPIRE, then the next invader
+
+One item per tick. Work **top to bottom**. Do exactly ONE unchecked item per
+run, then stop. Tick the box, append a line to the LOG at the bottom, commit.
+
+Verify with `node verify-invader.mjs 11 SPIRE` — it must exit 0 before you
+tick anything.
+
+## Phase 1 — fix what is actually broken
+
+- [ ] **SPIRE is unreachable.** `verify-invader.mjs` reports it first appears at
+      LEVEL 29 (`alienRows: 5` + one row per 4 levels in `js/levels.js`). Nobody
+      will ever see it. Make row 11 reachable by roughly level 10-12 without
+      making early levels harder — e.g. lower `ROW_GROWTH_INTERVAL`, or seed the
+      top row from the highest type instead of the lowest. Do not raise
+      `alienRows`. Done when the verifier's "reachable in normal play" check
+      passes.
+- [ ] **The V-pattern is a lie.** `js/bestiary.js` promises "a spread of three
+      projectiles in a wide V-pattern"; the firing branch (`row === 11` in
+      `js/missiles.js`) creates ONE shard with random drift. Make it fire three
+      on real diverging angles. Done when the verifier's "bestiary claim matches
+      code" check passes.
+
+## Phase 2 — make it look good
+
+- [ ] **Animation pass.** Read `references/animation-rules.md`. The `case 11:`
+      branch in `animateAlien` should make the extend/retract obvious at
+      gameplay distance and give the crystal clusters a brief *burst* on fire,
+      not a steady glow. No drift, growth or sinking after 30s.
+- [ ] **Telegraph the shot.** Add a short visible wind-up before SPIRE fires so
+      the player can react — apex brightens or the tower compresses, then
+      releases. Keep it under ~400ms.
+- [ ] **Model polish.** More silhouette contrast: sharper tier stepping, a
+      clearer gold apex, better read against the dark background at distance.
+      Check the colour-at-distance section in SKILL.md.
+- [ ] **Shard visual.** Make the crystal shards read as crystal — tumble on
+      their own axis, faceted colour, short trail. They must stay readable
+      against the starfield.
+
+## Phase 3 — new invader with the improved skill
+
+- [ ] **Design and build invader #13** following SKILL.md end to end, including
+      the new "Rules for local models" and the headless verifier. Must not reuse
+      any defining feature of: OCTOPUS, CRAB, SQUID, UFO, TANK, BEETLE, INVADER,
+      SCORPION, WASP, SENTINEL, WARDEN, SPIRE. Run
+      `node verify-invader.mjs 12 <NAME>` until it exits 0.
+
+## Phase 4 — improve the skill itself
+
+- [ ] **Report skill friction.** Append to `SKILL-FEEDBACK.md` in the repo root:
+      which steps were ambiguous, where you had to guess, which Done-when gates
+      you could not evaluate, and what you would change. Be specific and cite
+      step numbers. Do NOT edit SKILL.md yourself.
+
+---
+
+## LOG
+
+(append one line per tick: `YYYY-MM-DD HH:MM — item — outcome — commit sha`)
