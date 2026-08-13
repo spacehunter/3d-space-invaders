@@ -283,7 +283,7 @@ function checkMissileCollision(missile, missileIndex, scene, scoreCallback, game
             createExplosion(alien.position, scene);
             playExplosion(1.0);
 
-            // Update score (15 rows: row 0 = 60pts down to row 14 = 0pts)
+            // Update score (18 rows: row 0 = 60pts down to row 17 = 0pts)
             const points = Math.max(0, (6 - alien.userData.row) * 10);
             scoreCallback(points);
 

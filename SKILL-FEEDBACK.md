@@ -215,3 +215,14 @@ have a different "C" section for headless runs.
    The script presumably exits non-zero, but the skill doesn't say
    "if it fails on X check, look at file Y line Z." The script
    should output actionable repair instructions, not just pass/fail.
+
+6. **`CLAUDE.md` doc rows (checklist 20–24) cannot be done in the
+   automated cron environment.** The write guard treats `CLAUDE.md`
+   as a protected agent-instruction file and refuses edits when no
+   interactive user is present to approve. All five `CLAUDE.md`
+   wiring rows (module table, Alien Types by Row, Missile System
+   array, registry enumeration, "rows are now rebuilt" count) fail
+   closed. Functional game code is unaffected and still verifies
+   13/13, but the checklist cannot be fully ticked unattended. The
+   skill should either flag these rows as "interactive-only" or move
+   the roster counts into a file the cron agent is allowed to write.

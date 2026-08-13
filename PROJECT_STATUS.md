@@ -5,7 +5,8 @@
 
 ## Current State
 
-- All 11 alien rows have distinct voxel models and row-specific animation.
+- All 18 alien rows have distinct voxel models and row-specific animation.
+- Row 17 Basilisk is the roster's first two-headed type: a compact disc torso with twin arching necks ending in fanged heads, a counter-phase head sway, a coil-back windup and a twin-strike snap, and twin fang blades that orbit each other around a shared centre while closing on the player.
 - Row 10 Warden is the roster's first hollow silhouette: a standing hoop with a gold core on retractable spokes, a gimbal flip that collapses it edge-on, and expanding halo waves that are lethal only at the rim.
 - Row 9 Sentinel is the roster's first limbless type: ten obsidian armour shards around an exposed plasma core, two counter-rotating gimbal rings, a shatter-bloom disassembly that locks into a firing lens, and diverging three-shot prism lance fans.
 - `CAPS.maxRows` raised from 8 to 10. At 8 the grid could only reach rows 0-7, so the Row 8 Wasp had never actually spawned in a wave; both it and the Sentinel now do.
