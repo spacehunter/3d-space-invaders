@@ -2699,29 +2699,30 @@ function createWardenAlien(group) {
 
 // Tall vertical silhouette: stacked diamond tiers tapering to a sharp apex,
 // with small gold crystals jutting from the mid-section on all four sides.
-const SPIRE_DARK  = 0x1a0a2e;    // deep purple base
-const SPIRE_MID   = 0x6a2ca7;    // purple body
-const SPIRE_BRIGHT= 0xaa40e0;    // bright purple
-const SPIRE_HOT   = 0xda70d6;    // magenta
+const SPIRE_DARK  = 0x2e1550;    // lighter dark base — reads against space
+const SPIRE_MID   = 0x8a3ccf;    // purple body
+const SPIRE_BRIGHT= 0xca60ff;    // bright purple (lifted from deep)
+const SPIRE_HOT   = 0xda70d6;    // magenta (unchanged)
 const SPIRE_GOLD  = 0xffd700;    // gold accent crystals
 const SPIRE_WARM  = 0xffdf70;    // warm gold tip
 
 // Main crystal body — stacked diamond tiers, widest at the base, tapering up.
+// Sharper size steps for crystal-silhouette contrast; gold apex dominates top.
 const SPIRE_BODY = [
-    // Base tier — wide diamond footprint
+    // Base tier — wide diamond footprint, dark base
     { size: [1.00, 0.34, 1.00], pos: [0, 0.50, 0.00], color: SPIRE_DARK },
-    // Lower body tier
-    { size: [0.84, 0.30, 0.84], pos: [0, 0.82, 0.00], color: SPIRE_DARK },
-    // Mid body — widest tier for the crystal cluster attachment zone
-    { size: [0.66, 0.28, 0.66], pos: [0, 1.15, 0.00], color: SPIRE_MID },
+    // Lower body — significant step up from base
+    { size: [0.76, 0.30, 0.76], pos: [0, 0.84, 0.00], color: SPIRE_DARK },
+    // Mid body — widest for crystal cluster attachment zone
+    { size: [0.56, 0.28, 0.56], pos: [0, 1.16, 0.00], color: SPIRE_MID },
     // Upper body
-    { size: [0.48, 0.24, 0.48], pos: [0, 1.45, 0.00], color: SPIRE_MID },
-    // Upper taper
-    { size: [0.30, 0.22, 0.30], pos: [0, 1.72, 0.00], color: SPIRE_BRIGHT },
-    // Apex
-    { size: [0.14, 0.22, 0.14], pos: [0, 1.97, 0.00], color: SPIRE_BRIGHT },
-    // Tip crystal
-    { size: [0.06, 0.16, 0.06], pos: [0, 2.16, 0.00], color: SPIRE_GOLD }
+    { size: [0.34, 0.26, 0.34], pos: [0, 1.46, 0.00], color: SPIRE_MID },
+    // Upper taper — transition to gold
+    { size: [0.20, 0.24, 0.20], pos: [0, 1.72, 0.00], color: SPIRE_GOLD },
+    // Apex crystal — substantial gold tower
+    { size: [0.10, 0.22, 0.10], pos: [0, 1.96, 0.00], color: SPIRE_GOLD },
+    // Gold cap tip
+    { size: [0.04, 0.22, 0.04], pos: [0, 2.18, 0.00], color: SPIRE_WARM }
 ];
 
 // Accent crystal cluster — small gold crystals jutting outward from the mid
@@ -2745,14 +2746,14 @@ function getSpireParts() {
         bodyMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
             emissive: SPIRE_DARK,
-            emissiveIntensity: 0.28,
-            shininess: 60,
+            emissiveIntensity: 0.38,     // lifted: lighter base needs more glow to read vs space
+            shininess: 70,
             flatShading: true
         }),
         crystalMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
             emissive: SPIRE_GOLD,
-            emissiveIntensity: 1.4,
+            emissiveIntensity: 0.9,      // reduced: gold color ramp must survive bloom
             flatShading: true
         })
     };
