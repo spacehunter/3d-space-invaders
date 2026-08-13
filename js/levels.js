@@ -38,7 +38,7 @@ const CAPS = {
 };
 
 // Row growth pattern - when to add rows
-const ROW_GROWTH_INTERVAL = 4;  // Add a row every 4 levels
+const ROW_GROWTH_INTERVAL = 1;  // Add a row every level
 
 // Column growth pattern - when to add columns
 const COL_GROWTH_INTERVAL = 2;  // Add a column every 2 levels

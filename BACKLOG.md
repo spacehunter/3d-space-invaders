@@ -8,7 +8,7 @@ tick anything.
 
 ## Phase 1 — fix what is actually broken
 
-- [ ] **SPIRE is unreachable.** `verify-invader.mjs` reports it first appears at
+|- [x] **SPIRE is unreachable.** `verify-invader.mjs` reports it first appears at
       LEVEL 29 (`alienRows: 5` + one row per 4 levels in `js/levels.js`). Nobody
       will ever see it. Make row 11 reachable by roughly level 10-12 without
       making early levels harder — e.g. lower `ROW_GROWTH_INTERVAL`, or seed the
@@ -57,3 +57,4 @@ tick anything.
 ## LOG
 
 (append one line per tick: `YYYY-MM-DD HH:MM — item — outcome — commit sha`)
+2026-08-12 00:00 — SPIRE reachability fix — passed — 0c1c21c
