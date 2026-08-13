@@ -47,7 +47,7 @@ tick anything.
 
 ## Phase 4 — improve the skill itself
 
-- [ ] **Report skill friction.** Append to `SKILL-FEEDBACK.md` in the repo root:
+- [x] **Report skill friction.** Append to `SKILL-FEEDBACK.md` in the repo root:
       which steps were ambiguous, where you had to guess, which Done-when gates
       you could not evaluate, and what you would change. Be specific and cite
       step numbers. Do NOT edit SKILL.md yourself.
@@ -64,3 +64,4 @@ tick anything.
 2026-08-12 02:00 — SPIRE model polish — passed — e6a0f36
 2026-08-13 12:00 — Shard visual — passed — 1129b6b
 2026-08-14 08:30 — Invader #13 PRISM — passed — fb34a12
+2026-08-15 10:00 — Report skill friction — passed — <COMMIT_SHA>
