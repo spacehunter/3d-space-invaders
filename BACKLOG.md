@@ -44,6 +44,10 @@ tick anything.
       any defining feature of: OCTOPUS, CRAB, SQUID, UFO, TANK, BEETLE, INVADER,
       SCORPION, WASP, SENTINEL, WARDEN, SPIRE. Run
       `node verify-invader.mjs 12 <NAME>` until it exits 0.
+|- [x] **Design and build invader #15** — RAVEN. Compact bird-like form with
+      swept-back wings that snap open, sharp beak, crown crest and talons.
+      Weapon: accelerating zigzag needles (start slow, accelerate, sharp lateral
+      turns). 15/15 verification checks pass.
 
 ## Phase 4 — improve the skill itself
 
@@ -66,6 +70,7 @@ tick anything.
 2026-08-14 08:30 — Invader #13 PRISM — passed — fb34a12
 2026-08-15 10:00 — Report skill friction — passed — 8587cdd
 2026-08-13 14:30 — Add VOIDWORM (row 13) — sinuous 7-segment body chain with undulating wave, fractal spore weapon (splits mid-flight) — 13/13 verification checks pass — 8bae133
+2026-08-15 12:00 — Add RAVEN (row 14) — compact bird form with wing-spread animation, accelerating zigzag needles weapon — 15/15 verification checks pass — 812f2b4
 
 ## Phase 5 — boss arsenal expansion
 
