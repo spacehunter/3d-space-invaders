@@ -3995,7 +3995,7 @@ export function animateAlien(alien) {
             const period = 6.0;
             const p = (t % period) / period;
 
-            // --- Signature animation: tower extends, then cracks outward ---
+            // --- Signature animation: squash → release → extend → fire → retract ---
             // Spike ramp: 0.30→0.45 (rise), 0.45→0.50 (plateau), 0.50→0.70 (retract)
             const spike = p >= 0.30 && p < 0.45
                 ? Math.sin(((p - 0.30) / 0.15) * Math.PI / 2)
@@ -4005,14 +4005,27 @@ export function animateAlien(alien) {
                         ? Math.sin(((0.70 - p) / 0.20) * Math.PI / 2)
                         : 0;
 
-            // Crystal unfurl: crystals push outward when spike peaks
-            const unfurl = p >= 0.40 && p < 0.50
-                ? Math.sin(((p - 0.40) / 0.10) * Math.PI)
+            // Squash (wind-up telegraph): tower compresses at ~0.27, giving a clear
+            // visual cue that a shot is imminent.  Scales: 1.0 → 0.85 tall, ~1.08 wide.
+            // Triangle: 0 (pre-squash) → 1 (0.275, peak) → 0 (0.30, release).
+            let squash = 0;
+            if (p >= 0.25 && p < 0.275) {
+                squash = ((p - 0.25) / 0.025);
+            } else if (p >= 0.275 && p < 0.30) {
+                squash = 1.0 - ((p - 0.275) / 0.025);
+            }
+
+            // Crystal unfurl: crystals push outward during squash AND peak.
+            // During squash the crystals flare out (expanding silhouette).
+            const unfurl = (p >= 0.25 && p < 0.275) ? (p - 0.25) / 0.025
+                : (p >= 0.275 && p < 0.35) ? 1.0
+                : (p >= 0.35 && p < 0.50) ? Math.sin(((p - 0.35) / 0.15) * Math.PI)
                 : 0;
 
-            // Burst flash — brief, sharp, only around extension peak (~350 ms)
-            const burstHalfWidth = 0.175 / period; // ±175 ms in period fraction
-            const burstCenter = (0.38 + 0.48) / 2;
+            // Burst flash — fires on the *release* from squash (0.26-0.33), not at
+            // peak extension.  The bright flash tells the player "it just wound up."
+            const burstHalfWidth = 0.03 / 2;
+            const burstCenter = 0.275;
             const burstPulse = (p >= burstCenter - burstHalfWidth && p < burstCenter + burstHalfWidth)
                 ? Math.sin(((p - (burstCenter - burstHalfWidth)) / (burstHalfWidth * 2)) * Math.PI)
                 : 0;
@@ -4021,24 +4034,31 @@ export function animateAlien(alien) {
             const sway = Math.sin(t * 0.9) * 0.02;
 
             if (self.bodyPivot) {
-                // Scale-based stretch: makes extension obvious at formation distance
-                self.bodyPivot.scale.y = 1.0 + spike * 0.12 + unfurl * 0.04;
+                // Base scale: squash compresses from 1.0 → 0.85 tall (~1.08 wide).
+                // Spike then extends back + beyond; unfurl widens slightly.
+                const squashScale = 1.0 - squash * 0.15;
+                const extScale = spike * 0.12 + unfurl * 0.04;
+                self.bodyPivot.scale.set(
+                    squashScale * (1.0 + extScale * 0.3),
+                    squashScale + extScale,
+                    squashScale * (1.0 + extScale * 0.3)
+                );
                 self.bodyPivot.rotation.y = sway;
             }
 
             if (self.crystals) {
                 self.crystals.forEach(crystal => {
-                    // Emissive burst: base 1.4 → peak ~6.0 for ~350 ms
-                    crystal.mesh.material.emissiveIntensity = 1.4 + burstPulse * 4.6;
-                    // Subtle unfurl: crystals extend outward from body
-                    const crystalScale = 1.0 + unfurl * 0.35;
+                    // Emissive burst: base 1.4 → peak ~14.0 for ~60 ms (release flash).
+                    crystal.mesh.material.emissiveIntensity = 1.4 + burstPulse * 12.6;
+                    // Crystal unfurl: extend outward from body during squash and peak.
+                    const crystalScale = 1.0 + unfurl * 0.45;
                     crystal.mesh.scale.setScalar(crystalScale);
                 });
             }
 
             // Guarded: updateSwoop() owns Y during a kamikaze dive.
             if (!alien.userData.isSwooping) {
-                alien.position.y = 0.05 + Math.sin(t * 0.8) * 0.03;
+                alien.position.y = 0.05 + Math.sin(t * 0.8) * 0.03 - squash * 0.04;
             }
             break;
         }
