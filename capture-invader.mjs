@@ -91,9 +91,27 @@ try {
   console.log(`  bestiary shows "${NAME}": ${onEntry ? 'YES' : 'NO — check the ID'}`);
   const counter = (shown.match(/(\d+)\s*\/\s*(\d+)/) || [])[0];
   if (counter) console.log(`  entry counter: ${counter}`);
+  // A missing asset is noise. A thrown exception means the animation is
+  // broken on every frame, and `npm run build` will not tell you: a
+  // const used above its declaration is valid syntax and a runtime
+  // ReferenceError. That shipped once (1dbc7f8) and graded as "animated".
+  const jsErrors = errors.filter((e) => !/Failed to load resource/i.test(e));
   if (errors.length) {
-    console.log(`  page errors (${errors.length}):`);
+    console.log(`  page errors (${errors.length}, ${jsErrors.length} from JS):`);
     errors.slice(0, 5).forEach((e) => console.log(`    ${e.slice(0, 140)}`));
+  }
+  if (jsErrors.length) {
+    const uniq = [...new Set(jsErrors.map((e) => e.slice(0, 120)))];
+    appendFileSync('.vision-audit.log',
+      `${new Date().toISOString()}\tJSERROR\t${NAME}\tid=${ID}`
+      + `\tcount=${jsErrors.length}\tfirst=${uniq[0].replace(/\s+/g, ' ')}\n`);
+    console.log('');
+    console.log('  ############################################################');
+    console.log(`  # ${jsErrors.length} RUNTIME JS ERROR(S). These frames are NOT evidence.`);
+    uniq.slice(0, 3).forEach((e) => console.log(`  #   ${e}`));
+    console.log('  # Fix this before you grade, commit, or report anything.');
+    console.log('  ############################################################');
+    process.exit(4);
   }
   process.exit(onEntry ? 0 : 1);
 } catch (err) {

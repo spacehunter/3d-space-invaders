@@ -4,36 +4,47 @@ Read this FIRST in any session (a Telegram reply is a fresh session with no
 memory of the cron runs). Update it after every grade and before releasing
 the lock. Keep it under ~60 lines: newest facts on top, prune stale detail.
 
-## Now (updated 2026-08-14)
+## Now (updated 2026-08-14 17:30)
 
 - Target: overall 8.0, confirmed twice (`grade-invader.py VOIDWORM --confirm`
-  exit 0). Best so far: 7 — single grades only, never confirmed.
-- Grade trail today (oldest → newest): 5, 5, 6, 7, 6, 7, 7, 6.
-- Weakest dimension: **detail** (4–5 in every grade today). Animation holds
-  at ~7 when the capture spans the full 7.0s period (FRAMES=11 GAP_MS=800).
-- HEAD: fff19f3 "octahedron facets over icosahedron blobs" — chosen by human
-  eye; the grader preferred the blobs, the humans did not. **Do not revert.**
-- Working tree clean. The 2026-08-14 16:42 cron run reported failure (did
-  not reach 8.0 within budget) and left no uncommitted edits behind.
-- Cron job c94c41ea9af6 is PAUSED while the human gives direction directly.
+  exit 0). **Current: 7.0** — silhouette 8, contrast 7, animation 7,
+  detail 6, cohesion 7.
+- HEAD: 5c8c593. Working tree clean. Cron c94c41ea9af6 PAUSED.
+- **Detail is finally moving**: it sat at 4–5 for every grade on 2026-08-14
+  until the spine/plate/bead pass (1dbc7f8) lifted it to 6. That direction
+  is working — keep going, do not abandon it.
+- Grader's `one_fix`: the purple segments read as *uniform faceted spheres*,
+  not crystals. Give them irregular, sharp, non-uniform geometry so they
+  reward a close look. That is the single highest-value change right now.
 
 ## Tried already — do not redo
 
-- Crystal spheres, core glow, brighter colour ramp, sinuous wave (a22c0c3).
-- Octahedron facets replacing icosahedron blobs (fff19f3) — kept, human-approved.
-- Icosahedron blobs — grader scored them higher, humans rejected them.
-- Short captures (~2.1s) — produce a false "animation is missing" critique;
-  always cover the full 7.0s period.
+- Dorsal spines, accent plates, joint beads (1dbc7f8) — detail 4/5 → 6. KEPT.
+- Octahedron facets over icosahedron blobs (fff19f3) — human-chosen. The
+  grader preferred the blobs; the humans did not. **Never revert this.**
+- Crystal spheres, core glow, brighter ramp, sinuous wave (a22c0c3).
+- Short captures (~2.1s) — produce a false "animation is missing" verdict.
+  VOIDWORM's period is 7.0s: always `FRAMES=11 GAP_MS=800`.
+
+## Burned once — do not repeat
+
+- 1dbc7f8 was committed with **no grade** and a **runtime crash**: `windup`
+  was read at lines 4848/4850/4863 but declared at 4871, a temporal dead
+  zone. `npm run build` passed; the browser threw `ReferenceError` on every
+  frame (148 in a 3-frame capture). Fixed in 5c8c593.
+- The cause: that run wrote its own `capture-voidworm.mjs` instead of using
+  `capture-invader.mjs`, so nothing verified the page and nothing was logged.
+  Both ad-hoc scripts are deleted. Use the sanctioned toolchain only.
+- `capture-invader.mjs` now exits **4** with a banner if the page throws.
+  Exit 4 = your frames are not evidence. Fix, recapture, then grade.
 
 ## Next
 
-- Raise **detail** without hurting silhouette: small secondary structures
-  (spines, segment plates, joint accents) that read at gameplay distance,
-  then recapture and regrade.
-- The grader is ±2 noisy on identical builds. Never revert on one low score —
-  look at the captures first, and only believe a pass or a regression after
-  two consecutive grades agree.
-- Any direction the human sends by Telegram outranks the grader's `one_fix`.
+1. Irregular crystalline geometry on the body segments (the `one_fix`).
+2. Recapture `FRAMES=11 GAP_MS=800`, confirm capture exits 0, then grade.
+3. The grader is ±2 noisy on identical builds — never revert on one low
+   score. Look at the frames first; believe a pass only after `--confirm`.
+4. Anything the human sends by Telegram outranks the grader's `one_fix`.
 
 ## Update template (replace sections above, keep headings)
 

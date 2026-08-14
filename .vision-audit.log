@@ -26,3 +26,12 @@
 2026-08-14T21:42:24.616103+00:00	GRADE	VOIDWORM	frames=6	overall=6	silhouette=7	contrast=6	animation=7	detail=4	cohesion=5	prompt_tokens=1776	sha=7d85006e0e22,47c8c42e87c8,4f5ffb91e0a5,580c9a4aca4d,7bd248b2f569,45df07bef275
 2026-08-14T21:43:48.204Z	CAPTURE	VOIDWORM	id=13	frames=11	gap=800ms	span=8.0s	onEntry=true	sha=3d5b4fa65334,3bae042b963a,97841d52ce42,f4e81e7969ca,6916d663ee8d,1375ac2da2f3,495fe5155d08,2a77e3f43584,50cba0a2e9bc,435be7fc3cae,b1ca2424f740
 2026-08-14T21:50:19.504Z	CAPTURE	VOIDWORM	id=13	frames=11	gap=800ms	span=8.0s	onEntry=true	sha=4239dd4899fa,94c63c656281,c25061578a1c,c5148026bace,45a32149eb08,d61d907c575d,7c218f114205,c0eaf7c730d3,88d0975f57b4,b57739eb264c,f02d518267a0
+2026-08-14T22:17:30.429Z	CAPTURE	VOIDWORM	id=12	frames=10	gap=750ms	span=6.8s	onEntry=false	sha=13b4339da510,c2e8000a9f11,89002a53c1de,08850638134c,b1a2ebc1020e,6dc60d2b6096,972cd2de737e,28bdbc4de6e4,a9515108a15b,aa6370f87012
+2026-08-14T22:19:28.793Z	CAPTURE	VOIDWORM	id=13	frames=10	gap=800ms	span=7.2s	onEntry=true	sha=815af31aedb1,b647d5d870b9,b647d5d870b9,b647d5d870b9,b647d5d870b9,b647d5d870b9,b647d5d870b9,b647d5d870b9,b647d5d870b9,b647d5d870b9
+2026-08-14T22:23:17.328Z	CAPTURE	VOIDWORM	id=13	frames=4	gap=400ms	span=1.2s	onEntry=true	sha=223abebdf672,1210af07cbcf,10f717825505,faeff4f68929
+2026-08-14T22:23:36.358Z	CAPTURE	VOIDWORM	id=13	frames=3	gap=400ms	span=0.8s	onEntry=true	sha=5c42aaf720b8,5c42aaf720b8,5c42aaf720b8
+2026-08-14T22:24:28.808Z	CAPTURE	VOIDWORM	id=13	frames=11	gap=800ms	span=8.0s	onEntry=true	sha=2fbe63f7db3d,1e100ee43b4b,d15b5a82e3a3,33ff3b3e27cb,14c73c74fff5,91245c553ebc,221ce2ae7f5d,093cee7137c8,b3ba0bef528f,3b8a29fef4d5,50ad6bb4c8bc
+2026-08-14T22:24:56.592812+00:00	GRADE	VOIDWORM	frames=6	overall=7	silhouette=8	contrast=7	animation=7	detail=6	cohesion=7	prompt_tokens=1776	sha=2fbe63f7db3d,1e100ee43b4b,d15b5a82e3a3,33ff3b3e27cb,14c73c74fff5,91245c553ebc
+2026-08-14T22:26:37.734Z	CAPTURE	VOIDWORM	id=13	frames=3	gap=400ms	span=0.8s	onEntry=true	sha=9c4ad2ebf6c8,3af5d9f09b58,b0bf5b26556d
+2026-08-14T22:26:57.832Z	CAPTURE	VOIDWORM	id=13	frames=3	gap=400ms	span=0.8s	onEntry=true	sha=2c1361762ba8,2c1361762ba8,551c45fe1804
+2026-08-14T22:26:57.833Z	JSERROR	VOIDWORM	id=13	count=147	first=ReferenceError: Cannot access 'windup' before initialization
