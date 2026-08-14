@@ -9,6 +9,7 @@
     "package": "npm version patch --no-git-tag-version && vite build && cd dist && zip -r ../3d-space-invaders.zip . && cd .. && echo 'Ready: 3d-space-invaders.zip'"
   },
   "dependencies": {
+    "playwright-core": "^1.62.1",
     "three": "^0.158.0"
   },
   "devDependencies": {
