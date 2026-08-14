@@ -2961,8 +2961,8 @@ const VOIDWORM_TEETH = [
 
 // Eyes — small bright spots on the head.
 const VOIDWORM_EYES = [
-    { size: [0.06, 0.06, 0.04], pos: [-0.12, 0.02, 0.14], color: 0xffffff },
-    { size: [0.06, 0.06, 0.04], pos: [0.12, 0.02, 0.14], color: 0xffffff }
+    { size: [0.05, 0.05, 0.04], pos: [-0.07, 0.04, 0.045], color: 0xffffff },
+    { size: [0.05, 0.05, 0.04], pos: [0.07, 0.04, 0.045], color: 0xffffff }
 ];
 
 // Per-segment radii (sphere-like segments, tapering head/tail)
@@ -3112,13 +3112,13 @@ function createVoidwormAlien(group) {
 
     // Crown teeth — bright crown on the head
     const teeth = new THREE.Mesh(parts.teethGeometry, parts.teethMaterial.clone());
-    teeth.position.set(0, 0.12, 0.20);
+    teeth.position.set(0, 0.10, 0);
     bodyPivot.add(teeth);
     group.userData.teeth = teeth;
 
     // Eyes — paired bright spots on the head
     const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
-    eyes.position.set(0, 0.06, 0.22);
+    eyes.position.set(0, 0, 0);
     bodyPivot.add(eyes);
     group.userData.eyes = eyes;
 
@@ -3197,6 +3197,12 @@ function createVoidwormAlien(group) {
         segments.push(seg);
     }
     group.userData.segments = segments;
+
+    // The face rides the head. Segment 0 sways (pivot.position.x, +/-0.22) and
+    // tilts (pivot.rotation.z) every frame, so teeth and eyes left on
+    // bodyPivot visibly detached and floated over the body below.
+    segments[0].pivot.add(teeth);
+    segments[0].pivot.add(eyes);
 }
 
 // ---------------------------------------------------------------------------
