@@ -20,6 +20,9 @@ AP.add_argument("--model", default="qwen3.6")
 AP.add_argument("--max-tokens", type=int, default=6000)
 AP.add_argument("--width", type=int, default=640)
 AP.add_argument("--target", type=float, default=8.0)
+AP.add_argument("--confirm", action="store_true",
+                help="require the previous grade to also clear target "
+                     "(guards against +/-2 judge noise)")
 A = AP.parse_args()
 NAME = A.name.upper()
 LOG = ".vision-audit.log"
@@ -132,7 +135,26 @@ if hist:
         delta = "" if i == 0 else "  (%+.1f)" % (v - hist[i - 1][1])
         print("    %s  overall %.1f%s" % (t, v, delta))
     cur = hist[-1][1]
-    print("\n  target %.1f — %s" % (A.target,
-          "REACHED, stop iterating" if cur >= A.target else
-          "NOT reached, iterate again (fix: see one_fix above)"))
-    sys.exit(0 if cur >= A.target else 2)
+    prev = hist[-2][1] if len(hist) > 1 else None
+
+    if cur < A.target:
+        print("\n  target %.1f — NOT reached (%.1f). Iterate: implement one_fix above."
+              % (A.target, cur))
+        sys.exit(2)
+
+    if A.confirm and (prev is None or prev < A.target):
+        print("\n  target %.1f — hit %.1f, but UNCONFIRMED." % (A.target, cur))
+        print("  This judge varies by about +/-2 on an identical build, so one")
+        print("  score is not evidence. Recapture and grade again WITHOUT editing:")
+        print("    FRAMES=11 GAP_MS=800 node capture-invader.mjs <ID> %s" % NAME)
+        print("    python3 grade-invader.py %s --confirm" % NAME)
+        sys.exit(3)
+
+    print("\n  ============================================")
+    print("  TARGET REACHED AND CONFIRMED: %.1f (prev %.1f)"
+          % (cur, prev if prev is not None else cur))
+    print("  STOP EDITING NOW. Commit this state immediately.")
+    print("  Further changes have already been shown to LOSE points:")
+    print("  a previous run hit 8, kept editing, and fell back to 5.")
+    print("  ============================================")
+    sys.exit(0)

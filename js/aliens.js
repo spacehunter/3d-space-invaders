@@ -2974,10 +2974,14 @@ let voidwormParts = null;
 function getVoidwormParts() {
     if (voidwormParts) return voidwormParts;
 
-    // 7 segment geometries — faceted icosahedrons for crystalline-sphere look
-    const segmentGeometries = VOIDWORM_RADII.map(r =>
-        new THREE.IcosahedronGeometry(r, 1) // detail=1 = 4 triangles per face → faceted crystal
-    );
+    // 7 segment geometries — elongated octahedrons for crystal-prism look.
+    // Chosen over icosahedrons by eye: 8 sharp faces read as faceted crystal,
+    // while 20-face icosahedrons render as soft blobs at gameplay size.
+    const segmentGeometries = VOIDWORM_RADII.map((r, i) => {
+        const geo = new THREE.OctahedronGeometry(r, 0); // 8 sharp triangular faces
+        geo.scale(1, 1.15, 1); // slight elongation into diamonds
+        return geo;
+    });
 
     // Interconnectors — small voxel tapered crystals between segments
     const connectorGeometries = [];
