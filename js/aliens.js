@@ -4814,6 +4814,16 @@ export function animateAlien(alien) {
             const period = 7.0;
             const p = (t % period) / period;
 
+            // Crown teeth windup — open before firing, snap shut on burst.
+            // Period-based firing telegraph: teeth flare out at 0.30→0.40,
+            // snap shut at 0.40, burst flash at 0.40→0.46.
+            const windup = p >= 0.28 && p < 0.42
+                ? Math.sin(((p - 0.28) / 0.14) * Math.PI / 2)
+                : p >= 0.42 && p < 0.48 ? 1.0
+                : p >= 0.48 && p < 0.60
+                    ? Math.sin(((0.60 - p) / 0.12) * Math.PI / 2)
+                    : 0;
+
             // Sinuous body wave — each segment sways laterally with phase offset.
             // The S-curve uses sine with increasing amplitude toward the middle
             // so the wave reads clearly at gameplay distance.
@@ -4864,16 +4874,6 @@ export function animateAlien(alien) {
                     }
                 });
             }
-
-            // Crown teeth windup — open before firing, snap shut on burst.
-            // Period-based firing telegraph: teeth flare out at 0.30→0.40,
-            // snap shut at 0.40, burst flash at 0.40→0.46.
-            const windup = p >= 0.28 && p < 0.42
-                ? Math.sin(((p - 0.28) / 0.14) * Math.PI / 2)
-                : p >= 0.42 && p < 0.48 ? 1.0
-                : p >= 0.48 && p < 0.60
-                    ? Math.sin(((0.60 - p) / 0.12) * Math.PI / 2)
-                    : 0;
 
             if (self.teeth) {
                 // Teeth emissive — bright flash during windup
