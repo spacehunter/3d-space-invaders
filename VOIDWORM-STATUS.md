@@ -4,73 +4,55 @@ Read this FIRST in any session (a Telegram reply is a fresh session with no
 memory of the cron runs). Update it after every grade and before releasing
 the lock. Keep it under ~60 lines: newest facts on top, prune stale detail.
 
-## Now (updated 2026-08-14 17:30)
+## Now (updated 2026-08-14 17:50)
 
-- Target: overall 8.0, confirmed twice (`grade-invader.py VOIDWORM --confirm`
-  exit 0). **Current: 7.0** — silhouette 8, contrast 7, animation 7,
-  detail 6, cohesion 7.
-- HEAD: 5c8c593. Working tree clean. Cron c94c41ea9af6 PAUSED.
-- **Detail is finally moving**: it sat at 4–5 for every grade on 2026-08-14
-  until the spine/plate/bead pass (1dbc7f8) lifted it to 6. That direction
-  is working — keep going, do not abandon it.
-- Grader's `one_fix`: the purple segments read as *uniform faceted spheres*,
-  not crystals. Give them irregular, sharp, non-uniform geometry so they
-  reward a close look. That is the single highest-value change right now.
+- HEAD 2fa85f0. Tree clean. Cron c94c41ea9af6 PAUSED. Target 8.0 confirmed.
+- **Graded five times on the identical build: 8, 6, 7, 7, 7 — mean 7.0.**
+  Contrast moved 7 → 8 and held. Detail bounces 5–7. NOT a confirmed 8.0.
+- The 8.0 and the 6.0 came from the *same unchanged code*, two captures
+  apart. That is the ±2 noise, demonstrated. Do not read a single grade as
+  progress or regression — only a mean over 3+ grades means anything here.
+- Capture exits 0, no JS errors, 23–24 fps (unchanged by any of this work).
+
+## IGNORE the grader's current one_fix
+
+It now says: *"smooth the body geometry into rounded, faceted crystals."*
+That is the icosahedron-blob direction the humans looked at and **rejected**
+in favour of sharp octahedron facets (fff19f3). Do not implement it. The
+grader has preferred blobs before and was overruled by eye; it is wrong
+about this specific axis and will keep asking.
+
+## Last change (2fa85f0) — what and why
+
+Two problems found by looking at the frames, not by the rubric:
+
+1. **Crown was a featureless white blob.** Teeth emissive was near-white
+   `VOIDWORM_HOT` at 2.5 base / 4.5 peak, which clipped under bloom, so the
+   "teeth flare open and snap shut" the bestiary promises was invisible.
+   Now `VOIDWORM_BRIGHT` at 1.0 base, `0.6 + windup * 1.7`. Eyes 2.0 → 1.1,
+   core 1.5 → 1.1. **The teeth now read as teeth** in the windup frames.
+2. **Segments read as flat paper, not crystal.** `MeshPhongMaterial`
+   defaults `specular` to 0x111111, so `shininess: 120` lit nothing. Added
+   `specular: 0xbb88ff` and the octahedron faces now catch light. Accent
+   plates were a fixed 0.28 wide on 0.07-radius tail segments — 4x their
+   diameter, hanging off as fins — now scaled per segment.
 
 ## Tried already — do not redo
 
 - Dorsal spines, accent plates, joint beads (1dbc7f8) — detail 4/5 → 6. KEPT.
-- Octahedron facets over icosahedron blobs (fff19f3) — human-chosen. The
-  grader preferred the blobs; the humans did not. **Never revert this.**
-- Crystal spheres, core glow, brighter ramp, sinuous wave (a22c0c3).
-- Short captures (~2.1s) — produce a false "animation is missing" verdict.
-  VOIDWORM's period is 7.0s: always `FRAMES=11 GAP_MS=800`.
-
-## Burned once — do not repeat
-
-- 1dbc7f8 was committed with **no grade** and a **runtime crash**: `windup`
-  was read at lines 4848/4850/4863 but declared at 4871, a temporal dead
-  zone. `npm run build` passed; the browser threw `ReferenceError` on every
-  frame (148 in a 3-frame capture). Fixed in 5c8c593.
-- The cause: that run wrote its own `capture-voidworm.mjs` instead of using
-  `capture-invader.mjs`, so nothing verified the page and nothing was logged.
-  Both ad-hoc scripts are deleted. Use the sanctioned toolchain only.
-- `capture-invader.mjs` now exits **4** with a banner if the page throws.
-  Exit 4 = your frames are not evidence. Fix, recapture, then grade.
-
-## Looked at with human eyes (2026-08-14 17:45) — outranks the grader
-
-Frames 1 and 5 of a clean 11-frame capture were viewed directly. The chain
-reads well: a serpentine column with a bright crown, clearly animating
-(it straightens and re-coils across the cycle). Two real problems the
-grader did not weight properly:
-
-1. **The crown blows out to a featureless white blob.** For most of the
-   cycle you cannot see teeth at all — just glare. The bestiary promises
-   "crown teeth flare open and snap shut" and that reads only in a couple
-   of frames. Teeth emissive runs `1.5 + windup * 3.0` (up to 4.5); that is
-   too hot against the bloom. Bring it down until the teeth are *shapes*,
-   not a lamp. This is the highest-value fix, ahead of the grader's.
-2. **The segments read as thin flat shards, not crystals with volume.**
-   The grader's `one_fix` says "add irregular sharp geometry" — they are
-   already angular. What is missing is *volume and light response*: they
-   look like flat paper triangles. Give them thickness and a lit facet
-   that catches the crown glow, rather than more jaggedness.
-
-Performance is fine: 23 fps in the bestiary preview both at HEAD and at
-fff19f3 (before the detail pass), so the spines/beads cost nothing
-measurable. `capture-invader.mjs` now prints and logs fps — an earlier
-reading of 57 was the *crashed* build skipping all animation work, not a
-faster one. Do not chase that number.
+- Octahedron facets over icosahedron blobs (fff19f3) — human-chosen. KEEP.
+- Short captures (~2.1s) — false "animation is missing". Use FRAMES=11 GAP_MS=800.
+- 1dbc7f8 shipped a TDZ crash (`windup` read before its `const`) that built
+  clean and threw every frame; fixed in 5c8c593. Capture now exits 4 on any
+  thrown JS error. A *frozen* animation reads as HIGH fps — 57 was the
+  crashed build, not a fast one.
 
 ## Next
 
-1. Tame the crown blowout so the teeth read as teeth (human-eye fix #1).
-2. Give the segments volume/lit facets rather than more jaggedness (#2).
-3. Recapture `FRAMES=11 GAP_MS=800`, confirm capture exits 0, then grade.
-4. The grader is ±2 noisy on identical builds — never revert on one low
-   score. Look at the frames first; believe a pass only after `--confirm`.
-5. Anything the human sends by Telegram outranks everything above.
+1. Detail is the remaining weak axis (5–7). Add structure that survives at
+   gameplay distance — do NOT round the geometry off to get it.
+2. Recapture, then grade **3+ times** and compare means. One grade is noise.
+3. Anything the human sends by Telegram outranks everything above.
 
 ## Update template (replace sections above, keep headings)
 
