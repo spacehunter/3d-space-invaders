@@ -4,7 +4,7 @@ A modern 3D recreation of the classic Space Invaders arcade game built with THRE
 
 ## Current Project Status
 
-As of 2026-08-13, all 18 alien rows have distinct rebuilt voxel models and animations. The newest is the Row 18 Basilisk, a two-headed serpent with twin arching necks, fanged heads and glowing venom-pit eyes.
+As of 2026-08-13, all 19 alien rows have distinct rebuilt voxel models and animations. The newest is the Row 19 Manta, a wide flat manta ray with sweeping diamond wings and harmonic wave projectiles.
 
 Latest validation: `npm run build` passes. Run the dev server with the browser-safe host command below and open `http://127.0.0.1:5173/` to test the game, or `http://127.0.0.1:5173/alien-preview.html` to inspect the Scorpion directly.
 
@@ -21,7 +21,7 @@ Latest validation: `npm run build` passes. Run the dev server with the browser-s
 - **Lives System**: Start with 3 lives - survive as long as you can!
 
 ### Aliens
-The game features 18 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
+The game features 19 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
 
 1. **Octopus Aliens** (Top Row - Purple)
    - **Sculpted voxel mantle**: tapering domed hood with a crest, brow ridge, cheek plates and side fins
@@ -150,16 +150,11 @@ The game features 18 rows of aliens, each with distinctive 3D designs and dramat
     - **Fires accelerating zigzag needles** — slow projectiles with sharp lateral turns that accelerate toward the player
     - Worth 0 points
 
-16. **Basilisk Aliens** (Row 18 - Venom)
-    - **Two-headed serpent** — a compact disc torso with twin necks arching up and outward, each ending in a fanged head with glowing venom-pit eyes
-    - **Counter-phase head sway** at rest; both necks coil back on weapon windup, then **snap forward together in a twin strike**, jaws flaring and eyes flashing
-    - **Torso compresses** through the strike cycle and the body crouches on windup
-    - **Fires twin fang blades** — two projectiles that orbit each other around a shared centre as they travel toward the player, their orbit tightening as they close in
-    - Worth 0 points
+16. **Basilisk Aliens** (Row 18 - Venom)\n    - **Two-headed serpent** — a compact disc torso with twin necks arching up and outward, each ending in a fanged head with glowing venom-pit eyes\n    - **Counter-phase head sway** at rest; both necks coil back on weapon windup, then **snap forward together in a twin strike**, jaws flaring and eyes flashing\n    - **Torso compresses** through the strike cycle and the body crouches on windup\n    - **Fires twin fang blades** — two projectiles that orbit each other around a shared centre as they travel toward the player, their orbit tightening as they close in\n    - Worth 0 points\n\n17. **Manta Aliens** (Row 19 - Deep Blue)\n    - **Wide flat manta ray** — broad diamond wings sweeping back from a compact body, tapering to a thin tail segment\n    - **Continuous wing-sweep glide** at rest; on windup the wings snap wide and upward, body rises, then settles back with a small bounce\n    - **Fires harmonic waves** — 3 staggered projectiles with sinusoidal lateral oscillation during forward travel\n    - Worth 0 points
 
 ### Bestiary Gallery
 A field guide reached from the **BESTIARY** option on the landing page (or the **B** key):
-- Browse all 18 alien types one at a time, rendered large and centred on a slowly turning display
+- Browse all 19 alien types one at a time, rendered large and centred on a slowly turning display
 - Each model runs its full in-game animation - tentacle curls, snapping claws, chase lights, rolling treads and all
 - Shows the alien's name, row colour, point value, behaviour summary and armament
 - **← / →** (or the on-screen arrows) page between types and wrap around at both ends

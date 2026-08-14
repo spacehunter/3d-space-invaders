@@ -169,6 +169,15 @@ const BESTIARY_ENTRIES = [
         tagline: 'ROW 18 - VENOM',
         description: 'A two-headed serpent — a compact disc torso with twin necks arching up and outward, each ending in a fanged head with glowing venom-pit eyes. The heads sway in counter-phase, then both necks coil back during the windup and snap forward together in a twin strike, jaws flaring and eyes flashing before recoiling to rest.',
         weapon: 'Twin fang blades — two projectiles that orbit each other around a shared centre as they travel toward the player, their orbit tightening as they close in'
+    },
+    {
+        name: 'MANTA',
+        row: 18,
+        points: 0,
+        color: '#80c0ff',
+        tagline: 'ROW 19 - DEEP',
+        description: 'A wide flat manta ray — broad diamond wings sweeping back from a compact body, tapering to a thin tail segment. The wings flap in a smooth continuous glide motion. On weapon windup the wings snap wide and upward, body rises, then settles back with a small bounce.',
+        weapon: 'Harmonic waves — sinusoidal lateral oscillation during forward travel, 3 staggered projectiles with different phase offsets'
     }
 ];
 

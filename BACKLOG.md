@@ -103,6 +103,18 @@ tick anything.
 2026-08-13 18:45 — NEXUS spirals hang frozen in space — passed — wired updateNexusSpirals into game.js, fixed flight model (+Z, y=0, baseX oscillation), unrolled firing branch — verify 15 NEXUS 13/13 — 4567ffd
 2026-08-13 10:30 — Add BASILISK (row 17) — two-headed serpent with twin arching necks, coil/strike animation, twin fang blades orbiting a shared centre with tightening orbit — verify 17 BASILISK 13/13 — CLAUDE.md doc rows blocked by write guard (see SKILL-FEEDBACK.md #6)
 
+## Phase 3 — new invader with the improved skill (continued)
+
+|- [ ] **Design and build invader #19 — MANTA.** Wide flat manta ray silhouette
+      (broad diamond wings tapering to a nose + trailing tail), distinct from all
+      other silhouettes. Weapon: "harmonic waves" — Lissajous-curve projectiles
+      that weave in X and Z at different frequencies, firing 3 staggered
+      projectiles with different phase offsets. Follow SKILL.md end-to-end.
+
+## Phase 3 (continued) — new invader
+
+|- [ ] **Invader #19 MANTA.** Wide manta ray silhouette (diamond wings, thin tail), distinct from all 18 existing types. Weapon: "harmonic waves" — sinusoidal lateral oscillation during forward travel, 3 staggered projectiles with different phase offsets. Follow SKILL.md end-to-end.
+
 ## Phase 5 — boss arsenal expansion
 
 |- [x] **Boss #6 — ECLIPSE.** Add a 6th boss type that appears every 30 levels

@@ -29,6 +29,7 @@ let eclipseLasers = [];
 let eclipseWormholes = [];
 let prismBeams = [];
 let basiliskBlades = [];
+let mantaRays = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -986,8 +987,21 @@ export function alienFire(scene) {
                 basiliskBlades.push(blade1);
                 scene.add(blade1);
                 continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 18) {
+                // Manta aliens fire harmonic waves — sinusoidal lateral
+                // oscillation during forward travel, 3 staggered projectiles
+                // with different phase offsets.
+                const r0 = createMantaRay(randomAlien.position, 0);
+                mantaRays.push(r0);
+                scene.add(r0);
+                const r1 = createMantaRay(randomAlien.position, 1);
+                mantaRays.push(r1);
+                scene.add(r1);
+                const r2 = createMantaRay(randomAlien.position, 2);
+                mantaRays.push(r2);
+                scene.add(r2);
+                continue; // Skip adding to alienMissiles
             } else {
-                // Regular missiles for other aliens
                 const missileGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.4);  // Elongated in Z to point forward
                 const missileMaterial = new THREE.MeshPhongMaterial({
                     color: 0xff0000,
@@ -2461,6 +2475,96 @@ function createBasiliskBlade(position, phaseIndex) {
     return group;
 }
 
+// Create Manta harmonic wave — sinusoidal lateral oscillation during forward
+// travel. The projectile weaves left and right as it approaches the player.
+// phaseIndex 0/1/2 gives three staggered projectiles with different phases.
+function createMantaRay(position, phaseIndex) {
+    const group = new THREE.Group();
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.08, 0.40),
+        new THREE.MeshPhongMaterial({
+            color: 0x80c0ff, emissive: 0x4080c0,
+            emissiveIntensity: 5.5, flatShading: true
+        })
+    );
+    group.add(body);
+
+    const tip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.05, 0.12),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff, emissive: 0xff6a00,
+            emissiveIntensity: 9.0, flatShading: true
+        })
+    );
+    tip.position.z = 0.24;
+    group.add(tip);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z += 0.78;
+    group.userData.isMantaRay = true;
+    group.userData.speed = 0.34;
+    group.userData.baseX = position.x;
+    group.userData.phase = phaseIndex * (Math.PI * 2 / 3);
+    group.userData.waveFreqX = 3.0;   // X oscillation frequency
+    group.userData.waveFreqZ = 5.0;   // Z oscillation frequency (different -> Lissajous)
+    group.userData.waveAmp = 0.35;
+
+    return group;
+}
+
+// Update Manta harmonic waves — Lissajous-curve projectiles weaving in X and Z
+export function updateMantaRays(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = mantaRays.length - 1; i >= 0; i--) {
+        const p = mantaRays[i];
+
+        // --- Lissajous flight model: X and Z oscillate at different freqs ---
+        const t = time;
+        p.position.z += p.userData.speed;
+        // Weave in X
+        p.position.x = p.userData.baseX + Math.sin(t * p.userData.waveFreqX + p.userData.phase) * p.userData.waveAmp;
+        // Subtle Z oscillation on top of forward motion
+        p.position.y = Math.sin(t * p.userData.waveFreqZ + p.userData.phase) * 0.06;
+        // Tumble to read as crystal
+        p.rotation.x = time * 6;
+        p.rotation.z = time * 4;
+
+        // --- barriers ---
+        if (checkBarrierCollision(p.position, 0.14, scene)) {
+            createExplosion(p.position, scene);
+            scene.remove(p);
+            mantaRays.splice(i, 1);
+            continue;
+        }
+
+        // --- off-screen cleanup (never let the array grow unbounded) ---
+        if (p.position.z > 20) {
+            scene.remove(p);
+            mantaRays.splice(i, 1);
+            continue;
+        }
+
+        // --- player ---
+        if (gameActive) {
+            if (p.position.distanceTo(player.position) < 1.2) {
+                scene.remove(p);
+                mantaRays.splice(i, 1);
+
+                createExplosion(p.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 // Update Basilisk fang blades (twin orbiting projectile weapon)
 export function updateBasiliskBlades(player, scene, gameActive, livesCallback, gameOverCallback) {
     const time = Date.now() * 0.001;
@@ -2591,6 +2695,7 @@ export function resetMissiles(scene) {
     eclipseWormholes.forEach(wh => scene.remove(wh));
     prismBeams.forEach(beam => scene.remove(beam));
     basiliskBlades.forEach(blade => scene.remove(blade));
+    mantaRays.forEach(ray => scene.remove(ray));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
@@ -2608,10 +2713,11 @@ export function resetMissiles(scene) {
     nexusSpirals = [];
     prismBeams = [];
     basiliskBlades = [];
+    mantaRays = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores, ravenNeedles, nexusSpirals, prismBeams, basiliskBlades };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, crystalShards, serpentineBeams, fractalSpores, ravenNeedles, nexusSpirals, prismBeams, basiliskBlades, mantaRays };
 }

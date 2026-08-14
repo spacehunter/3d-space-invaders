@@ -50,7 +50,7 @@ export function createAliens(scene, customRows = null, customCols = null) {
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
             // Cycle through 18 alien types based on row
-            const alienType = row % 18;
+            const alienType = row % 19;
             const alien = createAlien(alienType);
             alien.position.x = startX + col * ALIEN_SPACING;
             alien.position.z = startZ - row * ALIEN_SPACING;
@@ -79,7 +79,7 @@ export function createAliens(scene, customRows = null, customCols = null) {
  * anything to a scene, so it can be called while a game is in progress without
  * corrupting the formation. The caller owns the returned Group.
  *
- * @param {number} type - alien type 0-17 (same numbering as the row types)
+ * @param {number} type - alien type 0-18 (same numbering as the row types)
  * @returns {THREE.Group} an alien ready to be passed to animateAlien()
  */
 export function createAlienPreview(type) {
@@ -155,6 +155,9 @@ function createAlien(row) {
             break;
         case 17: // Basilisk style - two-headed serpent with twin arching necks and fanged heads
             createBasiliskAlien(group);
+            break;
+        case 18: // Manta style - wide flat manta ray with sweeping diamond wings
+            createMantaAlien(group);
             break;
     }
 
@@ -4928,6 +4931,49 @@ export function animateAlien(alien) {
             }
             break;
         }
+        case 18: { // Manta — continuous wing-sweep glide, snap wide on windup, settle back
+            const self = alien.userData;
+            const t = time;
+
+            const windup = phase >= 0.30 && phase < 0.45
+                ? Math.sin(((phase - 0.30) / 0.15) * Math.PI / 2)
+                : phase >= 0.45 && phase < 0.55 ? 1 : 0;
+            const strike = phase >= 0.55 && phase < 0.70
+                ? Math.sin(((phase - 0.55) / 0.15) * Math.PI)
+                : 0;
+            const recoil = phase >= 0.70 ? Math.max(0, 1 - (phase - 0.70) / 0.18) : 0;
+
+            if (self.wings) {
+                self.wings.forEach(wing => {
+                    // Wing sweep: continuous idle motion + windup flare + strike + recoil
+                    wing.pivot.rotation.x = Math.sin(t * 3.5 + wing.side) * 0.04
+                                          + windup * wing.side * 0.28
+                                          + strike * wing.side * 0.18
+                                          - recoil * wing.side * 0.10;
+                    // Cloned per instance -> safe.
+                    wing.eye.material.emissiveIntensity = 2.5 + windup * 1.8 + strike * 3.0;
+                    // Wing tip accent flashes on windup.
+                    wing.wingTip.scale.y = 1 + windup * 0.20 + strike * 0.10;
+                });
+            }
+
+            if (self.bodyPivot) {
+                // Body rises slightly on windup, crouches on strike.
+                self.bodyPivot.position.y = Math.sin(t * 2.8) * 0.025 + windup * 0.04 - strike * 0.03;
+                self.bodyPivot.rotation.z = Math.sin(t * 1.3) * 0.025;
+            }
+
+            if (self.body) {
+                // Body compresses slightly on windup (child-mesh scale only).
+                self.body.scale.y = 1 - windup * 0.12 + strike * 0.06;
+            }
+
+            // updateSwoop() owns Y during a kamikaze dive.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = 0.02 + Math.sin(t * 1.8) * 0.02;
+            }
+            break;
+        }
     }
 }
 
@@ -5425,5 +5471,113 @@ function createBasiliskAlien(group) {
         pivot.add(eye);
 
         return { pivot, side, eye };
+    });
+}
+
+// ---------------------------------------------------------------------------
+// TYPE 18 — MANTA: wide flat manta ray with sweeping diamond wings
+// ---------------------------------------------------------------------------
+
+// Ramp: deep ocean blue -> coral glow. Midpoint clearly lighter than space;
+// coral reserved for small accents (wing-tip glow, eye spots).
+const MANTA_DARK    = 0x0a2040;
+const MANTA_SHADE   = 0x1a4080;
+const MANTA_MID     = 0x4080c0;
+const MANTA_BRIGHT  = 0x80c0ff;
+const MANTA_HOT     = 0xff6040;
+
+// Nose and body: stacked tiers tapering forward.
+const MANTA_BODY = [
+    { size: [0.18, 0.05, 0.18], pos: [0, -0.02, 0.28], color: MANTA_SHADE },
+    { size: [0.35, 0.08, 0.22], pos: [0, -0.04, 0.08], color: MANTA_MID },
+    { size: [0.42, 0.06, 0.18], pos: [0, -0.04, -0.05], color: MANTA_MID },
+    { size: [0.28, 0.05, 0.14], pos: [0, -0.03, -0.18], color: MANTA_SHADE },
+    // Tail segments
+    { size: [0.12, 0.04, 0.16], pos: [0, -0.02, -0.34], color: MANTA_DARK },
+    { size: [0.06, 0.03, 0.12], pos: [0, -0.01, -0.48], color: MANTA_DARK }
+];
+
+// Wing (right side): three tapered segments forming a diamond shape.
+const MANTA_WING = [
+    { size: [0.28, 0.06, 0.10], pos: [0.46, -0.02, 0.05], rotZ: -0.22, color: MANTA_BRIGHT },
+    { size: [0.26, 0.05, 0.12], pos: [0.62, -0.02, -0.02], rotZ: -0.32, color: MANTA_BRIGHT },
+    { size: [0.16, 0.04, 0.08], pos: [0.74, -0.02, -0.08], rotZ: -0.48, color: MANTA_MID }
+];
+
+// Wing tip accent (right side): bright coral glow at the extremity.
+const MANTA_WING_TIP = [
+    { size: [0.06, 0.02, 0.04], pos: [0.82, -0.01, -0.10], color: MANTA_HOT }
+];
+
+// Eye (right side): small bright spot on the upper body.
+const MANTA_EYE = [
+    { size: [0.05, 0.05, 0.05], pos: [0.30, 0.06, 0.10], color: MANTA_HOT }
+];
+
+let mantaParts = null;
+
+function getMantaParts() {
+    if (mantaParts) return mantaParts;
+
+    const wingRight = buildVoxelGeometry(MANTA_WING);
+    const wingLeft = buildVoxelGeometry(mirrorBoxes(MANTA_WING));
+    const wingTipRight = buildVoxelGeometry(MANTA_WING_TIP);
+    const wingTipLeft = buildVoxelGeometry(mirrorBoxes(MANTA_WING_TIP));
+    const eyeRight = buildVoxelGeometry(MANTA_EYE);
+    const eyeLeft = buildVoxelGeometry(mirrorBoxes(MANTA_EYE));
+
+    mantaParts = {
+        bodyGeometry: buildVoxelGeometry(MANTA_BODY),
+        wingGeometries: { '-1': wingLeft, '1': wingRight },
+        wingTipGeometries: { '-1': wingTipLeft, '1': wingTipRight },
+        eyeGeometries: { '-1': eyeLeft, '1': eyeRight },
+        shellMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true, emissive: MANTA_MID, emissiveIntensity: 0.18,
+            shininess: 60, flatShading: true
+        }),
+        accentMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true, emissive: MANTA_HOT, emissiveIntensity: 1.5,
+            flatShading: true
+        }),
+        eyeMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true, emissive: MANTA_HOT, emissiveIntensity: 2.5,
+            flatShading: true
+        })
+    };
+
+    return mantaParts;
+}
+
+function createMantaAlien(group) {
+    const parts = getMantaParts();
+
+    const bodyPivot = new THREE.Group();
+    group.add(bodyPivot);
+    group.userData.bodyPivot = bodyPivot;
+
+    const body = new THREE.Mesh(parts.bodyGeometry, parts.shellMaterial);
+    body.castShadow = true;
+    bodyPivot.add(body);
+    group.userData.body = body;
+
+    group.userData.wings = [-1, 1].map(side => {
+        const pivot = new THREE.Group();
+        pivot.position.set(side * 0.28, -0.02, 0.02);
+        bodyPivot.add(pivot);
+
+        const wing = new THREE.Mesh(parts.wingGeometries[side], parts.shellMaterial);
+        wing.position.set(-side * 0.28, 0, -0.02);
+        pivot.add(wing);
+
+        const wingTip = new THREE.Mesh(parts.wingTipGeometries[side], parts.accentMaterial);
+        wingTip.position.set(-side * 0.28, 0, -0.02);
+        pivot.add(wingTip);
+
+        // Cloned per instance: emissiveIntensity animated.
+        const eye = new THREE.Mesh(parts.eyeGeometries[side], parts.eyeMaterial.clone());
+        eye.position.set(side * 0.05, 0.04, 0);
+        pivot.add(eye);
+
+        return { pivot, side, wingTip, eye };
     });
 }
