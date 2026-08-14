@@ -2945,29 +2945,11 @@ function createPrismAlien(group) {
 
 // A floating worm/serpent of segmented spheres with an undulating wave.
 // Silhouette: completely unlike any row — a sinuous chain, not a solid body.
-const VOIDWORM_DARK   = 0x2a0845;
-const VOIDWORM_SHADE  = 0x5c2f8e;
-const VOIDWORM_MID    = 0x9b6dcf;
-const VOIDWORM_BRIGHT = 0xc8a0ff;
-const VOIDWORM_HOT    = 0xe8d0ff;
-
-// Body segments — 7 spheres forming the worm chain, tapering at ends.
-const VOIDWORM_BODY = [
-    // Head (front, index 0 in animation)
-    { size: [0.26, 0.26, 0.30], pos: [0, 0, 0], color: VOIDWORM_BRIGHT },
-    // Segment 1
-    { size: [0.22, 0.22, 0.22], pos: [0, -0.26, 0], color: VOIDWORM_MID },
-    // Segment 2
-    { size: [0.20, 0.20, 0.20], pos: [0, -0.50, 0], color: VOIDWORM_MID },
-    // Segment 3 (middle, widest)
-    { size: [0.24, 0.24, 0.24], pos: [0, -0.74, 0], color: VOIDWORM_BRIGHT },
-    // Segment 4
-    { size: [0.20, 0.20, 0.20], pos: [0, -0.98, 0], color: VOIDWORM_MID },
-    // Segment 5
-    { size: [0.18, 0.18, 0.18], pos: [0, -1.22, 0], color: VOIDWORM_SHADE },
-    // Tail (end, smallest)
-    { size: [0.14, 0.14, 0.16], pos: [0, -1.42, 0], color: VOIDWORM_SHADE }
-];
+const VOIDWORM_DEEP   = 0x3a0070;
+const VOIDWORM_DARK   = 0x6a22aa;
+const VOIDWORM_MID    = 0xaa55ee;
+const VOIDWORM_BRIGHT = 0xdd99ff;
+const VOIDWORM_HOT    = 0xffccff;
 
 // Crown teeth — 4 small spikes at the front of the head.
 const VOIDWORM_TEETH = [
@@ -2983,20 +2965,70 @@ const VOIDWORM_EYES = [
     { size: [0.06, 0.06, 0.04], pos: [0.12, 0.02, 0.14], color: 0xffffff }
 ];
 
+// Per-segment radii (sphere-like segments, tapering head/tail)
+const VOIDWORM_RADII = [0.16, 0.13, 0.12, 0.14, 0.11, 0.09, 0.07];
+const VOIDWORM_Y     = [0, -0.28, -0.56, -0.82, -1.08, -1.30, -1.52];
+
 let voidwormParts = null;
 
 function getVoidwormParts() {
     if (voidwormParts) return voidwormParts;
 
+    // 7 segment geometries — faceted icosahedrons for crystalline-sphere look
+    const segmentGeometries = VOIDWORM_RADII.map(r =>
+        new THREE.IcosahedronGeometry(r, 1) // detail=1 = 4 triangles per face → faceted crystal
+    );
+
+    // Interconnectors — small voxel tapered crystals between segments
+    const connectorGeometries = [];
+    for (let i = 0; i < VOIDWORM_RADII.length - 1; i++) {
+        const r1 = VOIDWORM_RADII[i], r2 = VOIDWORM_RADII[i + 1];
+        const avgR = (r1 + r2) * 0.5;
+        // Tapered crystal connector: wider at top, narrower at bottom
+        connectorGeometries.push(
+            buildVoxelGeometry([
+                { size: [avgR * 1.6, 0.08, avgR * 1.6], pos: [0, 0, 0], color: VOIDWORM_DARK }
+            ])
+        );
+    }
+
+    // Core glow — small bright crystal sphere at center of each segment
+    // Half-radius so it sits inside the outer shell
+    const coreGeometries = VOIDWORM_RADII.map(r =>
+        new THREE.IcosahedronGeometry(r * 0.35, 1)
+    );
+
     voidwormParts = {
-        bodyGeometry: buildVoxelGeometry(VOIDWORM_BODY),
+        segmentGeometries,
+        connectorGeometries,
+        coreGeometries,
         teethGeometry: buildVoxelGeometry(VOIDWORM_TEETH),
         eyeGeometry: buildVoxelGeometry(VOIDWORM_EYES),
-        bodyMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: VOIDWORM_DARK,
-            emissiveIntensity: 0.55,
+        segmentMaterials: VOIDWORM_RADII.map((_, i) => {
+            // Each segment gets a distinct hue so the chain reads as individual crystals,
+            // not a uniform tube. Wide spectrum: magenta → purple → violet → blue-violet → deep indigo.
+            const colors = [0xdd55ff, 0xbb33ee, 0x9922dd, 0x7711cc, 0x5500aa, 0x330088, 0x220066];
+            return new THREE.MeshPhongMaterial({
+                color: colors[i],
+                emissive: VOIDWORM_DEEP,
+                emissiveIntensity: 0.7,
+                shininess: 120,
+                flatShading: true
+            });
+        }),
+        connectorMaterial: new THREE.MeshPhongMaterial({
+            color: VOIDWORM_DARK,
+            emissive: VOIDWORM_DEEP,
+            emissiveIntensity: 0.5,
             shininess: 60,
+            flatShading: true
+        }),
+        coreMaterial: new THREE.MeshPhongMaterial({
+            color: VOIDWORM_HOT,
+            emissive: VOIDWORM_HOT,
+            emissiveIntensity: 1.5,
+            transparent: true,
+            opacity: 0.7,
             flatShading: true
         }),
         teethMaterial: new THREE.MeshPhongMaterial({
@@ -3023,30 +3055,53 @@ function createVoidwormAlien(group) {
     group.add(bodyPivot);
     group.userData.bodyPivot = bodyPivot;
 
-    // Body chain
-    const body = new THREE.Mesh(parts.bodyGeometry, parts.bodyMaterial.clone());
-    body.castShadow = true;
-    bodyPivot.add(body);
-    group.userData.body = body;
-
-    // Crown teeth
+    // Crown teeth — bright crown on the head
     const teeth = new THREE.Mesh(parts.teethGeometry, parts.teethMaterial.clone());
+    teeth.position.set(0, 0.12, 0.20);
     bodyPivot.add(teeth);
     group.userData.teeth = teeth;
 
-    // Eyes
+    // Eyes — paired bright spots on the head
     const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
+    eyes.position.set(0, 0.06, 0.22);
     bodyPivot.add(eyes);
     group.userData.eyes = eyes;
 
-    // Per-segment pivots for undulation (7 segments)
+    // 7 crystalline segments, each parented to its own pivot for undulation
     const segments = [];
     const segmentPhases = [0, 0.35, 0.70, 1.05, 1.40, 1.75, 2.10];
     for (let i = 0; i < 7; i++) {
         const pivot = new THREE.Group();
-        pivot.position.y = -i * 0.24;
+        pivot.position.y = VOIDWORM_Y[i];
         bodyPivot.add(pivot);
-        segments.push({ pivot, phase: segmentPhases[i] });
+
+        // Icosahedron segment mesh — faceted crystal sphere
+        const segMesh = new THREE.Mesh(
+            parts.segmentGeometries[i],
+            parts.segmentMaterials[i].clone()
+        );
+        segMesh.castShadow = true;
+        pivot.add(segMesh);
+
+        // Core glow — tiny bright crystal at the center, visible through facets
+        const coreMesh = new THREE.Mesh(
+            parts.coreGeometries[i],
+            parts.coreMaterial.clone()
+        );
+        pivot.add(coreMesh);
+
+        // Crystal connector between this segment and the next
+        if (i < 6) {
+            const connMesh = new THREE.Mesh(
+                parts.connectorGeometries[i],
+                parts.connectorMaterial.clone()
+            );
+            // Position connector at bottom of segment
+            connMesh.position.y = -VOIDWORM_RADII[i];
+            pivot.add(connMesh);
+        }
+
+        segments.push({ pivot, phase: segmentPhases[i], mesh: segMesh, core: coreMesh });
     }
     group.userData.segments = segments;
 }
@@ -4672,18 +4727,38 @@ export function animateAlien(alien) {
             break;
         }
 
-        case 13: { // Voidworm — undulating wave through 7 body segments
+        case 13: { // Voidworm — sinuous undulating wave through 7 segments
             const self = alien.userData;
             const t = time;
             const period = 7.0;
             const p = (t % period) / period;
 
-            // Undulating wave — each segment offsets by phase, rotating around Z.
-            // The wave travels back along the chain (tail to head).
+            // Sinuous body wave — each segment sways laterally with phase offset.
+            // The S-curve uses sine with increasing amplitude toward the middle
+            // so the wave reads clearly at gameplay distance.
             if (self.segments) {
                 self.segments.forEach((seg, i) => {
-                    const wave = Math.sin(t * 3.5 + seg.phase) * 0.18;
-                    seg.pivot.rotation.z = wave;
+                    // Lateral position sway — moves the segment left/right to form an S-curve.
+                    // Amplitude increases toward the middle (i=3) for a pronounced wave.
+                    const waveAmp = 0.22 + Math.sin(i * 0.5) * 0.12;
+                    const sway = Math.sin(t * 2.8 + seg.phase) * waveAmp;
+                    seg.pivot.position.x = sway;
+                    // Also tilt the segment for extra visual motion
+                    seg.pivot.rotation.z = Math.sin(t * 2.8 + seg.phase) * 0.25;
+
+                    // Core glow — travelling pulse along the chain.
+                    // Each segment's core brightens and dims in sequence.
+                    if (seg.core) {
+                        const corePulse = Math.sin(t * 3.2 + seg.phase * 0.8);
+                        seg.core.material.emissiveIntensity =
+                            0.6 + (corePulse * 0.5 + 0.5) * 1.8;
+                    }
+
+                    // Per-segment mesh scale pulse — crystal shimmer
+                    if (seg.mesh) {
+                        const shimmer = Math.sin(t * 5.5 + seg.phase * 1.3);
+                        seg.mesh.scale.setScalar(1.0 + shimmer * 0.04);
+                    }
                 });
             }
 
@@ -4698,10 +4773,11 @@ export function animateAlien(alien) {
                     : 0;
 
             if (self.teeth) {
+                // Teeth emissive — bright flash during windup
                 self.teeth.material.emissiveIntensity =
                     1.5 + windup * 3.0;
-                // Teeth open: scale slightly outward during windup
-                const teethScale = 1.0 + windup * 0.35;
+                // Teeth open: scale outward during windup, snap shut on burst
+                const teethScale = 1.0 + windup * 0.6;
                 self.teeth.scale.setScalar(teethScale);
             }
 
