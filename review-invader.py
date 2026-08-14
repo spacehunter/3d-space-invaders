@@ -76,6 +76,20 @@ try:
 except Exception as e:
     sys.exit(f"  request failed: {str(e)[:300]}")
 
+import datetime, hashlib
+_sha = ",".join(hashlib.sha256(open(p, "rb").read()).hexdigest()[:12] for p in paths)
+_u = d.get("usage", {})
+with open(".vision-audit.log", "a") as _f:
+    _f.write("\t".join([
+        datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "REVIEW", A.name.upper(),
+        "frames=%d" % len(paths),
+        "prompt_tokens=%s" % _u.get("prompt_tokens"),
+        "completion=%s" % _u.get("completion_tokens"),
+        "finish=%s" % d["choices"][0]["finish_reason"],
+        "sha=%s" % _sha,
+    ]) + "\n")
+
 msg = d["choices"][0]["message"]
 txt = (msg.get("content") or "").strip()
 u = d.get("usage", {})

@@ -1,0 +1,3 @@
+2026-08-14T21:06:41.469Z	CAPTURE	VOIDWORM	id=13	frames=4	gap=500ms	span=1.5s	onEntry=true	sha=ff7abd8ed1f8,36c3adfb2946,8a455812c0e2,efa61ed454ce
+2026-08-14T21:08:29.270Z	CAPTURE	VOIDWORM	id=13	frames=11	gap=800ms	span=8.0s	onEntry=true	sha=7b09e3f0b890,6980f21cdc32,9be3cf0308bb,a1b4100d827c,874b391c8fe6,8ee251a32596,566283c57935,5cf4ef2f2533,22fd89b258b0,4f9c534e18c4,1283771e82ac
+2026-08-14T21:09:04.489537+00:00	GRADE	VOIDWORM	frames=6	overall=5	silhouette=6	contrast=7	animation=5	detail=4	cohesion=5	prompt_tokens=1776	sha=7b09e3f0b890,6980f21cdc32,9be3cf0308bb,a1b4100d827c,874b391c8fe6,8ee251a32596

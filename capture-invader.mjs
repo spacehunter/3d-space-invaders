@@ -14,7 +14,8 @@
 // Requires the dev server on :5173  (npm run dev -- --host 0.0.0.0)
 
 import { chromium } from 'playwright-core';
-import { mkdirSync, existsSync } from 'node:fs';
+import { mkdirSync, existsSync, appendFileSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const [, , idArg, nameArg] = process.argv;
 if (idArg === undefined) {
@@ -74,6 +75,18 @@ try {
     if (f < FRAMES) await page.waitForTimeout(GAP_MS);
   }
 
+  // Audit trail: written here, at run time, with hashes of the real bytes.
+  const hashes = [];
+  for (let f = 1; f <= FRAMES; f++) {
+    try {
+      const b = readFileSync(`${OUT}/${NAME}-${f}.png`);
+      hashes.push(createHash('sha256').update(b).digest('hex').slice(0, 12));
+    } catch { hashes.push('MISSING'); }
+  }
+  appendFileSync('.vision-audit.log',
+    `${new Date().toISOString()}\tCAPTURE\t${NAME}\tid=${ID}\tframes=${FRAMES}`
+    + `\tgap=${GAP_MS}ms\tspan=${((FRAMES - 1) * GAP_MS / 1000).toFixed(1)}s`
+    + `\tonEntry=${onEntry}\tsha=${hashes.join(',')}\n`);
   console.log(`  captured ${FRAMES} frames -> ${OUT}/${NAME}-1..${FRAMES}.png`);
   console.log(`  bestiary shows "${NAME}": ${onEntry ? 'YES' : 'NO — check the ID'}`);
   const counter = (shown.match(/(\d+)\s*\/\s*(\d+)/) || [])[0];
