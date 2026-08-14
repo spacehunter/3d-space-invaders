@@ -3002,12 +3002,35 @@ function getVoidwormParts() {
         new THREE.IcosahedronGeometry(r * 0.35, 1)
     );
 
+    // Dorsal spines — sharp crystal spikes running along the top of each segment.
+    // Only on segments thick enough to support them (radii ≥ 0.12).
+    const spineGeometry = buildVoxelGeometry([
+        // Pointed crystal spine: wider at base, tapering to a point
+        { size: [0.06, 0.14, 0.04], pos: [0, 0.07, 0], color: VOIDWORM_BRIGHT }
+    ]);
+
+    // Segment accent plates — flat diamond-shaped plates that wrap across each
+    // segment's surface, catching light as the worm waves. Adds surface detail
+    // without changing the chain silhouette.
+    const plateGeometry = buildVoxelGeometry([
+        { size: [0.28, 0.02, 0.22], pos: [0, 0, 0], rotX: 0, color: VOIDWORM_MID }
+    ]);
+
+    // Joint beads — small ring-like beads between segments that catch light as
+    // the sine wave passes. Emphasizes the segmented, articulated nature.
+    const beadGeometry = buildVoxelGeometry([
+        { size: [0.12, 0.06, 0.12], pos: [0, 0, 0], color: VOIDWORM_DARK }
+    ]);
+
     voidwormParts = {
         segmentGeometries,
         connectorGeometries,
         coreGeometries,
         teethGeometry: buildVoxelGeometry(VOIDWORM_TEETH),
         eyeGeometry: buildVoxelGeometry(VOIDWORM_EYES),
+        spineGeometry,
+        plateGeometry,
+        beadGeometry,
         segmentMaterials: VOIDWORM_RADII.map((_, i) => {
             // Each segment gets a distinct hue so the chain reads as individual crystals,
             // not a uniform tube. Wide spectrum: magenta → purple → violet → blue-violet → deep indigo.
@@ -3033,6 +3056,27 @@ function getVoidwormParts() {
             emissiveIntensity: 1.5,
             transparent: true,
             opacity: 0.7,
+            flatShading: true
+        }),
+        spineMaterial: new THREE.MeshPhongMaterial({
+            color: VOIDWORM_BRIGHT,
+            emissive: VOIDWORM_DARK,
+            emissiveIntensity: 1.2,
+            shininess: 100,
+            flatShading: true
+        }),
+        plateMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: VOIDWORM_MID,
+            emissiveIntensity: 0.3,
+            shininess: 80,
+            flatShading: true
+        }),
+        beadMaterial: new THREE.MeshPhongMaterial({
+            color: VOIDWORM_DARK,
+            emissive: VOIDWORM_DEEP,
+            emissiveIntensity: 0.4,
+            shininess: 40,
             flatShading: true
         }),
         teethMaterial: new THREE.MeshPhongMaterial({
@@ -3105,7 +3149,40 @@ function createVoidwormAlien(group) {
             pivot.add(connMesh);
         }
 
-        segments.push({ pivot, phase: segmentPhases[i], mesh: segMesh, core: coreMesh });
+        // Accent plate — flat surface on the side, catches light during sway
+        const plateMesh = new THREE.Mesh(
+            parts.plateGeometry,
+            parts.plateMaterial.clone()
+        );
+        plateMesh.position.set(VOIDWORM_RADII[i] * 0.7, 0, 0);
+        plateMesh.rotation.y = Math.PI / 2;
+        pivot.add(plateMesh);
+
+        const seg = { pivot, phase: segmentPhases[i], mesh: segMesh, core: coreMesh, spine: null, plate: plateMesh, bead: null };
+
+        // Dorsal spine — crystal spike on top of each segment (only on thick-enough segments)
+        if (VOIDWORM_RADII[i] >= 0.12) {
+            const spineMesh = new THREE.Mesh(
+                parts.spineGeometry,
+                parts.spineMaterial.clone()
+            );
+            spineMesh.position.set(0, VOIDWORM_RADII[i] + 0.05, 0);
+            pivot.add(spineMesh);
+            seg.spine = spineMesh;
+        }
+
+        // Joint bead — ring between this segment and the next
+        if (i < 6) {
+            const beadMesh = new THREE.Mesh(
+                parts.beadGeometry,
+                parts.beadMaterial.clone()
+            );
+            beadMesh.position.y = -VOIDWORM_RADII[i] * 0.85;
+            pivot.add(beadMesh);
+            seg.bead = beadMesh;
+        }
+
+        segments.push(seg);
     }
     group.userData.segments = segments;
 }
@@ -4762,6 +4839,28 @@ export function animateAlien(alien) {
                     if (seg.mesh) {
                         const shimmer = Math.sin(t * 5.5 + seg.phase * 1.3);
                         seg.mesh.scale.setScalar(1.0 + shimmer * 0.04);
+                    }
+
+                    // Spine brightening — peaks during windup, faint pulse otherwise
+                    if (seg.spine) {
+                        const spinePulse = Math.sin(t * 3.2 + seg.phase);
+                        seg.spine.material.emissiveIntensity =
+                            0.6 + (spinePulse * 0.3 + 0.3) * 2.0 + windup * 1.5;
+                        // Spine extends outward during windup
+                        const spineExt = windup * 0.08;
+                        seg.spine.position.y = VOIDWORM_RADII[i] + 0.05 + spineExt;
+                    }
+
+                    // Plate rotation — catches light as worm waves; oscillates in local Y
+                    if (seg.plate) {
+                        const plateSway = Math.sin(t * 2.8 + seg.phase) * 0.4;
+                        seg.plate.rotation.y = Math.PI / 2 + plateSway;
+                    }
+
+                    // Joint bead — subtle scale pulse on the bead between segments
+                    if (seg.bead) {
+                        const beadPulse = Math.sin(t * 4.0 + seg.phase * 1.1);
+                        seg.bead.scale.setScalar(1.0 + beadPulse * 0.15 + windup * 0.12);
                     }
                 });
             }
