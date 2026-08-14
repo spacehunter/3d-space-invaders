@@ -38,13 +38,39 @@ the lock. Keep it under ~60 lines: newest facts on top, prune stale detail.
 - `capture-invader.mjs` now exits **4** with a banner if the page throws.
   Exit 4 = your frames are not evidence. Fix, recapture, then grade.
 
+## Looked at with human eyes (2026-08-14 17:45) — outranks the grader
+
+Frames 1 and 5 of a clean 11-frame capture were viewed directly. The chain
+reads well: a serpentine column with a bright crown, clearly animating
+(it straightens and re-coils across the cycle). Two real problems the
+grader did not weight properly:
+
+1. **The crown blows out to a featureless white blob.** For most of the
+   cycle you cannot see teeth at all — just glare. The bestiary promises
+   "crown teeth flare open and snap shut" and that reads only in a couple
+   of frames. Teeth emissive runs `1.5 + windup * 3.0` (up to 4.5); that is
+   too hot against the bloom. Bring it down until the teeth are *shapes*,
+   not a lamp. This is the highest-value fix, ahead of the grader's.
+2. **The segments read as thin flat shards, not crystals with volume.**
+   The grader's `one_fix` says "add irregular sharp geometry" — they are
+   already angular. What is missing is *volume and light response*: they
+   look like flat paper triangles. Give them thickness and a lit facet
+   that catches the crown glow, rather than more jaggedness.
+
+Performance is fine: 23 fps in the bestiary preview both at HEAD and at
+fff19f3 (before the detail pass), so the spines/beads cost nothing
+measurable. `capture-invader.mjs` now prints and logs fps — an earlier
+reading of 57 was the *crashed* build skipping all animation work, not a
+faster one. Do not chase that number.
+
 ## Next
 
-1. Irregular crystalline geometry on the body segments (the `one_fix`).
-2. Recapture `FRAMES=11 GAP_MS=800`, confirm capture exits 0, then grade.
-3. The grader is ±2 noisy on identical builds — never revert on one low
+1. Tame the crown blowout so the teeth read as teeth (human-eye fix #1).
+2. Give the segments volume/lit facets rather than more jaggedness (#2).
+3. Recapture `FRAMES=11 GAP_MS=800`, confirm capture exits 0, then grade.
+4. The grader is ±2 noisy on identical builds — never revert on one low
    score. Look at the frames first; believe a pass only after `--confirm`.
-4. Anything the human sends by Telegram outranks the grader's `one_fix`.
+5. Anything the human sends by Telegram outranks everything above.
 
 ## Update template (replace sections above, keep headings)
 

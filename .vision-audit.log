@@ -35,3 +35,6 @@
 2026-08-14T22:26:37.734Z	CAPTURE	VOIDWORM	id=13	frames=3	gap=400ms	span=0.8s	onEntry=true	sha=9c4ad2ebf6c8,3af5d9f09b58,b0bf5b26556d
 2026-08-14T22:26:57.832Z	CAPTURE	VOIDWORM	id=13	frames=3	gap=400ms	span=0.8s	onEntry=true	sha=2c1361762ba8,2c1361762ba8,551c45fe1804
 2026-08-14T22:26:57.833Z	JSERROR	VOIDWORM	id=13	count=147	first=ReferenceError: Cannot access 'windup' before initialization
+2026-08-14T22:28:10.797Z	CAPTURE	VOIDWORM	id=13	frames=11	gap=800ms	span=8.0s	onEntry=true	sha=7872cfe3b27c,4f710baf0082,1b7b96a02a9c,ce48ae1a6800,b819dec95dcf,b70e9f630e74,b38a3ebfd027,fe103fae9324,8ad5703383b5,a2455996a326,853632e159b5
+2026-08-14T22:30:15.117Z	CAPTURE	VOIDWORM	id=13	frames=4	gap=700ms	span=2.1s	onEntry=true	fps=23	sha=c93526c58d6b,1e6be50db036,433e3fc2ebb4,dc7f28868f06
+2026-08-14T22:30:28.798Z	CAPTURE	VOIDWORM	id=13	frames=4	gap=700ms	span=2.1s	onEntry=true	fps=23	sha=de8ef698434c,7886ce441ada,3fe77c3cfe9f,c96d97475136

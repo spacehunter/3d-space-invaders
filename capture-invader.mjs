@@ -75,6 +75,16 @@ try {
     if (f < FRAMES) await page.waitForTimeout(GAP_MS);
   }
 
+  // Frame rate, sampled after the capture so the scene has been running.
+  // Detail passes add geometry and per-frame material writes; without this
+  // a model can look better and quietly cost 3x the frame budget.
+  let fps = null;
+  try {
+    const t = await page.evaluate(() => document.querySelector('#fps')?.textContent || '');
+    const m = t.match(/(\d+)/);
+    if (m) fps = Number(m[1]);
+  } catch { /* preview may not show the counter */ }
+
   // Audit trail: written here, at run time, with hashes of the real bytes.
   const hashes = [];
   for (let f = 1; f <= FRAMES; f++) {
@@ -86,9 +96,12 @@ try {
   appendFileSync('.vision-audit.log',
     `${new Date().toISOString()}\tCAPTURE\t${NAME}\tid=${ID}\tframes=${FRAMES}`
     + `\tgap=${GAP_MS}ms\tspan=${((FRAMES - 1) * GAP_MS / 1000).toFixed(1)}s`
-    + `\tonEntry=${onEntry}\tsha=${hashes.join(',')}\n`);
+    + `\tonEntry=${onEntry}\tfps=${fps ?? '?'}\tsha=${hashes.join(',')}\n`);
   console.log(`  captured ${FRAMES} frames -> ${OUT}/${NAME}-1..${FRAMES}.png`);
   console.log(`  bestiary shows "${NAME}": ${onEntry ? 'YES' : 'NO — check the ID'}`);
+  if (fps !== null) {
+    console.log(`  fps: ${fps}${fps < 30 ? '  <-- LOW. Check this against the previous build.' : ''}`);
+  }
   const counter = (shown.match(/(\d+)\s*\/\s*(\d+)/) || [])[0];
   if (counter) console.log(`  entry counter: ${counter}`);
   // A missing asset is noise. A thrown exception means the animation is
