@@ -3013,7 +3013,7 @@ function getVoidwormParts() {
     // segment's surface, catching light as the worm waves. Adds surface detail
     // without changing the chain silhouette.
     const plateGeometry = buildVoxelGeometry([
-        { size: [0.28, 0.02, 0.22], pos: [0, 0, 0], rotX: 0, color: VOIDWORM_MID }
+        { size: [0.28, 0.04, 0.22], pos: [0, 0, 0], rotX: 0, color: VOIDWORM_MID }
     ]);
 
     // Joint beads — small ring-like beads between segments that catch light as
@@ -3039,6 +3039,10 @@ function getVoidwormParts() {
                 color: colors[i],
                 emissive: VOIDWORM_DEEP,
                 emissiveIntensity: 0.7,
+                // MeshPhongMaterial defaults specular to 0x111111, so shininess
+                // 120 lit nothing and the octahedron faces read as flat paper.
+                // A real specular colour is what makes the facets catch light.
+                specular: 0xbb88ff,
                 shininess: 120,
                 flatShading: true
             });
@@ -3053,7 +3057,7 @@ function getVoidwormParts() {
         coreMaterial: new THREE.MeshPhongMaterial({
             color: VOIDWORM_HOT,
             emissive: VOIDWORM_HOT,
-            emissiveIntensity: 1.5,
+            emissiveIntensity: 1.1,
             transparent: true,
             opacity: 0.7,
             flatShading: true
@@ -3081,14 +3085,17 @@ function getVoidwormParts() {
         }),
         teethMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: VOIDWORM_HOT,
-            emissiveIntensity: 2.5,
+            // Violet, not near-white. VOIDWORM_HOT (0xffccff) clipped under
+            // bloom and turned the whole crown into a featureless white blob,
+            // so the teeth the bestiary promises were never visible.
+            emissive: VOIDWORM_BRIGHT,
+            emissiveIntensity: 1.0,
             flatShading: true
         }),
         eyeMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
             emissive: 0xffffff,
-            emissiveIntensity: 2.0,
+            emissiveIntensity: 1.1,
             flatShading: true
         })
     };
@@ -3156,6 +3163,11 @@ function createVoidwormAlien(group) {
         );
         plateMesh.position.set(VOIDWORM_RADII[i] * 0.7, 0, 0);
         plateMesh.rotation.y = Math.PI / 2;
+        // Scale the footprint to the segment, keeping thickness. A fixed
+        // 0.28 plate on the 0.07-radius tail segments was four times their
+        // diameter and read as a flat fin hanging off the chain.
+        const plateFit = VOIDWORM_RADII[i] / VOIDWORM_RADII[0];
+        plateMesh.scale.set(plateFit, 1, plateFit);
         pivot.add(plateMesh);
 
         const seg = { pivot, phase: segmentPhases[i], mesh: segMesh, core: coreMesh, spine: null, plate: plateMesh, bead: null };
@@ -4878,7 +4890,7 @@ export function animateAlien(alien) {
             if (self.teeth) {
                 // Teeth emissive — bright flash during windup
                 self.teeth.material.emissiveIntensity =
-                    1.5 + windup * 3.0;
+                    0.6 + windup * 1.7;
                 // Teeth open: scale outward during windup, snap shut on burst
                 const teethScale = 1.0 + windup * 0.6;
                 self.teeth.scale.setScalar(teethScale);
