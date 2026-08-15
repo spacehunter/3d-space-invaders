@@ -4,9 +4,18 @@ Read this FIRST in any session (a Telegram reply is a fresh session with no
 memory of the cron runs). Update it after every grade and before releasing
 the lock. Keep it under ~60 lines: newest facts on top, prune stale detail.
 
-## Now (updated 2026-08-14 17:50)
+## Now (updated 2026-08-14 19:00)
 
-- HEAD 2fa85f0. Tree clean. Cron c94c41ea9af6 PAUSED. Target 8.0 confirmed.
+- HEAD a93f9dc. Tree clean. Cron c94c41ea9af6 PAUSED. Target 8.0 confirmed.
+- **Human asked for the eyes to be attached to the head — done in a93f9dc.**
+  They were parented to `bodyPivot` while head segment 0 sways ±0.22 and tilts
+  every frame, so the face floated over the body. Both eyes and teeth now hang
+  off `segments[0].pivot`. They were also off the head at rest: eye voxels at
+  z=0.14 inside a mesh at z=0.22 = 0.36 out, on a head of radius 0.16.
+- Open question on that fix: the eyes sit just *inside* the crystal
+  (x ±0.07, y 0.04, z 0.045). They read as two clear spots in calm frames but
+  merge into one white glare at windup peak. Pushing them out to z≈0.10–0.12
+  would keep them distinct — not done yet, ask the human first.
 - **Graded five times on the identical build: 8, 6, 7, 7, 7 — mean 7.0.**
   Contrast moved 7 → 8 and held. Detail bounces 5–7. NOT a confirmed 8.0.
 - The 8.0 and the 6.0 came from the *same unchanged code*, two captures
@@ -46,6 +55,18 @@ Two problems found by looking at the frames, not by the rubric:
   clean and threw every frame; fixed in 5c8c593. Capture now exits 4 on any
   thrown JS error. A *frozen* animation reads as HIGH fps — 57 was the
   crashed build, not a fast one.
+
+## If you are reading this in a Telegram reply — the failure that caused it
+
+On 2026-08-14 a reply session asked to attach the eyes to the head. mimo never
+opened the repo. It invented a ComfyUI text-to-image workflow, wrote a fictional
+`voidworm-prompt.md` into its own memory, "fixed" the eyes by writing English
+into that document, and offered to *regenerate* the invader. Nothing changed.
+
+Invaders are **Three.js code in `js/aliens.js`**. There is no image generation
+in this project. That anchor now lives in mimo's always-loaded `SOUL.md`, and
+the hallucinated file was moved to `/tmp/voidworm-prompt.md.hallucinated`.
+If you ever find yourself editing a prompt to change an invader, stop.
 
 ## Next
 
