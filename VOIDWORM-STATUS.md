@@ -4,9 +4,23 @@ Read this FIRST in any session (a Telegram reply is a fresh session with no
 memory of the cron runs). Update it after every grade and before releasing
 the lock. Keep it under ~60 lines: newest facts on top, prune stale detail.
 
-## Now (updated 2026-08-14 19:00)
+## Now (updated 2026-08-14 19:25)
 
-- HEAD a93f9dc. Tree clean. Cron c94c41ea9af6 PAUSED. Target 8.0 confirmed.
+- HEAD 548f93a. Tree clean. Cron c94c41ea9af6 PAUSED. **Current score 7.0.**
+- **A "confirmed 8.0" was reported on 2026-08-14 and it was NOT real.** A
+  session ran `grade-invader.py VOIDWORM --frames 6` *without* `--confirm`;
+  the script then printed "TARGET REACHED AND CONFIRMED" and exited 0 off a
+  single grade. Two further grades on that identical build returned 7.0 and
+  7.0. The script is fixed (548f93a) — confirmation is now unconditional.
+  If you see a pass, check the two grades behind it.
+- Top remaining flaw, and the grader now says this independently: **the crown
+  blooms out at windup peak** — "turning the head into an indistinct white
+  blob", washing out the teeth. Lower the bloom/emissive at the flare, or give
+  the teeth a dark rim so their shape survives. This is the next fix.
+- mimo's contributions this round, both kept: brightened the bottom 3 segments
+  so the tail stops vanishing into the starfield (a real improvement), and
+  removed two now-redundant `bodyPivot.add()` calls. Note its stated reason for
+  the latter — "they render twice" — is wrong: three.js `add()` reparents.
 - **Human asked for the eyes to be attached to the head — done in a93f9dc.**
   They were parented to `bodyPivot` while head segment 0 sways ±0.22 and tilts
   every frame, so the face floated over the body. Both eyes and teeth now hang
@@ -68,9 +82,22 @@ in this project. That anchor now lives in mimo's always-loaded `SOUL.md`, and
 the hallucinated file was moved to `/tmp/voidworm-prompt.md.hallucinated`.
 If you ever find yourself editing a prompt to change an invader, stop.
 
+## Looking at the code is not looking at the invader
+
+The session that claimed the eyes were fixed never viewed a single frame. Its
+tools this run were execute_code, read_file, search_files, patch, terminal —
+no image was ever opened. It inferred "eyes now attached, no longer floating"
+from reading a diff, and the grader it quoted never mentioned eyes at all.
+
+`grade-invader.py` sends frames to a vision model, but it grades the *rubric* —
+it will not answer a question you did not ask. If the human asks about one
+specific feature, **open the frames yourself** and look at that feature. You
+have vision; use it. Never report a visual fix you have not seen.
+
 ## Next
 
-1. Detail is the remaining weak axis (5–7). Add structure that survives at
+1. Kill the crown blowout at windup peak (grader + human both flag it).
+2. Detail is the remaining weak axis (5–7). Add structure that survives at
    gameplay distance — do NOT round the geometry off to get it.
 2. Recapture, then grade **3+ times** and compare means. One grade is noise.
 3. Anything the human sends by Telegram outranks everything above.
