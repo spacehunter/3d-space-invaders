@@ -21,7 +21,7 @@ AP.add_argument("--max-tokens", type=int, default=6000)
 AP.add_argument("--width", type=int, default=640)
 AP.add_argument("--target", type=float, default=8.0)
 AP.add_argument("--confirm", action="store_true",
-                help="require the previous grade to also clear target "
+                help="(now always enforced, kept for compatibility) "
                      "(guards against +/-2 judge noise)")
 A = AP.parse_args()
 NAME = A.name.upper()
@@ -142,7 +142,11 @@ if hist:
               % (A.target, cur))
         sys.exit(2)
 
-    if A.confirm and (prev is None or prev < A.target):
+    # Confirmation is NOT optional. Without this, running the script without
+    # --confirm printed "CONFIRMED" and exited 0 off a SINGLE grade — which is
+    # exactly the false milestone this judge's +/-2 noise produces. It happened
+    # on 2026-08-14: one 8.0 after a 7.0 was reported to the user as confirmed.
+    if prev is None or prev < A.target:
         print("\n  target %.1f — hit %.1f, but UNCONFIRMED." % (A.target, cur))
         print("  This judge varies by about +/-2 on an identical build, so one")
         print("  score is not evidence. Recapture and grade again WITHOUT editing:")
@@ -151,7 +155,7 @@ if hist:
         sys.exit(3)
 
     print("\n  ============================================")
-    print("  TARGET REACHED AND CONFIRMED: %.1f (prev %.1f)"
+    print("  TARGET REACHED AND CONFIRMED: %.1f, and %.1f before it"
           % (cur, prev if prev is not None else cur))
     print("  STOP EDITING NOW. Commit this state immediately.")
     print("  Further changes have already been shown to LOSE points:")

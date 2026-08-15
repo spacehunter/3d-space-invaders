@@ -55,3 +55,6 @@
 2026-08-15T00:15:13.545651+00:00	GRADE	VOIDWORM	frames=6	overall=7	silhouette=8	contrast=7	animation=7	detail=6	cohesion=8	prompt_tokens=1776	sha=5513b35f6a42,49505d685d18,398ee20b5b12,a69a9571915b,b9cf41d961b2,717d87b47def
 2026-08-15T00:16:04.694Z	CAPTURE	VOIDWORM	id=13	frames=6	gap=750ms	span=3.8s	onEntry=true	fps=22	sha=2dba046c4619,85261a78ae06,320ffd827115,b4ef47e63f13,f55df69e6f93,7032a6d4757e
 2026-08-15T00:16:48.682832+00:00	GRADE	VOIDWORM	frames=6	overall=8	silhouette=8	contrast=9	animation=7	detail=6	cohesion=8	prompt_tokens=1776	sha=2dba046c4619,85261a78ae06,320ffd827115,b4ef47e63f13,f55df69e6f93,7032a6d4757e
+2026-08-15T00:19:22.253Z	CAPTURE	VOIDWORM	id=13	frames=11	gap=800ms	span=8.0s	onEntry=true	fps=23	sha=10cf983b9352,7b3555249538,cca3bb021fc7,eab92f57da96,754bd26ea805,dcfe98275625,98be2d78e826,bd08fc92162e,3f3799e9d356,c50322c6b04a,41f4d94ed54d
+2026-08-15T00:20:20.299232+00:00	GRADE	VOIDWORM	frames=6	overall=7	silhouette=8	contrast=6	animation=7	detail=6	cohesion=7	prompt_tokens=1776	sha=10cf983b9352,7b3555249538,cca3bb021fc7,eab92f57da96,754bd26ea805,dcfe98275625
+2026-08-15T00:21:31.290417+00:00	GRADE	VOIDWORM	frames=6	overall=7	silhouette=7	contrast=8	animation=6	detail=6	cohesion=8	prompt_tokens=1776	sha=10cf983b9352,7b3555249538,cca3bb021fc7,eab92f57da96,754bd26ea805,dcfe98275625
