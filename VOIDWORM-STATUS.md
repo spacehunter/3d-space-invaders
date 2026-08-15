@@ -4,9 +4,26 @@ Read this FIRST in any session (a Telegram reply is a fresh session with no
 memory of the cron runs). Update it after every grade and before releasing
 the lock. Keep it under ~60 lines: newest facts on top, prune stale detail.
 
-## Now (updated 2026-08-14 19:25)
+## Now (updated 2026-08-14 19:45)
 
-- HEAD 548f93a. Tree clean. Cron c94c41ea9af6 PAUSED. **Current score 7.0.**
+- Arms were added in `387b966` and graded 8.0 twice (a real confirmation under
+  the fixed gate). Cron c94c41ea9af6 PAUSED. Full write-up of everything this
+  loop has taught us: **`AGENT-LOOP-LESSONS.md`** — read it.
+- **OPEN BUG — the arms are not attached to the body.** Looked at directly in
+  frames 2 and 7: two slabs float beside the chain with visible gaps, at
+  different heights. Two causes, both in `createVoidwormAlien`:
+  1. `[-1, 1].map((side, idx) => { const segIdx = idx + 1; ... })` mounts the
+     LEFT arm on segment 1 and the RIGHT arm on segment 2 — y −0.28 vs −0.56,
+     so they are not a pair. Mount both on the same segment.
+  2. The mount sits at `x = ±VOIDWORM_RADII[segIdx], y = 0`, which on an
+     octahedron is the widest *vertex*, not a surface; the arm then drops to
+     y −0.11 and the forearm to −0.28 while the segment bottom is only −0.15.
+     Inset the shoulder (x ≈ ±0.6r, y slightly above centre) so it is embedded
+     in the crystal, and scale the limb down — it is ~0.5 long against a 0.13
+     radius, which is why it reads as a slab rather than a limb.
+- The 8.0 is a real rubric score and the arms did improve animation 7 → 8. The
+  rubric was never asked whether the arms are attached. Both things are true.
+- Previous entry, still current: **score 7.0 before the arms.**
 - **A "confirmed 8.0" was reported on 2026-08-14 and it was NOT real.** A
   session ran `grade-invader.py VOIDWORM --frames 6` *without* `--confirm`;
   the script then printed "TARGET REACHED AND CONFIRMED" and exited 0 off a
