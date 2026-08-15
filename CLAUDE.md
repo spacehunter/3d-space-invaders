@@ -6,6 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 3D Space Invaders is a browser-based game built with THREE.js featuring a third-person camera, blocky/voxel aesthetic, procedural audio, infinite level progression, and epic boss battles. Uses Vite for production builds with minification.
 
+## Working on invaders (read this first)
+
+Invaders are Three.js code in `js/aliens.js` — there is no image generation in
+this project. Before changing one:
+
+- `AGENT-LOOP-LESSONS.md` — nine failure modes this loop has already hit, with
+  the fixes. Read before touching the invader toolchain or the skill.
+- `<NAME>-STATUS.md` (e.g. `VOIDWORM-STATUS.md`) — current score, what was
+  tried, what is next. Update it after every grade.
+- `./run-lock.sh check` — one editor at a time.
+
+**`npm run build` passing proves nothing about runtime.** A `const` read above
+its declaration builds clean and throws every frame. Always verify with:
+
+```bash
+FRAMES=11 GAP_MS=800 node capture-invader.mjs <ID> <NAME>  # exits 4 if the page throws
+python3 grade-invader.py <NAME>                            # 0 = confirmed, 2 = iterate, 3 = unconfirmed
+```
+
+The grader varies by ±2 on an identical build — compare means over 3+ grades,
+and open the frames yourself for any question about a specific feature.
+
 ## Development
 
 ```bash
