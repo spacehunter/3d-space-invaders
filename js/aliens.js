@@ -2965,6 +2965,17 @@ const VOIDWORM_EYES = [
     { size: [0.05, 0.05, 0.04], pos: [0.07, 0.04, 0.045], color: 0xffffff }
 ];
 
+// Arm voxels — two crystal prisms that hang from the mid-body and swing.
+// Each arm has an upper prism and a forearm prism, joined at a "joint."
+const VOIDWORM_UPPER_ARM = [
+    { size: [0.14, 0.22, 0.14], pos: [0, -0.11, 0], color: VOIDWORM_MID },
+    { size: [0.16, 0.05, 0.16], pos: [0, -0.23, 0], color: VOIDWORM_DARK }  // joint bead
+];
+const VOIDWORM_FORE_ARM = [
+    { size: [0.12, 0.20, 0.12], pos: [0, -0.10, 0], color: VOIDWORM_MID },
+    { size: [0.08, 0.04, 0.08], pos: [0, -0.21, 0], color: VOIDWORM_BRIGHT }  // glowing tip
+];
+
 // Per-segment radii (sphere-like segments, tapering head/tail)
 const VOIDWORM_RADII = [0.16, 0.13, 0.12, 0.14, 0.11, 0.09, 0.07];
 const VOIDWORM_Y     = [0, -0.28, -0.56, -0.82, -1.08, -1.30, -1.52];
@@ -3022,12 +3033,19 @@ function getVoidwormParts() {
         { size: [0.12, 0.06, 0.12], pos: [0, 0, 0], color: VOIDWORM_DARK }
     ]);
 
+    // Arms — two crystal-prism limbs hanging from the mid-body, swinging like
+    // pendulums. Each arm has an upper prism + joint bead and a forearm + tip.
+    const armUpperGeometry = buildVoxelGeometry(VOIDWORM_UPPER_ARM);
+    const armForeGeometry = buildVoxelGeometry(VOIDWORM_FORE_ARM);
+
     voidwormParts = {
         segmentGeometries,
         connectorGeometries,
         coreGeometries,
         teethGeometry: buildVoxelGeometry(VOIDWORM_TEETH),
         eyeGeometry: buildVoxelGeometry(VOIDWORM_EYES),
+        armUpperGeometry,
+        armForeGeometry,
         spineGeometry,
         plateGeometry,
         beadGeometry,
@@ -3099,6 +3117,22 @@ function getVoidwormParts() {
             vertexColors: true,
             emissive: 0xffffff,
             emissiveIntensity: 1.1,
+            flatShading: true
+        }),
+        armUpperMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: VOIDWORM_DARK,
+            emissiveIntensity: 0.4,
+            specular: 0xbb88ff,
+            shininess: 100,
+            flatShading: true
+        }),
+        armForeMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: VOIDWORM_DARK,
+            emissiveIntensity: 0.4,
+            specular: 0xbb88ff,
+            shininess: 100,
             flatShading: true
         })
     };
@@ -3204,6 +3238,35 @@ function createVoidwormAlien(group) {
     // bodyPivot visibly detached and floated over the body below.
     segments[0].pivot.add(teeth);
     segments[0].pivot.add(eyes);
+
+    // Crystal arms — two prismatic limbs hanging from body segments 1 and 2,
+    // swinging pendulum-style. Each arm has an upper prism + joint and a forearm.
+    group.userData.arms = [-1, 1].map((side, idx) => {
+        // Mount on segment 1 (idx 0) and segment 2 (idx 1)
+        const segIdx = idx + 1;
+        const mount = new THREE.Group();
+        // Position on the side of the segment, hanging down
+        mount.position.set(side * VOIDWORM_RADII[segIdx], 0, 0);
+        segments[segIdx].pivot.add(mount);
+
+        // Upper arm — vertical crystal prism
+        const upper = new THREE.Mesh(
+            parts.armUpperGeometry,
+            parts.armUpperMaterial.clone()
+        );
+        upper.position.y = -0.11;
+        mount.add(upper);
+
+        // Forearm — hangs from the joint, slightly offset
+        const fore = new THREE.Mesh(
+            parts.armForeGeometry,
+            parts.armForeMaterial.clone()
+        );
+        fore.position.y = -0.28;
+        mount.add(fore);
+
+        return { mount, upper, fore, side, idx };
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -4903,6 +4966,23 @@ export function animateAlien(alien) {
                 self.teeth.scale.setScalar(teethScale);
             }
 
+            // Crystal arms — pendulum swing. Each arm hangs from its body
+            // segment and swings back and forth, with a phase offset so the
+            // left and right arms don't move in lockstep. The swing amplitude
+            // follows the worm's undulation — bigger wave = wider arm swing.
+            if (self.arms) {
+                self.arms.forEach(arm => {
+                    const phase = arm.idx * Math.PI; // opposite phase for left/right
+                    // Pendulum swing: rotation in X about the mount pivot
+                    const swing = Math.sin(t * 2.5 + phase) * 0.55;
+                    arm.mount.rotation.x = swing;
+                    // Slight Y swing for more organic motion
+                    arm.mount.rotation.z = Math.sin(t * 1.8 + phase + 0.7) * 0.15;
+                    // Forearm hangs loosely — slight lag behind upper arm
+                    arm.fore.position.y = -0.28 - Math.abs(swing) * 0.04;
+                });
+            }
+
             // Idle hover
             if (!alien.userData.isSwooping) {
                 alien.position.y = 0.04 + Math.sin(t * 1.5) * 0.03;
@@ -4910,7 +4990,7 @@ export function animateAlien(alien) {
             break;
         }
 
-        case 14: { // Raven — wings snap open, beak clacks, crest pulses
+        case 14: { // Raven
             const self = alien.userData;
             const t = time;
             const period = 6.0;
