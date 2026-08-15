@@ -3034,11 +3034,14 @@ function getVoidwormParts() {
         segmentMaterials: VOIDWORM_RADII.map((_, i) => {
             // Each segment gets a distinct hue so the chain reads as individual crystals,
             // not a uniform tube. Wide spectrum: magenta → purple → violet → blue-violet → deep indigo.
-            const colors = [0xdd55ff, 0xbb33ee, 0x9922dd, 0x7711cc, 0x5500aa, 0x330088, 0x220066];
+            // Bottom segments boosted to stay visible against the black starfield.
+            const colors = [0xdd55ff, 0xbb33ee, 0x9922dd, 0x8833cc, 0x7722bb, 0x6611aa, 0x551199];
+            const emissives = [0xdd55ff, 0xbb33ee, 0x9922dd, 0x7711cc, 0x6611bb, 0x5511aa, 0x4411aa];
+            const intensities = [0.7, 0.7, 0.7, 0.7, 0.9, 0.9, 1.0];
             return new THREE.MeshPhongMaterial({
                 color: colors[i],
-                emissive: VOIDWORM_DEEP,
-                emissiveIntensity: 0.7,
+                emissive: emissives[i],
+                emissiveIntensity: intensities[i],
                 // MeshPhongMaterial defaults specular to 0x111111, so shininess
                 // 120 lit nothing and the octahedron faces read as flat paper.
                 // A real specular colour is what makes the facets catch light.
@@ -3110,16 +3113,14 @@ function createVoidwormAlien(group) {
     group.add(bodyPivot);
     group.userData.bodyPivot = bodyPivot;
 
-    // Crown teeth — bright crown on the head
+    // Crown teeth — bright crown on the head (attached to head segment, NOT bodyPivot)
     const teeth = new THREE.Mesh(parts.teethGeometry, parts.teethMaterial.clone());
     teeth.position.set(0, 0.10, 0);
-    bodyPivot.add(teeth);
     group.userData.teeth = teeth;
 
-    // Eyes — paired bright spots on the head
+    // Eyes — paired bright spots on the head (attached to head segment, NOT bodyPivot)
     const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
     eyes.position.set(0, 0, 0);
-    bodyPivot.add(eyes);
     group.userData.eyes = eyes;
 
     // 7 crystalline segments, each parented to its own pivot for undulation
