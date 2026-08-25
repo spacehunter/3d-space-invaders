@@ -27,7 +27,11 @@ const SCALING = {
 const CAPS = {
     maxAlienSpeed: 0.15,
     minFireInterval: 500,
-    maxRows: 8,
+    // One row per alien type. This was 8, which capped grid rows at 0-7 and so
+    // silently kept the Wasp (type 8) out of every wave despite it being fully
+    // implemented; it must always equal ALIEN_ROWS, or the highest type index
+    // never spawns. 13 admits the Mantis (type 12).
+    maxRows: 13,
     maxCols: 11,
     maxSwoopThreshold: 15,
     maxPowerUpDropRate: 0.25
