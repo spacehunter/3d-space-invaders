@@ -32,7 +32,7 @@ const BESTIARY_ENTRIES = [
         points: 40,
         color: '#44ff88',
         tagline: 'ROW 3 - GREEN',
-        description: 'Tapered voxel mantle with side fins and a jet siphon. The mantle squashes and the siphon flashes on each thrust, chromatophore spots flush with the jet, the fins undulate then sweep flat to streamline, a wave travels around the six-arm crown and down each arm, and two clubbed feeding tentacles lash out every few seconds.',
+        description: 'A deep-green hunter with a dorsal keel fin and amber bioluminescent veins. The mantle coils tall - veins pumping, chromatophores flushing - then squeezes out a jet: siphon flash, plume burst, fins sweeping flat to streamline. A curl travels around the eight-arm crown and down each arm with the sucker glow rippling behind it, and two feeding tentacles lash out on amber lure clubs that flare with the strike.',
         weapon: 'Standard red missiles'
     },
     {
@@ -79,14 +79,61 @@ const BESTIARY_ENTRIES = [
         tagline: 'ROW 8 - EARTHY BROWN',
         description: 'Segmented arachnid carapace with a sweeping S-curved tail and a glowing stinger at the tip. Pedipalp pincers open and close, eight legs walk a tripod gait, the tail flicks up on charge and whips down on the strike, and amber venom darts arc upward in a mortar trajectory before diving for the player.',
         weapon: 'Venom darts — mortar-arcing, launches upward then dives'
+    },
+    {
+        name: 'WASP',
+        row: 8,
+        points: 0,
+        color: '#ffb52e',
+        tagline: 'ROW 9 - AMBER',
+        description: 'Compact voxel wasp with a charcoal thorax, amber warning stripes, compound eyes and a bright stinger. Six legs shift in alternating tripods while both pairs of smoky wings fold, vibrate, snap open and beat through a spectacular wingstorm before a sharp sting lunge.',
+        weapon: 'Amber needles — fast, straight-flying stinger volleys'
+    },
+    {
+        name: 'SENTINEL',
+        row: 9,
+        points: 0,
+        color: '#8fd8ff',
+        tagline: 'ROW 10 - OBSIDIAN',
+        description: 'A levitating obsidian construct with no limbs at all: ten armour shards closed around an exposed plasma core, ringed by two counter-rotating gimbals. The shell unlocks, blows apart into a tumbling orbital cloud, then locks into a flat firing lens in front of the core before the iris opens and the lance discharges — and slams itself back together.',
+        weapon: 'Prism lances — a diverging three-shot fan that denies a cone'
+    },
+    {
+        name: 'WARDEN',
+        row: 10,
+        points: 0,
+        color: '#c2568f',
+        tagline: 'ROW 11 - PLUM',
+        description: 'The only invader with a hole through it: a standing plum hoop with inward-pointing teeth, a molten gold core suspended at the centre on four spokes, and a short keel behind. The hoop rolls and the spokes retract before it turns fully edge-on — collapsing the silhouette from a circle to a line — then snaps back face-on and fires straight through its own middle.',
+        weapon: 'Halo waves — expanding rings you dodge through, not away from'
+    },
+    {
+        name: 'GYRE',
+        row: 11,
+        points: 0,
+        color: '#9d7fdc',
+        tagline: 'ROW 12 - NACRE',
+        description: 'Not a body but a whirlpool: fourteen loose nacre shell plates wound in a receding conical spiral, widest at the back and tapering forward to a gold bead aimed straight down the lane, with dust motes caught orbiting outside it. A pearl light chases inward along the coil, then the whole funnel corkscrews down into its own core — the drain — flares white-gold, spits a bolt and springs open again on a rebound wave.',
+        weapon: 'Vortex bolts — corkscrew around a descending axis on a widening helix'
+    },
+    {
+        name: 'MANTIS',
+        row: 12,
+        points: 0,
+        color: '#8fa04e',
+        tagline: 'ROW 13 - OLIVE',
+        description: 'An upright ambush predator in olive and bone: a narrow prothorax carried at an angle, a triangular head that tracks you on its own neck, and two oversized raptorial forearms folded in front leaving a deep notch in its outline. Alone in the roster it goes almost completely still between attacks — only the head turning and the antennae sweeping — and then the arms unfold and snap out and shut in a fraction of a second, cyan spine teeth flashing as the folded wings crack open.',
+        weapon: 'Ambush spurs — drift in slowly, then coil and lunge at the last moment'
     }
 ];
 
 // The models differ a lot in footprint, so each is scaled to fit this box
 // rather than carrying a hand-tuned number that would rot as models change.
 // Measured on the rest pose, so it leaves headroom for animations that grow
-// the model (the squid's squash-and-stretch runs to about 1.3x).
-const TARGET_SIZE = 2.1;
+// the model (the squid's squash-and-stretch runs to about 1.3x). Kept small
+// enough that a height-dominant model cleared by pivot.y below still clears
+// the info panel that covers the bottom of the viewport.
+const TARGET_SIZE = 1.8;
 
 let bestiaryScene = null;
 let bestiaryCamera = null;
@@ -150,7 +197,8 @@ export function initBestiary(onClose) {
     bestiaryScene.add(createBackdropStars());
 
     pivot = new THREE.Group();
-    pivot.position.y = 0.7;    // sit the model above the info panel
+    pivot.position.y = 1.3;    // sit the model well above the info panel, which
+                               // covers the lower ~60% of the viewport
     bestiaryScene.add(pivot);
 
     holder = new THREE.Group();

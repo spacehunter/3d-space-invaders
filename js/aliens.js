@@ -49,8 +49,8 @@ export function createAliens(scene, customRows = null, customCols = null) {
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            // Cycle through 8 alien types based on row
-            const alienType = row % 8;
+            // Cycle through 13 alien types based on row
+            const alienType = row % 13;
             const alien = createAlien(alienType);
             alien.position.x = startX + col * ALIEN_SPACING;
             alien.position.z = startZ - row * ALIEN_SPACING;
@@ -79,7 +79,7 @@ export function createAliens(scene, customRows = null, customCols = null) {
  * anything to a scene, so it can be called while a game is in progress without
  * corrupting the formation. The caller owns the returned Group.
  *
- * @param {number} type - alien type 0-6 (same numbering as the row types)
+ * @param {number} type - alien type 0-12 (same numbering as the row types)
  * @returns {THREE.Group} an alien ready to be passed to animateAlien()
  */
 export function createAlienPreview(type) {
@@ -125,6 +125,21 @@ function createAlien(row) {
             break;
         case 7: // Scorpion style - arachnid with segmented tail and venom darts
             createScorpionAlien(group);
+            break;
+        case 8: // Wasp style - striped insect with wingstorm animation
+            createWaspAlien(group);
+            break;
+        case 9: // Sentinel style - levitating construct that shatters and reforms
+            createSentinelAlien(group);
+            break;
+        case 10: // Warden style - hollow hoop that flips edge-on and fires through itself
+            createWardenAlien(group);
+            break;
+        case 11: // Gyre style - vortex funnel that drains inward and fires a corkscrew
+            createGyreAlien(group);
+            break;
+        case 12: // Mantis style - upright ambush predator that holds still, then strikes
+            createMantisAlien(group);
             break;
     }
 
@@ -587,22 +602,37 @@ function createCrabAlien(group) {
 // Mantle: tapering tiers from a pointed tail down to the collar. saucerTier()
 // (shared with the UFO hull) unions three boxes into a cut-corner disc, which
 // reads as a round mantle where a plain stack of boxes would look like a
-// chimney.
+// chimney. The ramp runs wide - near-white mint at the tail into deep shadow
+// at the collar - because the shell emissive is deliberately dark and low, so
+// these vertex colours are what carry the form (the Invader lesson).
 const SQUID_MANTLE = [
-    ...saucerTier(0.18, 0.16, 0.16, 1.00, 0xb4ffb8),
-    ...saucerTier(0.38, 0.32, 0.17, 0.85, 0x5cff64),
-    ...saucerTier(0.56, 0.46, 0.19, 0.68, 0x2cec38),
-    ...saucerTier(0.70, 0.58, 0.20, 0.49, 0x14cc20),
-    ...saucerTier(0.80, 0.66, 0.20, 0.29, 0x11b81c),
-    ...saucerTier(0.82, 0.68, 0.20, 0.09, 0x0fa418),
-    ...saucerTier(0.74, 0.62, 0.14, -0.05, 0x0a7d14),   // collar
-    // Dorsal keel running down the back of the hood
-    { size: [0.10, 0.16, 0.32], pos: [0, 0.86, -0.16], color: 0x7cff88 },
-    { size: [0.12, 0.16, 0.28], pos: [0, 0.66, -0.28], color: 0x3cf048 },
-    { size: [0.12, 0.14, 0.24], pos: [0, 0.44, -0.33], color: 0x22d02e },
+    ...saucerTier(0.18, 0.16, 0.16, 1.00, 0xeafff0),
+    ...saucerTier(0.38, 0.32, 0.17, 0.85, 0x9cffc0),
+    ...saucerTier(0.56, 0.46, 0.19, 0.68, 0x4ef07a),
+    ...saucerTier(0.70, 0.58, 0.20, 0.49, 0x36e066),
+    ...saucerTier(0.80, 0.66, 0.20, 0.29, 0x1fc44a),
+    ...saucerTier(0.82, 0.68, 0.20, 0.09, 0x14a63a),
+    ...saucerTier(0.74, 0.62, 0.14, -0.05, 0x0d7c2c),   // collar
+    // Dorsal keel: an arrowhead fin running down the back of the hood
+    { size: [0.08, 0.24, 0.12], pos: [0, 1.06, -0.04], color: 0xeafff0 },
+    { size: [0.10, 0.20, 0.26], pos: [0, 0.90, -0.12], color: 0xbaffd8 },
+    { size: [0.12, 0.18, 0.32], pos: [0, 0.72, -0.24], color: 0x7affa8 },
+    { size: [0.13, 0.15, 0.30], pos: [0, 0.50, -0.32], color: 0x4ef07a },
     // Darker belly panels, so the front reads as underside rather than more back
-    { size: [0.56, 0.50, 0.10], pos: [0, 0.30, 0.30], color: 0x0c8c16 },
-    { size: [0.60, 0.46, 0.09], pos: [0, 0.08, 0.31], color: 0x0a7d14 }
+    { size: [0.56, 0.50, 0.10], pos: [0, 0.30, 0.30], color: 0x0d8430 },
+    { size: [0.60, 0.46, 0.09], pos: [0, 0.08, 0.31], color: 0x0b7026 }
+];
+
+// Amber bioluminescent veins running down the flanks and across the back -
+// the squid's accent colour against the green body. They pump brighter as the
+// jet coils, so the squid visibly "inhales" before every thrust.
+const SQUID_VEINS = [
+    { size: [0.05, 0.28, 0.08], pos: [-0.37, 0.54, 0.16], rotZ: 0.42, color: 0xffc44d },
+    { size: [0.05, 0.24, 0.08], pos: [-0.42, 0.26, 0.12], rotZ: 0.18, color: 0xffb020 },
+    { size: [0.05, 0.28, 0.08], pos: [0.37, 0.54, 0.16], rotZ: -0.42, color: 0xffc44d },
+    { size: [0.05, 0.24, 0.08], pos: [0.42, 0.26, 0.12], rotZ: -0.18, color: 0xffb020 },
+    { size: [0.06, 0.30, 0.06], pos: [-0.19, 0.62, -0.28], rotZ: 0.30, color: 0xffb020 },
+    { size: [0.06, 0.30, 0.06], pos: [0.19, 0.62, -0.28], rotZ: -0.30, color: 0xffb020 }
 ];
 
 // Chromatophore spots scattered over the skin - these carry most of the bloom
@@ -622,75 +652,86 @@ const SQUID_SPOTS = [
 
 // Head under the collar: eye pods, jaw plate and the beak between the arms
 const SQUID_HEAD = [
-    { size: [0.62, 0.20, 0.54], pos: [0, -0.16, 0.00], color: 0x0fa418 },
-    { size: [0.66, 0.09, 0.18], pos: [0, -0.04, 0.24], color: 0x075c0e },   // brow
-    { size: [0.30, 0.30, 0.24], pos: [-0.28, -0.18, 0.14], color: 0x064a0c },
-    { size: [0.30, 0.30, 0.24], pos: [0.28, -0.18, 0.14], color: 0x064a0c },
-    { size: [0.46, 0.14, 0.20], pos: [0, -0.32, 0.16], color: 0x0a7d14 },   // jaw plate
-    { size: [0.18, 0.14, 0.16], pos: [0, -0.44, 0.06], color: 0x053c0a },
-    { size: [0.14, 0.09, 0.10], pos: [0, -0.51, 0.08], color: 0xd8ffc8 }    // beak tip
+    { size: [0.62, 0.20, 0.54], pos: [0, -0.16, 0.00], color: 0x1fc44a },
+    { size: [0.66, 0.09, 0.18], pos: [0, -0.04, 0.24], color: 0x0d7c2c },   // brow
+    { size: [0.30, 0.30, 0.24], pos: [-0.28, -0.18, 0.14], color: 0x064a1c },
+    { size: [0.30, 0.30, 0.24], pos: [0.28, -0.18, 0.14], color: 0x064a1c },
+    { size: [0.46, 0.14, 0.20], pos: [0, -0.32, 0.16], color: 0x14a63a },   // jaw plate
+    { size: [0.18, 0.14, 0.16], pos: [0, -0.44, 0.06], color: 0x0a6424 },
+    { size: [0.14, 0.09, 0.10], pos: [0, -0.51, 0.08], color: 0xeafff0 }    // beak tip
 ];
 
-// Iris plus a horizontal slit pupil, merged so both eyes pulse as one mesh
+// Amber iris domes with horizontal slit pupils and pale glints, merged so both
+// eyes pulse as one mesh. The material carries a real amber emissive - the old
+// model pulsed the intensity of a *black* emissive, so its eyes never glowed.
 const SQUID_EYES = [
-    { size: [0.26, 0.24, 0.12], pos: [-0.30, -0.17, 0.26], color: 0xff2a1e },
-    { size: [0.26, 0.24, 0.12], pos: [0.30, -0.17, 0.26], color: 0xff2a1e },
-    { size: [0.17, 0.07, 0.06], pos: [-0.30, -0.17, 0.325], color: 0xfff0d0 },
-    { size: [0.17, 0.07, 0.06], pos: [0.30, -0.17, 0.325], color: 0xfff0d0 }
+    { size: [0.28, 0.26, 0.14], pos: [-0.28, -0.16, 0.28], color: 0xffb020 },
+    { size: [0.28, 0.26, 0.14], pos: [0.28, -0.16, 0.28], color: 0xffb020 },
+    { size: [0.20, 0.08, 0.05], pos: [-0.28, -0.16, 0.36], color: 0x1a0d00 },
+    { size: [0.20, 0.08, 0.05], pos: [0.28, -0.16, 0.36], color: 0x1a0d00 },
+    { size: [0.07, 0.07, 0.04], pos: [-0.33, -0.10, 0.365], color: 0xfff3d0 },
+    { size: [0.07, 0.07, 0.04], pos: [0.23, -0.10, 0.365], color: 0xfff3d0 }
 ];
 
 // Nictitating lids, parked up under the brow until a blink drops them
 const SQUID_LIDS = [
-    { size: [0.30, 0.16, 0.16], pos: [-0.30, 0, 0.29], color: 0x0a7d14 },
-    { size: [0.30, 0.16, 0.16], pos: [0.30, 0, 0.29], color: 0x0a7d14 }
+    { size: [0.34, 0.18, 0.14], pos: [-0.28, 0, 0.32], color: 0x0a6424 },
+    { size: [0.34, 0.18, 0.14], pos: [0.28, 0, 0.32], color: 0x0a6424 }
 ];
-const SQUID_LID_OPEN_Y = 0.04;
-const SQUID_LID_CLOSED_Y = -0.17;
+const SQUID_LID_OPEN_Y = 0.14;
+const SQUID_LID_CLOSED_Y = -0.16;
 
-// One side fin, hinged at the mantle wall so it can undulate outward
-const SQUID_FIN = [
-    { size: [0.26, 0.10, 0.56], pos: [-0.13, 0, -0.02], color: 0x2cec38 },
-    { size: [0.22, 0.08, 0.44], pos: [-0.34, 0, -0.06], color: 0x1ed42a },
-    { size: [0.13, 0.06, 0.26], pos: [-0.51, 0, -0.12], color: 0x14bc20 },
-    { size: [0.58, 0.05, 0.07], pos: [-0.29, 0.035, 0.22], color: 0x9cff9c }, // leading edge
-    { size: [0.10, 0.07, 0.50], pos: [-0.05, -0.02, -0.02], color: 0x0a7d14 } // root rib
+// One fin wing: a root hinged at the mantle wall plus a tip segment chained
+// off it, so a ripple can bend along the wing instead of it swinging rigidly
+const SQUID_FIN_ROOT = [
+    { size: [0.12, 0.24, 0.56], pos: [-0.06, 0, -0.02], color: 0x36e066 },
+    { size: [0.09, 0.17, 0.42], pos: [-0.16, 0, -0.05], color: 0x1fc44a },
+    { size: [0.30, 0.05, 0.07], pos: [-0.12, 0.09, 0.22], color: 0xffe08a },  // amber leading edge
+    { size: [0.10, 0.06, 0.50], pos: [-0.03, -0.03, -0.02], color: 0x0d7c2c } // root rib
 ];
-const SQUID_FIN_X = 0.26;
-const SQUID_FIN_Y = 0.52;
+const SQUID_FIN_TIP = [
+    { size: [0.18, 0.12, 0.32], pos: [-0.09, 0, -0.04], color: 0x1fc44a },
+    { size: [0.11, 0.07, 0.18], pos: [-0.22, 0, -0.08], color: 0x14a63a },
+    { size: [0.22, 0.04, 0.06], pos: [-0.13, 0.05, 0.12], color: 0xffc44d }
+];
+const SQUID_FIN_X = 0.40;       // hinge sits at the mantle wall
+const SQUID_FIN_TIP_X = 0.21;   // joint where the tip hangs off the root
+const SQUID_FIN_Y = 0.50;
 
-// Siphon slung under the head - the nozzle the jet fires from
+// Siphon slung under the head - the funnel nozzle the jet fires from, with a
+// glowing throat
 const SQUID_SIPHON = [
-    { size: [0.24, 0.18, 0.24], pos: [0, -0.28, 0.30], color: 0x3cff5a },
-    { size: [0.18, 0.12, 0.12], pos: [0, -0.30, 0.44], color: 0x9cffb4 },
-    { size: [0.12, 0.08, 0.06], pos: [0, -0.31, 0.52], color: 0xe0ffd8 }
+    { size: [0.26, 0.20, 0.26], pos: [0, -0.28, 0.30], color: 0x36e066 },
+    { size: [0.20, 0.14, 0.16], pos: [0, -0.30, 0.44], color: 0x1fc44a },
+    { size: [0.14, 0.10, 0.06], pos: [0, -0.31, 0.53], color: 0xffe08a }
 ];
 
 // Expelled water, hidden until a thrust burst. Kept inside a ~0.95 reach so it
 // never pokes into the neighbouring column.
 const SQUID_PLUME = [
-    { size: [0.14, 0.14, 0.20], pos: [0, -0.31, 0.62], color: 0xe0ffd8 },
-    { size: [0.20, 0.20, 0.20], pos: [0, -0.32, 0.74], color: 0x6cff86 },
-    { size: [0.26, 0.26, 0.14], pos: [0, -0.33, 0.85], color: 0x1a9f2a }
+    { size: [0.16, 0.16, 0.18], pos: [0, -0.31, 0.63], color: 0xffffff },
+    { size: [0.22, 0.22, 0.20], pos: [0, -0.32, 0.77], color: 0xbaffd8 },
+    { size: [0.28, 0.28, 0.14], pos: [0, -0.33, 0.89], color: 0x4ef07a }
 ];
 
-const SQUID_ARM_COUNT = 6;
-const SQUID_ARM_RADIUS = 0.24;
-const SQUID_ARM_Y = -0.44;
+const SQUID_ARM_COUNT = 8;
+const SQUID_ARM_RADIUS = 0.26;
+const SQUID_ARM_Y = -0.40;
 
 // Arms taper toward the tip; baseBend splays them then curls them back inward
 const SQUID_ARM_SEGMENTS = [
-    { length: 0.30, width: 0.17, baseBend: 0.42, color: 0x22d02e },
-    { length: 0.26, width: 0.13, baseBend: -0.28, color: 0x16a820 },
-    { length: 0.22, width: 0.10, baseBend: -0.52, color: 0x0f8a18 }
+    { length: 0.30, width: 0.16, baseBend: 0.46, color: 0x36e066 },
+    { length: 0.26, width: 0.12, baseBend: -0.30, color: 0x1fc44a },
+    { length: 0.22, width: 0.09, baseBend: -0.55, color: 0x14a63a }
 ];
 
 // The two long feeding tentacles hang almost straight and lash on a strike
 const SQUID_TENTACLE_SEGMENTS = [
-    { length: 0.30, width: 0.11, baseBend: 0.16, color: 0x1ed42a },
-    { length: 0.28, width: 0.09, baseBend: -0.10, color: 0x16a820 },
-    { length: 0.26, width: 0.07, baseBend: -0.14, color: 0x0f8a18 }
+    { length: 0.26, width: 0.11, baseBend: 0.18, color: 0x36e066 },
+    { length: 0.23, width: 0.09, baseBend: -0.10, color: 0x1fc44a },
+    { length: 0.20, width: 0.07, baseBend: -0.12, color: 0x14a63a }
 ];
-const SQUID_TENTACLE_Y = -0.46;
+const SQUID_TENTACLE_Y = -0.40;
 // Yaw aims each tentacle's local +X outward; the forward lash rides on a
 // separate un-yawed pivot so both sides strike toward the player
 const SQUID_TENTACLE_MOUNTS = [
@@ -698,21 +739,37 @@ const SQUID_TENTACLE_MOUNTS = [
     { side: 1, yaw: -0.7 }
 ];
 
+// Lure club on the end of each feeding tentacle: an amber photophore bulb
+// with a hot white tip, like a deep-sea squid's glowing club. It flares on
+// every lash.
+const SQUID_CLUB = [
+    { size: [0.15, 0.20, 0.11], pos: [0, -0.10, 0], color: 0xffc44d },
+    { size: [0.10, 0.09, 0.08], pos: [0, -0.22, 0], color: 0xfff3d0 },
+    { size: [0.06, 0.06, 0.05], pos: [0, -0.28, 0], color: 0xffffff }
+];
+
 // Geometries and non-animated materials are built once and shared by every
 // squid in the formation
 let squidParts = null;
 
-// Arm segment with a row of suckers on its inner face
+// Arm segment body - the suckers are a separate mesh so their glow can ripple
+// down the arm independently of the body
 function buildSquidArmGeometry(segment) {
-    const sucker = Math.max(0.05, segment.width * 0.32);
-    const inner = -segment.width / 2;
     // Origin sits at the top of the segment so it doubles as the joint pivot
     return buildVoxelGeometry([
         { size: [segment.width, segment.length, segment.width * 0.85], pos: [0, -segment.length / 2, 0], color: segment.color },
-        { size: [segment.width + 0.04, 0.06, segment.width * 0.85 + 0.04], pos: [0, -0.02, 0], color: 0x075c0e },
-        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.28, 0], color: 0xd8ffc8 },
-        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.55, 0], color: 0xd8ffc8 },
-        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.82, 0], color: 0xd8ffc8 }
+        { size: [segment.width + 0.04, 0.06, segment.width * 0.85 + 0.04], pos: [0, -0.02, 0], color: 0x0a6424 }
+    ]);
+}
+
+// Sucker row on a segment's inner face, one mesh per segment index
+function buildSquidSuckerGeometry(segment) {
+    const sucker = Math.max(0.05, segment.width * 0.34);
+    const inner = -segment.width / 2 - 0.01;
+    return buildVoxelGeometry([
+        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.28, 0], color: 0xd8ffe8 },
+        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.55, 0], color: 0xbaffd8 },
+        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.82, 0], color: 0xd8ffe8 }
     ]);
 }
 
@@ -722,70 +779,85 @@ function getSquidParts() {
     squidParts = {
         mantleGeometry: buildVoxelGeometry(SQUID_MANTLE),
         spotGeometry: buildVoxelGeometry(SQUID_SPOTS),
+        veinGeometry: buildVoxelGeometry(SQUID_VEINS),
         headGeometry: buildVoxelGeometry(SQUID_HEAD),
         eyeGeometry: buildVoxelGeometry(SQUID_EYES),
         lidGeometry: buildVoxelGeometry(SQUID_LIDS),
         siphonGeometry: buildVoxelGeometry(SQUID_SIPHON),
         plumeGeometry: buildVoxelGeometry(SQUID_PLUME),
-        finGeometries: {
-            '-1': buildVoxelGeometry(SQUID_FIN),
-            '1': buildVoxelGeometry(mirrorBoxes(SQUID_FIN))
+        finRootGeometries: {
+            '-1': buildVoxelGeometry(SQUID_FIN_ROOT),
+            '1': buildVoxelGeometry(mirrorBoxes(SQUID_FIN_ROOT))
+        },
+        finTipGeometries: {
+            '-1': buildVoxelGeometry(SQUID_FIN_TIP),
+            '1': buildVoxelGeometry(mirrorBoxes(SQUID_FIN_TIP))
         },
         armGeometries: SQUID_ARM_SEGMENTS.map(buildSquidArmGeometry),
-        tentacleGeometries: SQUID_TENTACLE_SEGMENTS.map(s => buildLimbSegmentGeometry(s, s.color, 0x075c0e)),
-        // Paddle club on the end of each feeding tentacle
-        clubGeometry: buildVoxelGeometry([
-            { size: [0.15, 0.24, 0.11], pos: [0, -0.12, 0], color: 0x2ee03a },
-            { size: [0.07, 0.07, 0.05], pos: [-0.08, -0.07, 0], color: 0xd8ffc8 },
-            { size: [0.07, 0.07, 0.05], pos: [-0.08, -0.17, 0], color: 0xd8ffc8 }
-        ]),
+        suckerGeometries: SQUID_ARM_SEGMENTS.map(buildSquidSuckerGeometry),
+        tentacleGeometries: SQUID_TENTACLE_SEGMENTS.map(s => buildLimbSegmentGeometry(s, s.color, 0x0a6424)),
+        clubGeometry: buildVoxelGeometry(SQUID_CLUB),
+        // The shell ramp carries the form; this emissive only tints it. A
+        // bright green emissive here floods every tier into one flat mass.
         shellMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: 0x0a8c16,
-            emissiveIntensity: 1.0,
-            shininess: 45,
+            emissive: 0x073a12,
+            emissiveIntensity: 0.45,
+            shininess: 60,
             flatShading: true
         }),
         limbMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: 0x0f9c1a,
-            emissiveIntensity: 1.2,
+            emissive: 0x06340f,
+            emissiveIntensity: 0.5,
             flatShading: true
         }),
         lidMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: 0x086010,
-            emissiveIntensity: 0.9,
+            emissive: 0x03140a,
+            emissiveIntensity: 0.3,
             flatShading: true
         }),
         // Cloned per alien so each squid pulses on its own animation offset
-eyeMaterial: new THREE.MeshPhongMaterial({
+        eyeMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: 0x000000,
-            emissiveIntensity: 0,
-            flatShading: true
-        }),
-        eyeHighlightMaterial: new THREE.MeshPhongMaterial({
-            color: 0xffdd66,
-            emissive: 0xffaa00,
-            emissiveIntensity: 0.6,
+            emissive: 0xff8c1a,
+            emissiveIntensity: 0.85,
             flatShading: true
         }),
         spotMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
             emissive: 0x6cff9c,
+            emissiveIntensity: 0.9,
+            flatShading: true
+        }),
+        veinMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0xffb020,
             emissiveIntensity: 1.0,
+            flatShading: true
+        }),
+        suckerMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x7dffb0,
+            emissiveIntensity: 0.75,
+            flatShading: true
+        }),
+        clubMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0xffb020,
+            emissiveIntensity: 1.1,
             flatShading: true
         }),
         siphonMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: 0x5cff78,
-            emissiveIntensity: 1.2,
+            emissive: 0xffaa33,
+            emissiveIntensity: 0.5,
             flatShading: true
         }),
         plumeMaterial: new THREE.MeshPhongMaterial({
             vertexColors: true,
-            emissive: 0x8cffa0,
+            emissive: 0x9cffc0,
             emissiveIntensity: 1.4,
             transparent: true,
             opacity: 0.0,
@@ -813,6 +885,11 @@ function createSquidAlien(group) {
     mantle.add(spots);
     group.userData.spots = spots;
 
+    // Amber veins ride the mantle too and pump on their own material
+    const veins = new THREE.Mesh(parts.veinGeometry, parts.veinMaterial.clone());
+    mantle.add(veins);
+    group.userData.veins = veins;
+
     // Head cranes against the body pitch; eyes and lids are parented to it so
     // they stay in their sockets while it moves
     const head = new THREE.Mesh(parts.headGeometry, parts.shellMaterial);
@@ -837,18 +914,29 @@ function createSquidAlien(group) {
     group.add(plume);
     group.userData.plume = plume;
 
-    // Side fins hinge at the mantle wall. Mirrored geometry rather than
-    // scale.x = -1, which would invert the normals on one side.
+    // Fin wings: the root hinges at the mantle wall and the tip hangs off it
+    // as a child, so the ripple bends at the joint. Mirrored geometry rather
+    // than scale.x = -1, which would invert the normals on one side.
     group.userData.fins = [-1, 1].map(side => {
-        const fin = new THREE.Mesh(parts.finGeometries[side], parts.shellMaterial);
-        fin.position.set(side * SQUID_FIN_X, SQUID_FIN_Y, -0.02);
-        fin.castShadow = true;
-        group.add(fin);
-        return { mesh: fin, side };
+        const root = new THREE.Mesh(parts.finRootGeometries[side], parts.shellMaterial);
+        root.position.set(side * SQUID_FIN_X, SQUID_FIN_Y, -0.02);
+        root.castShadow = true;
+        group.add(root);
+
+        const tip = new THREE.Mesh(parts.finTipGeometries[side], parts.limbMaterial);
+        tip.position.x = side * SQUID_FIN_TIP_X;
+        root.add(tip);
+
+        return { root, tip, side };
     });
 
     // Arm crown: each arm is a chain of nested segments, so a curl travels down
-    // the limb instead of the whole thing swinging rigidly
+    // the limb instead of the whole thing swinging rigidly. The suckers are
+    // separate meshes sharing three per-alien materials (one per segment
+    // index) so their glow can ripple down behind the curl.
+    const suckerMaterials = SQUID_ARM_SEGMENTS.map(() => parts.suckerMaterial.clone());
+    group.userData.suckerMaterials = suckerMaterials;
+
     group.userData.arms = [];
     for (let i = 0; i < SQUID_ARM_COUNT; i++) {
         const angle = (i / SQUID_ARM_COUNT) * Math.PI * 2;
@@ -865,12 +953,18 @@ function createSquidAlien(group) {
 
         const segments = buildLimbChain(mount, parts.armGeometries, SQUID_ARM_SEGMENTS, parts.limbMaterial, -1);
 
-        group.userData.arms.push({ mount, segments, phase: i * 0.9 });
+        segments.forEach((segment, j) => {
+            const sucker = new THREE.Mesh(parts.suckerGeometries[j], suckerMaterials[j]);
+            segment.add(sucker);
+        });
+
+        group.userData.arms.push({ mount, segments, phase: i * (Math.PI * 2 / SQUID_ARM_COUNT) });
     }
 
-    // Two long feeding tentacles. The pivot is un-yawed so a rotation about its
-    // X axis lashes both tentacles toward the player; the mount under it holds
-    // the outward yaw the segment bends splay against.
+    // Two long feeding tentacles ending in amber lure clubs. The pivot is
+    // un-yawed so a rotation about its X axis lashes both tentacles toward the
+    // player; the mount under it holds the outward yaw the segment bends splay
+    // against.
     group.userData.tentacles = SQUID_TENTACLE_MOUNTS.map(config => {
         const pivot = new THREE.Group();
         pivot.position.set(config.side * 0.20, SQUID_TENTACLE_Y, 0.20);
@@ -882,7 +976,7 @@ function createSquidAlien(group) {
 
         const segments = buildLimbChain(mount, parts.tentacleGeometries, SQUID_TENTACLE_SEGMENTS, parts.limbMaterial, -1);
 
-        const club = new THREE.Mesh(parts.clubGeometry, parts.limbMaterial);
+        const club = new THREE.Mesh(parts.clubGeometry, parts.clubMaterial.clone());
         club.position.y = -SQUID_TENTACLE_SEGMENTS[2].length;
         segments[2].add(club);
 
@@ -1461,6 +1555,249 @@ function createBeetleAlien(group) {
 
 
 // ---------------------------------------------------------------------------
+// Wasp (row 8) - striped voxel insect with a wingstorm cycle
+// ---------------------------------------------------------------------------
+
+const WASP_DARK = 0x1c100d;
+const WASP_RECESS = 0x24150d;
+const WASP_SHADE = 0x65300f;
+const WASP_AMBER = 0xc8620d;
+const WASP_GOLD = 0xffad28;
+const WASP_HOT = 0xffdf70;
+const WASP_EYE = 0xffe05b;
+const WASP_WING_COLOR = 0xa5e7f0;
+
+const WASP_THORAX = [
+    { size: [0.72, 0.28, 0.50], pos: [0, 0.10, 0.08], color: WASP_SHADE },
+    { size: [0.88, 0.20, 0.42], pos: [0, -0.04, 0.02], color: WASP_AMBER },
+    { size: [0.62, 0.14, 0.34], pos: [0, 0.30, 0.00], color: WASP_GOLD },
+    { size: [0.24, 0.08, 0.46], pos: [0, 0.38, -0.02], color: WASP_DARK },
+    { size: [0.20, 0.22, 0.30], pos: [-0.48, 0.08, 0.00], color: WASP_SHADE },
+    { size: [0.20, 0.22, 0.30], pos: [0.48, 0.08, 0.00], color: WASP_SHADE },
+    { size: [0.10, 0.10, 0.20], pos: [-0.56, 0.24, 0.08], color: WASP_GOLD },
+    { size: [0.10, 0.10, 0.20], pos: [0.56, 0.24, 0.08], color: WASP_GOLD },
+    { size: [0.12, 0.06, 0.28], pos: [0, -0.22, 0.12], color: WASP_DARK },
+    { size: [0.20, 0.06, 0.16], pos: [0, 0.16, 0.34], color: WASP_RECESS }
+];
+
+// Thin coloured plates make the amber/black warning stripes survive the
+// formation camera and bloom.
+const WASP_ABDOMEN = [
+    { size: [0.56, 0.40, 0.72], pos: [0, 0.04, -0.34], color: WASP_DARK },
+    { size: [0.62, 0.08, 0.16], pos: [0, 0.18, -0.08], color: WASP_GOLD },
+    { size: [0.62, 0.07, 0.16], pos: [0, 0.17, -0.28], color: WASP_DARK },
+    { size: [0.58, 0.08, 0.16], pos: [0, 0.16, -0.48], color: WASP_AMBER },
+    { size: [0.52, 0.06, 0.16], pos: [0, 0.14, -0.66], color: WASP_DARK },
+    { size: [0.42, 0.10, 0.38], pos: [0, 0.06, -0.75], color: WASP_SHADE },
+    { size: [0.14, 0.07, 0.70], pos: [0, 0.26, -0.36], color: WASP_HOT },
+    { size: [0.08, 0.08, 0.18], pos: [-0.34, 0.06, -0.26], color: WASP_AMBER },
+    { size: [0.08, 0.08, 0.18], pos: [0.34, 0.06, -0.26], color: WASP_AMBER }
+];
+
+const WASP_FACE = [
+    { size: [0.48, 0.24, 0.16], pos: [0, 0.10, 0.38], color: WASP_RECESS },
+    { size: [0.34, 0.12, 0.10], pos: [0, 0.24, 0.42], color: WASP_DARK },
+    { size: [0.14, 0.10, 0.12], pos: [-0.28, 0.12, 0.30], color: WASP_SHADE },
+    { size: [0.14, 0.10, 0.12], pos: [0.28, 0.12, 0.30], color: WASP_SHADE },
+    { size: [0.08, 0.08, 0.16], pos: [-0.12, -0.10, 0.38], color: WASP_DARK },
+    { size: [0.08, 0.08, 0.16], pos: [0.12, -0.10, 0.38], color: WASP_DARK }
+];
+
+const WASP_EYES = [
+    { size: [0.20, 0.18, 0.08], pos: [-0.23, 0.13, 0.48], color: WASP_EYE },
+    { size: [0.20, 0.18, 0.08], pos: [0.23, 0.13, 0.48], color: WASP_EYE },
+    { size: [0.06, 0.08, 0.04], pos: [-0.23, 0.13, 0.53], color: WASP_HOT },
+    { size: [0.06, 0.08, 0.04], pos: [0.23, 0.13, 0.53], color: WASP_HOT }
+];
+
+// One side of each angular wing. The second side is mirrored to keep normals
+// and lighting correct, just like the Beetle elytra and Invader shoulders.
+const WASP_WING = [
+    { size: [0.30, 0.035, 0.42], pos: [-0.18, 0.20, 0.00], rotZ: -0.18, color: WASP_WING_COLOR },
+    { size: [0.36, 0.035, 0.34], pos: [-0.48, 0.29, -0.04], rotZ: -0.38, color: WASP_WING_COLOR },
+    { size: [0.28, 0.035, 0.26], pos: [-0.78, 0.42, -0.08], rotZ: -0.56, color: WASP_WING_COLOR }
+];
+
+const WASP_WING_EDGES = [
+    { size: [0.06, 0.045, 0.34], pos: [-0.28, 0.24, 0.18], rotZ: -0.18, color: WASP_HOT },
+    { size: [0.06, 0.045, 0.28], pos: [-0.59, 0.34, 0.11], rotZ: -0.38, color: WASP_HOT },
+    { size: [0.05, 0.045, 0.20], pos: [-0.84, 0.46, 0.05], rotZ: -0.56, color: WASP_GOLD }
+];
+
+const WASP_MANDIBLES = [
+    { size: [0.12, 0.08, 0.22], pos: [-0.16, -0.04, 0.52], rotX: -0.22, color: WASP_GOLD },
+    { size: [0.08, 0.06, 0.16], pos: [-0.20, -0.12, 0.68], rotX: -0.40, color: WASP_SHADE }
+];
+
+const WASP_STINGER = [
+    { size: [0.20, 0.20, 0.22], pos: [0, 0.00, -0.18], color: WASP_SHADE },
+    { size: [0.12, 0.12, 0.24], pos: [0, 0.00, -0.38], color: WASP_GOLD },
+    { size: [0.05, 0.05, 0.24], pos: [0, 0.00, -0.58], color: WASP_HOT }
+];
+
+const WASP_LEG_SEGMENTS = [
+    { length: 0.24, width: 0.10, baseBend: 0.88 },
+    { length: 0.20, width: 0.08, baseBend: -1.25 },
+    { length: 0.12, width: 0.06, baseBend: -0.28 }
+];
+
+const WASP_LEG_MOUNTS = [
+    { side: -1, z: 0.22, phase: 0 },
+    { side: -1, z: 0.00, phase: Math.PI },
+    { side: -1, z: -0.22, phase: 0 },
+    { side: 1, z: 0.22, phase: Math.PI },
+    { side: 1, z: 0.00, phase: 0 },
+    { side: 1, z: -0.22, phase: Math.PI }
+];
+
+let waspParts = null;
+
+function getWaspParts() {
+    if (waspParts) return waspParts;
+
+    waspParts = {
+        thoraxGeometry: buildVoxelGeometry(WASP_THORAX),
+        abdomenGeometry: buildVoxelGeometry(WASP_ABDOMEN),
+        faceGeometry: buildVoxelGeometry(WASP_FACE),
+        eyeGeometry: buildVoxelGeometry(WASP_EYES),
+        wingGeometries: {
+            '-1': buildVoxelGeometry(WASP_WING),
+            '1': buildVoxelGeometry(mirrorBoxes(WASP_WING))
+        },
+        wingEdgeGeometries: {
+            '-1': buildVoxelGeometry(WASP_WING_EDGES),
+            '1': buildVoxelGeometry(mirrorBoxes(WASP_WING_EDGES))
+        },
+        mandibleGeometries: {
+            '-1': buildVoxelGeometry(WASP_MANDIBLES),
+            '1': buildVoxelGeometry(mirrorBoxes(WASP_MANDIBLES))
+        },
+        stingerGeometry: buildVoxelGeometry(WASP_STINGER),
+        legGeometries: WASP_LEG_SEGMENTS.map(segment =>
+            buildLimbSegmentGeometry(segment, WASP_AMBER, WASP_SHADE)
+        ),
+        shellMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WASP_SHADE,
+            emissiveIntensity: 0.65,
+            shininess: 45,
+            flatShading: true
+        }),
+        limbMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WASP_SHADE,
+            emissiveIntensity: 0.7,
+            flatShading: true
+        }),
+        wingMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WASP_WING_COLOR,
+            emissiveIntensity: 0.65,
+            transparent: true,
+            opacity: 0.32,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+            flatShading: true
+        }),
+        wingEdgeMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WASP_HOT,
+            emissiveIntensity: 1.0,
+            flatShading: true
+        }),
+        eyeMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WASP_EYE,
+            emissiveIntensity: 2.0,
+            flatShading: true
+        }),
+        stingerMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WASP_GOLD,
+            emissiveIntensity: 1.0,
+            flatShading: true
+        })
+    };
+
+    return waspParts;
+}
+
+function createWaspAlien(group) {
+    const parts = getWaspParts();
+    const bodyPivot = new THREE.Group();
+    group.add(bodyPivot);
+    group.userData.bodyPivot = bodyPivot;
+
+    const thorax = new THREE.Mesh(parts.thoraxGeometry, parts.shellMaterial);
+    thorax.castShadow = true;
+    bodyPivot.add(thorax);
+    group.userData.thorax = thorax;
+
+    const abdomenPivot = new THREE.Group();
+    abdomenPivot.position.set(0, 0.02, -0.24);
+    bodyPivot.add(abdomenPivot);
+    const abdomen = new THREE.Mesh(parts.abdomenGeometry, parts.shellMaterial);
+    abdomen.position.z = -0.18;
+    abdomenPivot.add(abdomen);
+    group.userData.abdomenPivot = abdomenPivot;
+    group.userData.abdomen = abdomen;
+
+    const face = new THREE.Mesh(parts.faceGeometry, parts.shellMaterial);
+    bodyPivot.add(face);
+    group.userData.face = face;
+
+    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
+    bodyPivot.add(eyes);
+    group.userData.eyes = eyes;
+
+    group.userData.mandibles = [-1, 1].map(side => {
+        const mandible = new THREE.Mesh(parts.mandibleGeometries[side], parts.limbMaterial);
+        mandible.position.x = side * 0.16;
+        bodyPivot.add(mandible);
+        return { mesh: mandible, side };
+    });
+
+    const stinger = new THREE.Mesh(parts.stingerGeometry, parts.stingerMaterial.clone());
+    stinger.position.set(0, 0.04, -0.70);
+    abdomenPivot.add(stinger);
+    group.userData.stinger = stinger;
+
+    group.userData.wings = [];
+    [-1, 1].forEach(side => {
+        [-1, 1].forEach((pair, pairIndex) => {
+            const hinge = new THREE.Group();
+            hinge.position.set(side * 0.18, 0.16 - pairIndex * 0.08, 0.04 - pairIndex * 0.18);
+            bodyPivot.add(hinge);
+
+            const wing = new THREE.Mesh(parts.wingGeometries[side], parts.wingMaterial.clone());
+            hinge.add(wing);
+
+            const edge = new THREE.Mesh(parts.wingEdgeGeometries[side], parts.wingEdgeMaterial.clone());
+            hinge.add(edge);
+
+            group.userData.wings.push({ hinge, wing, edge, side, pair: pairIndex });
+        });
+    });
+
+    group.userData.legs = WASP_LEG_MOUNTS.map(config => {
+        const mount = new THREE.Group();
+        mount.position.set(config.side * 0.46, -0.10, config.z);
+        mount.rotation.y = config.side > 0 ? 0 : Math.PI;
+        bodyPivot.add(mount);
+
+        const segments = buildLimbChain(
+            mount,
+            parts.legGeometries,
+            WASP_LEG_SEGMENTS,
+            parts.limbMaterial,
+            -1
+        );
+
+        return { mount, segments, phase: config.phase, side: config.side };
+    });
+}
+
+// ---------------------------------------------------------------------------
 // Invader (row 6) - the 1-bit arcade homage, sculpted but deliberately crisp
 // ---------------------------------------------------------------------------
 
@@ -2027,6 +2364,902 @@ function createScorpionAlien(group) {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Sentinel (row 9) - a levitating construct whose shell comes apart
+// ---------------------------------------------------------------------------
+
+// Every other invader is a body with limbs. This one has no limbs at all: it is
+// ten armour shards closed around an exposed plasma core, and its signature move
+// is disassembling itself. Form therefore has to come from the shard silhouette
+// and the obsidian value ramp, so the ramp is spread very wide (near-black to
+// pale ice) and the shard emissive is kept low - only the core, the baked glyph
+// strips and the lance are allowed to blow out under bloom.
+// The ramp is spread wide but its midpoint is deliberately lifted off black:
+// a near-black plate has nothing to read against space at formation distance,
+// so the sculpt collapsed into just its bright glyphs and core - a white
+// sparkle rather than a silhouette. The plate carries the shape; ICE and GLYPH
+// stay accents, and the core is tinted cyan rather than left pure white.
+const SENTINEL_VOID = 0x0c1422;      // seam shadow, deepest step
+const SENTINEL_OBSIDIAN = 0x1d2c45;  // shard underside
+const SENTINEL_PLATE = 0x36537a;     // main armour face
+const SENTINEL_EDGE = 0x6d9ad6;      // bevel highlight catching the light
+const SENTINEL_ICE = 0x9fd8ff;       // rim trim
+const SENTINEL_GLYPH = 0x5fd0f5;     // baked glyph strips
+const SENTINEL_CORE = 0x8fe4ff;      // plasma core body
+const SENTINEL_HOT = 0xdff6ff;       // core spines and lance
+
+// Three shard profiles, each centred on its own origin so the shard tumbles and
+// scales about itself rather than swinging around a baked-in offset. Local +Z is
+// "outward" for every shard: the shard's pivot carries the ring angle, so bloom
+// is a push along local +Z and orbit is a spin of the pivot.
+const SENTINEL_SHARD_UPPER = [
+    { size: [0.34, 0.15, 0.22], pos: [0, 0, 0], color: SENTINEL_PLATE },
+    { size: [0.26, 0.10, 0.18], pos: [0, 0.10, -0.03], color: SENTINEL_OBSIDIAN },
+    { size: [0.38, 0.05, 0.08], pos: [0, -0.05, 0.07], color: SENTINEL_EDGE },
+    { size: [0.08, 0.035, 0.20], pos: [0, 0.09, 0.01], color: SENTINEL_GLYPH },
+    { size: [0.30, 0.06, 0.07], pos: [0, -0.09, -0.07], color: SENTINEL_VOID },
+    { size: [0.14, 0.04, 0.06], pos: [0, 0.02, 0.11], color: SENTINEL_ICE }
+];
+
+const SENTINEL_SHARD_LOWER = [
+    { size: [0.30, 0.20, 0.20], pos: [0, 0, 0], color: SENTINEL_PLATE },
+    { size: [0.22, 0.12, 0.16], pos: [0, -0.11, -0.02], color: SENTINEL_OBSIDIAN },
+    { size: [0.34, 0.05, 0.08], pos: [0, 0.07, 0.06], color: SENTINEL_EDGE },
+    { size: [0.06, 0.16, 0.05], pos: [0, 0.00, 0.10], color: SENTINEL_GLYPH },
+    { size: [0.26, 0.05, 0.07], pos: [0, -0.14, 0.02], color: SENTINEL_VOID },
+    { size: [0.12, 0.04, 0.05], pos: [0, 0.10, -0.06], color: SENTINEL_ICE }
+];
+
+const SENTINEL_SHARD_SPIKE = [
+    { size: [0.22, 0.26, 0.22], pos: [0, 0, 0], color: SENTINEL_PLATE },
+    { size: [0.14, 0.20, 0.14], pos: [0, 0.16, 0], color: SENTINEL_OBSIDIAN },
+    { size: [0.07, 0.16, 0.07], pos: [0, 0.30, 0], color: SENTINEL_EDGE },
+    { size: [0.26, 0.05, 0.26], pos: [0, -0.10, 0], color: SENTINEL_VOID },
+    { size: [0.05, 0.24, 0.05], pos: [0, 0.05, 0.09], color: SENTINEL_GLYPH }
+];
+
+// Rest shell. `angle` goes on the shard's pivot, `radius` is the mesh's local +Z
+// offset, and `ring` is where the shard parks when the shell locks into a lens.
+const SENTINEL_SHARDS = [
+    { profile: 'upper', angle: Math.PI * 0.25, radius: 0.25, y: 0.28, lift: 0.34, spin: 1 },
+    { profile: 'upper', angle: Math.PI * 0.75, radius: 0.25, y: 0.28, lift: 0.34, spin: -1 },
+    { profile: 'upper', angle: Math.PI * 1.25, radius: 0.25, y: 0.28, lift: 0.34, spin: 1 },
+    { profile: 'upper', angle: Math.PI * 1.75, radius: 0.25, y: 0.28, lift: 0.34, spin: -1 },
+    { profile: 'lower', angle: 0, radius: 0.28, y: -0.17, lift: -0.26, spin: -1 },
+    { profile: 'lower', angle: Math.PI * 0.5, radius: 0.28, y: -0.17, lift: -0.26, spin: 1 },
+    { profile: 'lower', angle: Math.PI, radius: 0.28, y: -0.17, lift: -0.26, spin: -1 },
+    { profile: 'lower', angle: Math.PI * 1.5, radius: 0.28, y: -0.17, lift: -0.26, spin: 1 },
+    { profile: 'spike', angle: 0, radius: 0, y: 0.56, lift: 0.20, spin: 1, tilt: 0 },
+    { profile: 'spike', angle: Math.PI, radius: 0, y: -0.54, lift: -0.20, spin: -1, tilt: Math.PI }
+];
+
+// Gimbal ring: tangential blocks around a circle read as a ring at formation
+// distance for a fraction of a torus's vertices.
+function sentinelRingBoxes(radius, thickness, color, accent) {
+    const boxes = [];
+    const steps = 14;
+    for (let i = 0; i < steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        boxes.push({
+            size: [0.22, thickness, thickness],
+            pos: [Math.cos(a) * radius, 0, Math.sin(a) * radius],
+            rotY: -a,
+            color: i % 4 === 0 ? accent : color
+        });
+    }
+    return boxes;
+}
+
+const SENTINEL_CORE_BOXES = [
+    { size: [0.24, 0.24, 0.24], pos: [0, 0, 0], rotY: Math.PI * 0.25, color: SENTINEL_CORE },
+    { size: [0.36, 0.09, 0.09], pos: [0, 0, 0], color: SENTINEL_HOT },
+    { size: [0.09, 0.36, 0.09], pos: [0, 0, 0], color: SENTINEL_HOT },
+    { size: [0.09, 0.09, 0.36], pos: [0, 0, 0], color: SENTINEL_HOT },
+    { size: [0.19, 0.19, 0.19], pos: [0, 0, 0], rotX: Math.PI * 0.25, rotZ: Math.PI * 0.25, color: SENTINEL_ICE }
+];
+
+const SENTINEL_IRIS_BOXES = [
+    { size: [0.13, 0.30, 0.05], pos: [0, 0, 0], color: SENTINEL_PLATE },
+    { size: [0.05, 0.30, 0.06], pos: [0.05, 0, 0.01], color: SENTINEL_EDGE },
+    { size: [0.09, 0.06, 0.05], pos: [-0.01, 0.13, 0.01], color: SENTINEL_VOID }
+];
+
+// Lance beam: this is the one place a baked-in offset is correct. The geometry
+// runs from z=0 forward, so scale.z grows the beam out of the emitter mount
+// instead of sliding a centred box away from it.
+const SENTINEL_LANCE_BOXES = [
+    { size: [0.11, 0.11, 1.70], pos: [0, 0, 0.85], color: SENTINEL_HOT },
+    { size: [0.20, 0.20, 1.30], pos: [0, 0, 0.68], color: SENTINEL_ICE }
+];
+
+let sentinelParts = null;
+
+function getSentinelParts() {
+    if (sentinelParts) return sentinelParts;
+
+    sentinelParts = {
+        shardGeometries: {
+            upper: buildVoxelGeometry(SENTINEL_SHARD_UPPER),
+            lower: buildVoxelGeometry(SENTINEL_SHARD_LOWER),
+            spike: buildVoxelGeometry(SENTINEL_SHARD_SPIKE)
+        },
+        coreGeometry: buildVoxelGeometry(SENTINEL_CORE_BOXES),
+        glowGeometry: new THREE.BoxGeometry(0.36, 0.36, 0.36),
+        irisGeometries: {
+            '-1': buildVoxelGeometry(SENTINEL_IRIS_BOXES),
+            '1': buildVoxelGeometry(mirrorBoxes(SENTINEL_IRIS_BOXES))
+        },
+        ringGeometries: [
+            buildVoxelGeometry(sentinelRingBoxes(0.50, 0.075, SENTINEL_PLATE, SENTINEL_GLYPH)),
+            buildVoxelGeometry(sentinelRingBoxes(0.42, 0.060, SENTINEL_OBSIDIAN, SENTINEL_EDGE))
+        ],
+        lanceGeometry: buildVoxelGeometry(SENTINEL_LANCE_BOXES),
+        // Deliberately dim. Gameplay bloom is much stronger than the Bestiary's,
+        // and emissive is added flat on top of the vertex colours, so anything
+        // higher collapses the whole obsidian ramp into one white sparkle.
+        shardMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: SENTINEL_OBSIDIAN,
+            emissiveIntensity: 0.18,
+            shininess: 70,
+            flatShading: true
+        }),
+        ringMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: SENTINEL_OBSIDIAN,
+            emissiveIntensity: 0.3,
+            flatShading: true
+        }),
+        coreMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: SENTINEL_CORE,
+            emissiveIntensity: 0.9,
+            flatShading: true
+        }),
+        glowMaterial: new THREE.MeshPhongMaterial({
+            color: SENTINEL_GLYPH,
+            emissive: SENTINEL_GLYPH,
+            emissiveIntensity: 1.2,
+            transparent: true,
+            opacity: 0.18,
+            depthWrite: false,
+            flatShading: true
+        }),
+        lanceMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: SENTINEL_HOT,
+            emissiveIntensity: 6.0,
+            transparent: true,
+            opacity: 0.9,
+            depthWrite: false,
+            flatShading: true
+        })
+    };
+
+    return sentinelParts;
+}
+
+function createSentinelAlien(group) {
+    const parts = getSentinelParts();
+
+    // Everything hangs off a hover pivot so the levitation bob, the yaw drift
+    // and the reassembly shudder never touch the formation-owned group axes.
+    const hoverPivot = new THREE.Group();
+    group.add(hoverPivot);
+    group.userData.hoverPivot = hoverPivot;
+
+    const core = new THREE.Mesh(parts.coreGeometry, parts.coreMaterial.clone());
+    hoverPivot.add(core);
+    group.userData.core = core;
+
+    const glow = new THREE.Mesh(parts.glowGeometry, parts.glowMaterial.clone());
+    hoverPivot.add(glow);
+    group.userData.glow = glow;
+
+    group.userData.rings = parts.ringGeometries.map((geometry, index) => {
+        const tilt = new THREE.Group();
+        tilt.rotation.x = index === 0 ? 0.42 : -0.34;
+        tilt.rotation.z = index === 0 ? -0.28 : 0.36;
+        hoverPivot.add(tilt);
+
+        const ring = new THREE.Mesh(geometry, parts.ringMaterial.clone());
+        tilt.add(ring);
+
+        return { tilt, ring, direction: index === 0 ? 1 : -1 };
+    });
+
+    group.userData.iris = [-1, 1].map(side => {
+        const plate = new THREE.Mesh(parts.irisGeometries[side], parts.shardMaterial.clone());
+        plate.position.set(side * 0.07, 0, 0.42);
+        hoverPivot.add(plate);
+        return { mesh: plate, side };
+    });
+
+    const lanceMount = new THREE.Group();
+    lanceMount.position.set(0, 0, 0.5);
+    hoverPivot.add(lanceMount);
+    const lance = new THREE.Mesh(parts.lanceGeometry, parts.lanceMaterial.clone());
+    lance.scale.set(0.001, 0.001, 0.001);
+    lanceMount.add(lance);
+    group.userData.lance = lance;
+
+    group.userData.shards = SENTINEL_SHARDS.map((config, index) => {
+        const pivot = new THREE.Group();
+        pivot.rotation.y = config.angle;
+        hoverPivot.add(pivot);
+
+        const mesh = new THREE.Mesh(
+            parts.shardGeometries[config.profile],
+            parts.shardMaterial.clone()
+        );
+        mesh.position.set(0, config.y, config.radius);
+        mesh.rotation.x = config.tilt !== undefined ? config.tilt : (config.y > 0 ? -0.32 : 0.30);
+        mesh.castShadow = true;
+        pivot.add(mesh);
+
+        return {
+            pivot,
+            mesh,
+            angle: config.angle,
+            radius: config.radius,
+            y: config.y,
+            lift: config.lift,
+            spin: config.spin,
+            restTilt: mesh.rotation.x,
+            // Where this shard parks when the blown-apart shell locks into a
+            // firing lens in front of the core.
+            ringAngle: (index / SENTINEL_SHARDS.length) * Math.PI * 2,
+            phase: index * 0.63
+        };
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Warden (row 10) - a standing hoop with a hole through the middle
+// ---------------------------------------------------------------------------
+
+// The first hollow silhouette in the roster: every other type is a solid mass
+// or a tight cluster, so the Warden's read at distance comes from the gap in
+// its outline rather than from its mass. That makes the flip its signature —
+// turning the hoop edge-on collapses a circle to a line, which is legible from
+// the formation camera in a way a limb movement is not.
+const WARDEN_VOID = 0x1a0a1e;    // deepest recess, seams only
+const WARDEN_DARK = 0x2f1233;    // hoop underside
+const WARDEN_PLATE = 0x6b2a5f;   // main hoop face - the midpoint, kept well off black
+const WARDEN_TRIM = 0xa84a7d;    // bevel highlight
+const WARDEN_GLOW = 0xd77aa0;    // inner teeth
+const WARDEN_CORE = 0xffc94a;    // molten gold core
+const WARDEN_HOT = 0xffe9a8;     // core spines and halo
+
+// A ring standing in the XY plane, so it faces the player. Tangential boxes
+// around a circle read as a hoop for a fraction of a torus's vertices.
+function wardenHoopBoxes(radius, span, thickness, depth, color, accent) {
+    const boxes = [];
+    const steps = 16;
+    for (let i = 0; i < steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        boxes.push({
+            size: [span, thickness, depth],
+            pos: [Math.cos(a) * radius, Math.sin(a) * radius, 0],
+            rotZ: a + Math.PI / 2,
+            color: i % 4 === 0 ? accent : color
+        });
+    }
+    return boxes;
+}
+
+const WARDEN_HOOP = [
+    ...wardenHoopBoxes(0.62, 0.30, 0.13, 0.17, WARDEN_PLATE, WARDEN_TRIM),
+    ...wardenHoopBoxes(0.62, 0.26, 0.05, 0.21, WARDEN_DARK, WARDEN_DARK),
+    ...wardenHoopBoxes(0.70, 0.16, 0.05, 0.07, WARDEN_TRIM, WARDEN_GLOW)
+];
+
+// Inward-pointing teeth on a smaller radius, animated as their own mesh so the
+// ring can brighten independently of the hoop plates.
+const WARDEN_TEETH = wardenHoopBoxes(0.47, 0.10, 0.10, 0.09, WARDEN_GLOW, WARDEN_HOT);
+
+// Centred on the origin, so scaling the mesh retracts the spokes toward the
+// core instead of sliding them off to one side.
+const WARDEN_SPOKES = [
+    { size: [1.04, 0.055, 0.055], pos: [0, 0, 0], color: WARDEN_TRIM },
+    { size: [0.055, 1.04, 0.055], pos: [0, 0, 0], color: WARDEN_TRIM },
+    { size: [0.86, 0.04, 0.04], pos: [0, 0, 0], rotZ: Math.PI / 4, color: WARDEN_DARK },
+    { size: [0.86, 0.04, 0.04], pos: [0, 0, 0], rotZ: -Math.PI / 4, color: WARDEN_DARK }
+];
+
+const WARDEN_CORE_BOXES = [
+    { size: [0.21, 0.21, 0.21], pos: [0, 0, 0], rotZ: Math.PI * 0.25, color: WARDEN_CORE },
+    { size: [0.30, 0.07, 0.07], pos: [0, 0, 0], color: WARDEN_HOT },
+    { size: [0.07, 0.30, 0.07], pos: [0, 0, 0], color: WARDEN_HOT },
+    { size: [0.15, 0.15, 0.26], pos: [0, 0, 0], color: WARDEN_VOID }
+];
+
+// Short keel behind the hoop so the model still has depth when seen edge-on at
+// the midpoint of the flip.
+const WARDEN_ANCHOR = [
+    { size: [0.22, 0.22, 0.20], pos: [0, 0, -0.24], color: WARDEN_DARK },
+    { size: [0.14, 0.14, 0.26], pos: [0, 0, -0.42], color: WARDEN_PLATE },
+    { size: [0.30, 0.06, 0.10], pos: [0, -0.14, -0.34], color: WARDEN_TRIM },
+    { size: [0.06, 0.26, 0.08], pos: [0, 0.16, -0.36], color: WARDEN_VOID }
+];
+
+// The launch flash: a thin disc that grows outward through the hoop. Centred on
+// the origin so scale expands it about the core.
+const WARDEN_HALO = [
+    ...wardenHoopBoxes(0.40, 0.20, 0.09, 0.04, WARDEN_HOT, WARDEN_HOT)
+];
+
+let wardenParts = null;
+
+function getWardenParts() {
+    if (wardenParts) return wardenParts;
+
+    wardenParts = {
+        hoopGeometry: buildVoxelGeometry(WARDEN_HOOP),
+        teethGeometry: buildVoxelGeometry(WARDEN_TEETH),
+        spokeGeometry: buildVoxelGeometry(WARDEN_SPOKES),
+        coreGeometry: buildVoxelGeometry(WARDEN_CORE_BOXES),
+        anchorGeometry: buildVoxelGeometry(WARDEN_ANCHOR),
+        haloGeometry: buildVoxelGeometry(WARDEN_HALO),
+        hoopMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WARDEN_DARK,
+            emissiveIntensity: 0.45,
+            shininess: 55,
+            flatShading: true
+        }),
+        teethMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WARDEN_GLOW,
+            emissiveIntensity: 0.8,
+            flatShading: true
+        }),
+        coreMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WARDEN_CORE,
+            emissiveIntensity: 1.1,
+            flatShading: true
+        }),
+        haloMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: WARDEN_HOT,
+            emissiveIntensity: 3.5,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false,
+            flatShading: true
+        })
+    };
+
+    return wardenParts;
+}
+
+function createWardenAlien(group) {
+    const parts = getWardenParts();
+
+    // Hover carries the idle bob; the formation keeps group.position.x / .z.
+    const hoverPivot = new THREE.Group();
+    group.add(hoverPivot);
+    group.userData.hoverPivot = hoverPivot;
+
+    // Only the hoop assembly flips. The core stays face-on so it is still
+    // readable at the midpoint of the flip, when the hoop is edge-on.
+    const flipPivot = new THREE.Group();
+    hoverPivot.add(flipPivot);
+    group.userData.flipPivot = flipPivot;
+
+    const hoop = new THREE.Mesh(parts.hoopGeometry, parts.hoopMaterial.clone());
+    hoop.castShadow = true;
+    flipPivot.add(hoop);
+    group.userData.hoop = hoop;
+
+    const teeth = new THREE.Mesh(parts.teethGeometry, parts.teethMaterial.clone());
+    flipPivot.add(teeth);
+    group.userData.teeth = teeth;
+
+    const spokes = new THREE.Mesh(parts.spokeGeometry, parts.hoopMaterial.clone());
+    flipPivot.add(spokes);
+    group.userData.spokes = spokes;
+
+    const core = new THREE.Mesh(parts.coreGeometry, parts.coreMaterial.clone());
+    hoverPivot.add(core);
+    group.userData.core = core;
+
+    const halo = new THREE.Mesh(parts.haloGeometry, parts.haloMaterial.clone());
+    halo.scale.setScalar(0.001);
+    hoverPivot.add(halo);
+    group.userData.halo = halo;
+
+    const anchor = new THREE.Mesh(parts.anchorGeometry, parts.hoopMaterial);
+    hoverPivot.add(anchor);
+    group.userData.anchor = anchor;
+}
+
+// ---------------------------------------------------------------------------
+// Gyre (row 11) - a nacreous vortex funnel that drains into its own core
+// ---------------------------------------------------------------------------
+
+// Every other row is either a body (mass with limbs) or a frame (the Warden's
+// closed hoop, the Sentinel's shard cluster). The Gyre is neither: it is a
+// receding conical spiral of loose shell plates, widest at the back and
+// tapering forward to a gold bead aimed at the player. Read at distance it is a
+// nest of shrinking rings rather than an outline, which nothing else on the
+// roster produces.
+const GYRE_VOID = 0x150f2e;      // seams and recesses only
+// The cold end carries the mouth - the biggest plates and most of the model's
+// area - so it is lifted well off black. A near-black outer ring is what left
+// the Sentinel reading as a bare sparkle at formation distance.
+const GYRE_DEEP = 0x3f4d8a;      // outermost plates, coldest end of the ramp
+const GYRE_PLATE = 0x5a6bb8;
+const GYRE_MID = 0x7f88dd;       // ramp midpoint - kept well clear of space black
+const GYRE_VIOLET = 0xa98ce4;
+const GYRE_ROSE = 0xdb9ccc;      // innermost plates, hottest end
+const GYRE_CORE = 0xffd27a;      // gold bead at the tip
+const GYRE_HOT = 0xfff0c4;       // core spines and the launch swirl
+
+// Banded rather than smoothly interpolated: hard steps suit the voxel look and
+// make the chase light legible as it steps from plate to plate.
+const GYRE_RAMP = [GYRE_DEEP, GYRE_PLATE, GYRE_MID, GYRE_VIOLET, GYRE_ROSE];
+
+function gyreRampColor(f) {
+    const clamped = Math.min(0.999, Math.max(0, f));
+    return GYRE_RAMP[Math.floor(clamped * GYRE_RAMP.length)];
+}
+
+const GYRE_SEGMENT_COUNT = 14;
+const GYRE_MOUTH_RADIUS = 0.66;  // widest ring; peak animated half-width ~0.81
+const GYRE_TAPER = 0.885;        // geometric shrink per step inward
+const GYRE_TURN = 0.90;          // radians between neighbouring plates
+const GYRE_BACK_Z = -0.42;       // the mouth sits furthest from the player
+const GYRE_STEP_Z = 0.052;
+const GYRE_LEAN = -0.55;         // plates lean along the cone's slope
+const GYRE_CORE_Z = 0.34;        // tip of the funnel, just ahead of plate 13
+
+function gyreSegmentRadius(i) {
+    return GYRE_MOUTH_RADIUS * Math.pow(GYRE_TAPER, i);
+}
+
+function gyreSegmentZ(i) {
+    return GYRE_BACK_Z + i * GYRE_STEP_Z;
+}
+
+// One shell plate, centred on its own origin so its pivot can swing, lean and
+// draw it inward in place. In the plate's own frame +X is radial (outward from
+// the funnel axis) and +Y is tangential.
+function gyreSegmentBoxes(i) {
+    const f = i / (GYRE_SEGMENT_COUNT - 1);
+    const s = 0.60 + 0.40 * Math.pow(GYRE_TAPER, i);
+    const plate = gyreRampColor(f);
+    const trim = gyreRampColor(f + 0.30);
+
+    return [
+        { size: [0.13 * s, 0.34 * s, 0.19 * s], pos: [0, 0, 0], color: plate },
+        { size: [0.17 * s, 0.24 * s, 0.11 * s], pos: [0.03 * s, 0, 0], color: trim },
+        { size: [0.06 * s, 0.40 * s, 0.06 * s], pos: [-0.05 * s, 0, 0.05 * s], color: GYRE_VOID },
+        { size: [0.07 * s, 0.09 * s, 0.22 * s], pos: [0.02 * s, 0.17 * s, 0], color: trim }
+    ];
+}
+
+// Dust caught in the vortex, on a wider radius than any plate and counter-
+// rotating against the coil.
+const GYRE_MOTE_COUNT = 7;
+
+function gyreMoteBoxes() {
+    const boxes = [];
+    for (let i = 0; i < GYRE_MOTE_COUNT; i++) {
+        const a = (i / GYRE_MOTE_COUNT) * Math.PI * 2;
+        boxes.push({
+            size: [0.07, 0.07, 0.07],
+            pos: [Math.cos(a) * 0.74, Math.sin(a) * 0.74, -0.30 + (i % 3) * 0.09],
+            rotZ: a,
+            color: i % 2 === 0 ? GYRE_VIOLET : GYRE_ROSE
+        });
+    }
+    return boxes;
+}
+
+// Centred on the origin so the flare scales about the bead instead of throwing
+// it forward off the tip. The z offset is carried on mesh.position.
+const GYRE_CORE_BOXES = [
+    { size: [0.13, 0.13, 0.13], pos: [0, 0, 0], rotZ: Math.PI / 4, color: GYRE_CORE },
+    { size: [0.20, 0.05, 0.05], pos: [0, 0, 0], color: GYRE_HOT },
+    { size: [0.05, 0.20, 0.05], pos: [0, 0, 0], color: GYRE_HOT },
+    { size: [0.05, 0.05, 0.24], pos: [0, 0, 0], color: GYRE_HOT },
+    { size: [0.09, 0.09, 0.09], pos: [0, 0, 0], rotY: Math.PI / 4, color: GYRE_ROSE }
+];
+
+// Keel behind the mouth, so the model still has body when the funnel is seen
+// close to edge-on from the formation camera.
+const GYRE_HUB = [
+    { size: [0.30, 0.30, 0.10], pos: [0, 0, -0.46], color: GYRE_DEEP },
+    { size: [0.20, 0.20, 0.16], pos: [0, 0, -0.56], color: GYRE_PLATE },
+    { size: [0.42, 0.06, 0.06], pos: [0, 0, -0.44], color: GYRE_MID },
+    { size: [0.06, 0.42, 0.06], pos: [0, 0, -0.44], color: GYRE_MID },
+    { size: [0.12, 0.12, 0.22], pos: [0, 0, -0.66], color: GYRE_VOID }
+];
+
+// Launch flash: a three-arm pinwheel centred on the origin, so scale expands it
+// about the tip rather than sliding it away.
+const GYRE_SWIRL = [
+    { size: [0.46, 0.05, 0.05], pos: [0, 0, 0], color: GYRE_HOT },
+    { size: [0.46, 0.05, 0.05], pos: [0, 0, 0], rotZ: Math.PI * 2 / 3, color: GYRE_HOT },
+    { size: [0.46, 0.05, 0.05], pos: [0, 0, 0], rotZ: Math.PI * 4 / 3, color: GYRE_HOT },
+    { size: [0.14, 0.14, 0.14], pos: [0, 0, 0], color: GYRE_HOT }
+];
+
+let gyreParts = null;
+
+function getGyreParts() {
+    if (gyreParts) return gyreParts;
+
+    gyreParts = {
+        segmentGeometries: Array.from(
+            { length: GYRE_SEGMENT_COUNT },
+            (unused, i) => buildVoxelGeometry(gyreSegmentBoxes(i))
+        ),
+        moteGeometry: buildVoxelGeometry(gyreMoteBoxes()),
+        coreGeometry: buildVoxelGeometry(GYRE_CORE_BOXES),
+        hubGeometry: buildVoxelGeometry(GYRE_HUB),
+        swirlGeometry: buildVoxelGeometry(GYRE_SWIRL),
+        // Emissive is a deep indigo rather than the plate colour: emissive adds
+        // flat on top of the vertex colours, so tinting it at the plate value
+        // washed every band toward the same pale blue.
+        shellMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: 0x2c3566,
+            emissiveIntensity: 0.45,
+            shininess: 70,
+            flatShading: true
+        }),
+        moteMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: GYRE_VIOLET,
+            emissiveIntensity: 1.3,
+            transparent: true,
+            opacity: 0.85,
+            flatShading: true
+        }),
+        coreMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: GYRE_CORE,
+            emissiveIntensity: 0.9,
+            flatShading: true
+        }),
+        swirlMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: GYRE_HOT,
+            emissiveIntensity: 2.2,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false,
+            flatShading: true
+        })
+    };
+
+    return gyreParts;
+}
+
+function createGyreAlien(group) {
+    const parts = getGyreParts();
+
+    // Hover carries the idle bob; the formation keeps group.position.x / .z.
+    const hoverPivot = new THREE.Group();
+    group.add(hoverPivot);
+    group.userData.hoverPivot = hoverPivot;
+
+    // The funnel turns as one here. Each plate then rides its own pivot, so the
+    // drain can pull plates inward independently without touching the group.
+    const coilPivot = new THREE.Group();
+    hoverPivot.add(coilPivot);
+    group.userData.coilPivot = coilPivot;
+
+    group.userData.coil = parts.segmentGeometries.map((geometry, i) => {
+        const pivot = new THREE.Group();
+        pivot.rotation.z = i * GYRE_TURN;
+        coilPivot.add(pivot);
+
+        // Cloned: each plate's emissiveIntensity carries the chase light, so a
+        // shared material would light all fourteen at once.
+        const mesh = new THREE.Mesh(geometry, parts.shellMaterial.clone());
+        mesh.position.set(gyreSegmentRadius(i), 0, gyreSegmentZ(i));
+        mesh.rotation.y = GYRE_LEAN;
+        mesh.castShadow = true;
+        pivot.add(mesh);
+
+        return {
+            pivot,
+            mesh,
+            index: i,
+            restAngle: i * GYRE_TURN,
+            restRadius: gyreSegmentRadius(i),
+            restZ: gyreSegmentZ(i)
+        };
+    });
+
+    const motes = new THREE.Mesh(parts.moteGeometry, parts.moteMaterial.clone());
+    hoverPivot.add(motes);
+    group.userData.motes = motes;
+
+    const hub = new THREE.Mesh(parts.hubGeometry, parts.shellMaterial);
+    hoverPivot.add(hub);
+    group.userData.hub = hub;
+
+    const core = new THREE.Mesh(parts.coreGeometry, parts.coreMaterial.clone());
+    core.position.z = GYRE_CORE_Z;
+    hoverPivot.add(core);
+    group.userData.core = core;
+
+    const swirl = new THREE.Mesh(parts.swirlGeometry, parts.swirlMaterial.clone());
+    swirl.position.z = GYRE_CORE_Z + 0.08;
+    swirl.scale.setScalar(0.001);
+    hoverPivot.add(swirl);
+    group.userData.swirl = swirl;
+}
+
+// ---------------------------------------------------------------------------
+// Mantis (row 12) - an upright ambush predator that holds still, then strikes
+// ---------------------------------------------------------------------------
+
+// The roster's other insects are read by their mass: the Beetle is a rounded
+// shell, the Wasp a horizontal thorax and abdomen, the Scorpion a low body
+// under a raised tail. The Mantis is read by its posture instead — a narrow
+// prothorax carried at an angle with two oversized forearms folded in front,
+// leaving a deep notch in the outline that closes when it strikes. It is also
+// the only model in the roster that is deliberately still between events.
+const MANTIS_VOID = 0x161a0d;    // seams and eye sockets only
+const MANTIS_DARK = 0x3d4a22;    // undersides
+const MANTIS_MOSS = 0x5d7033;
+const MANTIS_MID = 0x8fa04e;     // ramp midpoint - kept well clear of space black
+const MANTIS_PALE = 0xc2c98a;
+const MANTIS_BONE = 0xe8ead0;    // wing membrane and crown highlights
+const MANTIS_EYE = 0x6ff5e0;     // hot cyan: eyes and spine teeth only
+const MANTIS_HOT = 0xc9fff4;
+
+// Abdomen tapering back and curling up, the way a mantis carries it at rest.
+const MANTIS_ABDOMEN = [
+    { size: [0.30, 0.20, 0.26], pos: [0, 0.13, -0.16], color: MANTIS_MOSS },
+    { size: [0.26, 0.17, 0.22], pos: [0, 0.16, -0.38], color: MANTIS_MID },
+    { size: [0.20, 0.14, 0.18], pos: [0, 0.21, -0.57], color: MANTIS_MOSS },
+    { size: [0.13, 0.10, 0.13], pos: [0, 0.27, -0.71], color: MANTIS_DARK },
+    { size: [0.33, 0.06, 0.44], pos: [0, 0.05, -0.28], color: MANTIS_DARK },
+    { size: [0.09, 0.05, 0.50], pos: [0, 0.24, -0.34], color: MANTIS_PALE }
+];
+
+// The prothorax: long, narrow and angled up toward the head. This is the part
+// that makes the silhouette upright rather than horizontal.
+const MANTIS_THORAX = [
+    { size: [0.24, 0.22, 0.20], pos: [0, 0.16, 0.02], color: MANTIS_MID },
+    { size: [0.19, 0.24, 0.16], pos: [0, 0.28, 0.11], color: MANTIS_MOSS },
+    { size: [0.16, 0.22, 0.14], pos: [0, 0.40, 0.19], color: MANTIS_MID },
+    { size: [0.21, 0.07, 0.09], pos: [0, 0.34, 0.21], color: MANTIS_PALE },
+    { size: [0.07, 0.30, 0.07], pos: [0, 0.30, 0.05], color: MANTIS_VOID }
+];
+
+// Centred on the neck joint so the head pivot can swivel in place; the offset
+// is carried on mesh.position in the builder.
+const MANTIS_HEAD = [
+    { size: [0.30, 0.15, 0.14], pos: [0, 0, 0], color: MANTIS_MID },
+    { size: [0.34, 0.08, 0.10], pos: [0, 0.07, -0.01], color: MANTIS_PALE },
+    { size: [0.13, 0.11, 0.13], pos: [0, -0.08, 0.04], color: MANTIS_MOSS },
+    { size: [0.07, 0.06, 0.07], pos: [-0.05, -0.12, 0.06], color: MANTIS_DARK },
+    { size: [0.07, 0.06, 0.07], pos: [0.05, -0.12, 0.06], color: MANTIS_DARK }
+];
+
+// Separate mesh so the eyes can pulse without lighting the whole skull.
+const MANTIS_EYES = [
+    { size: [0.11, 0.14, 0.12], pos: [-0.14, 0.02, 0.01], color: MANTIS_EYE },
+    { size: [0.11, 0.14, 0.12], pos: [0.14, 0.02, 0.01], color: MANTIS_EYE },
+    { size: [0.05, 0.06, 0.05], pos: [-0.16, 0.05, 0.06], color: MANTIS_HOT },
+    { size: [0.05, 0.06, 0.05], pos: [0.16, 0.05, 0.06], color: MANTIS_HOT }
+];
+
+// Tegmina folded flat along the back. Unlike the Wasp these never beat — they
+// only crack open on the strike, which is what keeps the two insects distinct.
+const MANTIS_WING = [
+    { size: [0.13, 0.04, 0.62], pos: [-0.10, 0.24, -0.32], rotZ: 0.10, color: MANTIS_PALE },
+    { size: [0.09, 0.03, 0.50], pos: [-0.15, 0.22, -0.36], rotZ: 0.14, color: MANTIS_BONE },
+    { size: [0.05, 0.03, 0.30], pos: [-0.07, 0.27, -0.24], color: MANTIS_MOSS }
+];
+
+// Raptorial arm segments run along +Z from their own joint, so the femur pivot
+// and the tibia pivot both rotate about the joint rather than sliding the limb.
+const MANTIS_FEMUR_LENGTH = 0.40;
+const MANTIS_TIBIA_LENGTH = 0.34;
+
+function mantisArmSegmentBoxes(length, width, height, color, trim) {
+    const boxes = [
+        { size: [width, height, length], pos: [0, 0, length / 2], color },
+        { size: [width * 1.3, height * 1.2, height], pos: [0, 0, 0], color: trim }
+    ];
+    // Spine teeth along the grasping edge — the only cyan on the body besides
+    // the eyes, and the thing that flashes when the arms snap shut.
+    for (let i = 0; i < 4; i++) {
+        boxes.push({
+            size: [width * 0.4, height * 0.8, 0.05],
+            pos: [0, -height * 0.65, length * (0.20 + i * 0.21)],
+            color: MANTIS_EYE
+        });
+    }
+    return boxes;
+}
+
+const MANTIS_FEMUR = mantisArmSegmentBoxes(MANTIS_FEMUR_LENGTH, 0.13, 0.13, MANTIS_MID, MANTIS_MOSS);
+const MANTIS_TIBIA = mantisArmSegmentBoxes(MANTIS_TIBIA_LENGTH, 0.10, 0.10, MANTIS_PALE, MANTIS_MOSS);
+
+// Rest is the folded "praying" pose; strike straightens both joints.
+const MANTIS_ARM_REST = { femur: -0.95, tibia: 2.35 };
+const MANTIS_ARM_STRIKE = { femur: -0.10, tibia: 0.18 };
+
+// Four walking legs — the front pair are the raptorials, so the Mantis stands
+// on fewer legs than the Beetle or the Wasp and reads as more upright.
+const MANTIS_LEG_SEGMENTS = [
+    { length: 0.26, width: 0.075, baseBend: 1.05 },
+    { length: 0.30, width: 0.060, baseBend: -1.85 },
+    { length: 0.14, width: 0.050, baseBend: 0.55 }
+];
+
+const MANTIS_LEG_MOUNTS = [
+    { side: -1, z: -0.10, phase: 0 },
+    { side: -1, z: -0.42, phase: Math.PI },
+    { side: 1, z: -0.10, phase: Math.PI },
+    { side: 1, z: -0.42, phase: 0 }
+];
+
+// Centred on the antenna socket so the whip sweeps about its base.
+const MANTIS_ANTENNA = [
+    { size: [0.035, 0.035, 0.16], pos: [0, 0, 0.08], color: MANTIS_PALE },
+    { size: [0.028, 0.028, 0.14], pos: [0, 0.02, 0.22], rotX: -0.18, color: MANTIS_MID },
+    { size: [0.022, 0.022, 0.12], pos: [0, 0.06, 0.34], rotX: -0.34, color: MANTIS_MOSS }
+];
+
+let mantisParts = null;
+
+function getMantisParts() {
+    if (mantisParts) return mantisParts;
+
+    mantisParts = {
+        abdomenGeometry: buildVoxelGeometry(MANTIS_ABDOMEN),
+        thoraxGeometry: buildVoxelGeometry(MANTIS_THORAX),
+        headGeometry: buildVoxelGeometry(MANTIS_HEAD),
+        eyeGeometry: buildVoxelGeometry(MANTIS_EYES),
+        femurGeometry: buildVoxelGeometry(MANTIS_FEMUR),
+        tibiaGeometry: buildVoxelGeometry(MANTIS_TIBIA),
+        wingGeometries: {
+            '-1': buildVoxelGeometry(MANTIS_WING),
+            '1': buildVoxelGeometry(mirrorBoxes(MANTIS_WING))
+        },
+        antennaGeometry: buildVoxelGeometry(MANTIS_ANTENNA),
+        legGeometries: MANTIS_LEG_SEGMENTS.map(segment =>
+            buildLimbSegmentGeometry(segment, MANTIS_MOSS, MANTIS_DARK)
+        ),
+        shellMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: MANTIS_DARK,
+            emissiveIntensity: 0.55,
+            shininess: 40,
+            flatShading: true
+        }),
+        limbMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: MANTIS_DARK,
+            emissiveIntensity: 0.5,
+            flatShading: true
+        }),
+        wingMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: MANTIS_MOSS,
+            emissiveIntensity: 0.45,
+            transparent: true,
+            opacity: 0.88,
+            flatShading: true
+        }),
+        eyeMaterial: new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: MANTIS_EYE,
+            emissiveIntensity: 1.8,
+            flatShading: true
+        })
+    };
+
+    return mantisParts;
+}
+
+function createMantisAlien(group) {
+    const parts = getMantisParts();
+
+    // Carries all display motion, so the formation keeps group.position.x / .z.
+    const bodyPivot = new THREE.Group();
+    group.add(bodyPivot);
+    group.userData.bodyPivot = bodyPivot;
+
+    const abdomenPivot = new THREE.Group();
+    bodyPivot.add(abdomenPivot);
+    group.userData.abdomenPivot = abdomenPivot;
+
+    const abdomen = new THREE.Mesh(parts.abdomenGeometry, parts.shellMaterial);
+    abdomen.castShadow = true;
+    abdomenPivot.add(abdomen);
+    group.userData.abdomen = abdomen;
+
+    const thorax = new THREE.Mesh(parts.thoraxGeometry, parts.shellMaterial);
+    thorax.castShadow = true;
+    bodyPivot.add(thorax);
+    group.userData.thorax = thorax;
+
+    // Head geometry is centred on the neck joint; the offset lives here, so the
+    // swivel turns the head instead of sweeping it around the body.
+    const headPivot = new THREE.Group();
+    headPivot.position.set(0, 0.54, 0.26);
+    bodyPivot.add(headPivot);
+    group.userData.headPivot = headPivot;
+
+    const head = new THREE.Mesh(parts.headGeometry, parts.shellMaterial);
+    headPivot.add(head);
+    group.userData.head = head;
+
+    // Cloned: the eyes pulse per instance.
+    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
+    headPivot.add(eyes);
+    group.userData.eyes = eyes;
+
+    group.userData.antennae = [-1, 1].map(side => {
+        const pivot = new THREE.Group();
+        pivot.position.set(side * 0.09, 0.09, 0.06);
+        pivot.rotation.y = side * 0.28;
+        pivot.rotation.x = -0.35;
+        headPivot.add(pivot);
+
+        const mesh = new THREE.Mesh(parts.antennaGeometry, parts.limbMaterial);
+        pivot.add(mesh);
+        return { pivot, mesh, side, baseYaw: side * 0.28 };
+    });
+
+    group.userData.wings = [-1, 1].map(side => {
+        const pivot = new THREE.Group();
+        bodyPivot.add(pivot);
+        const mesh = new THREE.Mesh(parts.wingGeometries[side], parts.wingMaterial.clone());
+        pivot.add(mesh);
+        return { pivot, mesh, side };
+    });
+
+    group.userData.arms = [-1, 1].map(side => {
+        const femurPivot = new THREE.Group();
+        femurPivot.position.set(side * 0.15, 0.36, 0.16);
+        femurPivot.rotation.y = side * 0.20;
+        femurPivot.rotation.x = MANTIS_ARM_REST.femur;
+        bodyPivot.add(femurPivot);
+
+        const femur = new THREE.Mesh(parts.femurGeometry, parts.limbMaterial);
+        femur.castShadow = true;
+        femurPivot.add(femur);
+
+        // Sits at the far end of the femur, so the fold propagates down the arm.
+        const tibiaPivot = new THREE.Group();
+        tibiaPivot.position.z = MANTIS_FEMUR_LENGTH;
+        tibiaPivot.rotation.x = MANTIS_ARM_REST.tibia;
+        femurPivot.add(tibiaPivot);
+
+        // Cloned: the spine teeth flash on the strike, per instance.
+        const tibia = new THREE.Mesh(parts.tibiaGeometry, parts.limbMaterial.clone());
+        tibiaPivot.add(tibia);
+
+        return { femurPivot, tibiaPivot, femur, tibia, side, baseYaw: side * 0.20 };
+    });
+
+    group.userData.legs = MANTIS_LEG_MOUNTS.map(config => {
+        const mount = new THREE.Group();
+        mount.position.set(config.side * 0.17, 0.04, config.z);
+        mount.rotation.y = config.side > 0 ? 0 : Math.PI;  // +X points outward both sides
+        bodyPivot.add(mount);
+
+        const segments = buildLimbChain(
+            mount, parts.legGeometries, MANTIS_LEG_SEGMENTS, parts.limbMaterial, -1
+        );
+
+        return { mount, segments, phase: config.phase, side: config.side };
+    });
+}
+
 // Animate a single alien
 export function animateAlien(alien) {
     const time = Date.now() * 0.001 + alien.userData.animationOffset;
@@ -2174,36 +3407,54 @@ export function animateAlien(alien) {
             break;
         }
 
-        case 2: { // Squid - jet propulsion, rippling fins, lashing tentacles
+        case 2: { // Squid - coil-then-jet cycle, rippling fin wings, lure clubs
             const squid = alien.userData;
 
-            // Jet cycle as an explicit event: a hard contraction, then a long
-            // glide. `vent` is a much tighter window, so the siphon reads as a
-            // flash rather than a permanent glow.
+            // Jet cycle as explicit phase windows: a coil (the mantle
+            // stretches tall and the amber veins pump - the "inhale"), then
+            // the thrust (the mantle squeezes narrow, the siphon flashes and
+            // the plume stabs out). Crisp events, long glide.
             const jetPhase = (time % 2.4) / 2.4;
-            const thrust = jetPhase < 0.26 ? Math.sin((jetPhase / 0.26) * Math.PI) : 0;
-            const vent = jetPhase < 0.07 ? Math.sin((jetPhase / 0.07) * Math.PI) : 0;
+            const coil = jetPhase < 0.14 ? Math.sin((jetPhase / 0.14) * Math.PI) : 0;
+            const thrust = (jetPhase >= 0.14 && jetPhase < 0.40)
+                ? Math.sin(((jetPhase - 0.14) / 0.26) * Math.PI)
+                : 0;
+            const vent = (jetPhase >= 0.14 && jetPhase < 0.21)
+                ? Math.sin(((jetPhase - 0.14) / 0.07) * Math.PI)
+                : 0;
 
-            // Squash and stretch as the mantle expels its water. This rides on
-            // the mantle, not the group - the swoop telegraph owns alien.scale.
+            // Anticipation then squeeze, on the mantle rather than the group -
+            // the swoop telegraph owns alien.scale
             if (squid.mantle) {
-                squid.mantle.scale.set(1 - thrust * 0.17, 1 + thrust * 0.16, 1 - thrust * 0.17);
+                squid.mantle.scale.set(
+                    1 - thrust * 0.17,
+                    1 + coil * 0.12 + thrust * 0.08,
+                    1 - thrust * 0.17
+                );
             }
 
             // Chromatophores flush with the jet
             if (squid.spots) {
                 squid.spots.material.emissiveIntensity =
-                    0.9 + (Math.sin(time * 2.3) + 1) * 0.55 + thrust * 1.8;
+                    0.8 + (Math.sin(time * 2.3) + 1) * 0.45 + thrust * 1.6;
             }
 
-            // Fins undulate constantly, then sweep flat and back on the power
-            // stroke so the squid streamlines into the jet
+            // Amber veins pump on the coil, dim through the thrust
+            if (squid.veins) {
+                squid.veins.material.emissiveIntensity =
+                    0.9 + coil * 1.7 + Math.sin(time * 2.0) * 0.25;
+            }
+
+            // Fin wings ripple root-to-tip, then sweep flat and back on the
+            // power stroke so the squid streamlines into the jet
             if (squid.fins) {
                 squid.fins.forEach(fin => {
-                    const wave = Math.sin(time * 3.4 + fin.side * 0.6);
-                    fin.mesh.rotation.z = fin.side * (wave * 0.34 - thrust * 0.40);
-                    fin.mesh.rotation.x = Math.sin(time * 3.4 - 0.9) * 0.24;
-                    fin.mesh.rotation.y = fin.side * thrust * 0.22;
+                    fin.root.rotation.z = fin.side
+                        * (Math.sin(time * 3.6 + fin.side * 0.7) * 0.30 - thrust * 0.38);
+                    fin.root.rotation.x = Math.sin(time * 3.6 - 0.9) * 0.20;
+                    fin.root.rotation.y = fin.side * thrust * 0.20;
+                    fin.tip.rotation.z = Math.sin(time * 3.6 - 1.1 + fin.side * 0.5) * 0.38
+                        - thrust * 0.30;
                 });
             }
 
@@ -2215,7 +3466,7 @@ export function animateAlien(alien) {
                         // ...and then down each arm, growing toward the tip.
                         // Thrust pulls the whole crown into a spear.
                         const lag = ringPhase - j * 0.8;
-                        const amplitude = 0.16 + j * 0.14;
+                        const amplitude = 0.18 + j * 0.15;
                         segment.rotation.z = segment.userData.baseBend
                             + Math.sin(lag) * amplitude
                             - thrust * (0.26 + j * 0.10);
@@ -2224,7 +3475,16 @@ export function animateAlien(alien) {
                 });
             }
 
-            // Feeding tentacles drift, then lash out roughly every five seconds
+            // Sucker glow ripples down the arms just behind the curl
+            if (squid.suckerMaterials) {
+                squid.suckerMaterials.forEach((material, j) => {
+                    material.emissiveIntensity =
+                        0.75 + (Math.sin(time * 3.1 - j * 1.25) + 1) * 0.45 + thrust * 1.1;
+                });
+            }
+
+            // Feeding tentacles drift, then lash out roughly every five
+            // seconds; the amber lure clubs flare on the strike
             const strikePhase = (time % 5.3) / 5.3;
             const strike = strikePhase < 0.13 ? Math.sin((strikePhase / 0.13) * Math.PI) : 0;
 
@@ -2243,18 +3503,23 @@ export function animateAlien(alien) {
                     });
 
                     tentacle.club.scale.setScalar(1 + strike * 0.45);
+                    tentacle.club.material.emissiveIntensity =
+                        1.1 + (Math.sin(time * 2.4 + i * 1.7) + 1) * 0.30 + strike * 2.0;
                 });
             }
 
-            // Head cranes against the body pitch, keeping the eyes on the player
+            // Head cranes against the body pitch and glances side to side,
+            // keeping the eyes on the player
             if (squid.head) {
                 squid.head.rotation.x = thrust * 0.20;
+                squid.head.rotation.y = Math.sin(time * 0.6) * 0.14;
             }
 
-            // Eyes drift and pulse, and widen on the strike
+            // Eyes drift and pulse amber, and flare on the strike
             if (squid.eyes) {
                 squid.eyes.position.x = Math.sin(time * 0.9) * 0.03;
-                squid.eyes.material.emissiveIntensity = 2.0 + Math.sin(time * 3.2) * 0.7 + strike * 1.5;
+                squid.eyes.material.emissiveIntensity =
+                    0.85 + (Math.sin(time * 3.2) + 1) * 0.30 + strike * 1.3;
             }
 
             // Blink: lids drop and lift roughly every 3.7 seconds. The per-alien
@@ -2268,12 +3533,12 @@ export function animateAlien(alien) {
 
             // Siphon flashes as the jet fires, and the plume stabs out with it
             if (squid.siphon) {
-                squid.siphon.material.emissiveIntensity = 1.1 + vent * 3.4 + thrust * 1.0;
+                squid.siphon.material.emissiveIntensity = 0.5 + vent * 3.2 + thrust * 0.9;
                 squid.siphon.scale.set(1 + vent * 0.25, 1 + vent * 0.20, 1);
             }
             if (squid.plume) {
                 squid.plume.visible = thrust > 0.02;
-                squid.plume.material.opacity = thrust * 0.5;
+                squid.plume.material.opacity = thrust * 0.55;
                 squid.plume.scale.set(0.5 + thrust * 0.5, 0.5 + thrust * 0.5, 0.35 + thrust * 0.65);
             }
 
@@ -2282,10 +3547,11 @@ export function animateAlien(alien) {
             alien.rotation.z = Math.sin(time * 1.1) * 0.09;
             alien.rotation.y = Math.sin(time * 0.7) * 0.16;
 
-            // Each jet kicks the squid upward and it settles back on the glide.
-            // Skipped mid-swoop, which owns Y.
+            // The coil lifts the squid slightly onto its jets and the thrust
+            // kicks it upward; it settles back on the glide. Skipped mid-swoop,
+            // which owns Y.
             if (!alien.userData.isSwooping) {
-                alien.position.y = thrust * 0.34 + Math.sin(time * 1.3) * 0.06;
+                alien.position.y = coil * 0.05 + thrust * 0.18 + Math.sin(time * 1.3) * 0.06;
             }
             break;
         }
@@ -2912,6 +4178,528 @@ export function animateAlien(alien) {
                         alien.position.y = Math.abs(Math.sin(t * 18)) * 0.03;
                         break;
                 }
+            }
+            break;
+        }
+
+        case 8: { // Wasp - hover, wingstorm, sting lunge
+            const wasp = alien.userData;
+            const t = time;
+            const phase = (t % 8.4) / 8.4;
+            const windup = phase >= 0.24 && phase < 0.40
+                ? Math.sin(((phase - 0.24) / 0.16) * Math.PI / 2)
+                : phase >= 0.40 && phase < 0.54 ? 1 : 0;
+            const charge = phase >= 0.40 && phase < 0.62
+                ? Math.sin(Math.min(1, (phase - 0.40) / 0.22) * Math.PI / 2)
+                : phase >= 0.62 && phase < 0.72 ? 1 : 0;
+            const storm = phase >= 0.54 && phase < 0.78
+                ? Math.sin(Math.min(1, (phase - 0.54) / 0.24) * Math.PI)
+                : 0;
+            const lunge = phase >= 0.70 && phase < 0.84
+                ? Math.sin(Math.min(1, (phase - 0.70) / 0.14) * Math.PI)
+                : 0;
+            const recoil = phase >= 0.84 ? Math.max(0, 1 - (phase - 0.84) / 0.16) : 0;
+            const hover = Math.sin(t * 2.2) * 0.035;
+
+            // The body pivot carries the display motion; formation x/z remain
+            // untouched so the Wasp cannot drift away from its column.
+            if (wasp.bodyPivot) {
+                wasp.bodyPivot.rotation.x = -charge * 0.08 - lunge * 0.24 + recoil * 0.10;
+                wasp.bodyPivot.rotation.z = Math.sin(t * 1.4) * 0.035 + lunge * 0.04;
+                wasp.bodyPivot.position.y = hover + windup * 0.025 - lunge * 0.04;
+            }
+
+            // Paired wings fold, snap open, then beat out of phase. The edge
+            // accents carry the bright event while the transparent panels keep
+            // the voxel silhouette visible under bloom.
+            if (wasp.wings) {
+                wasp.wings.forEach(wing => {
+                    const fold = 1 - Math.min(1, windup + storm * 0.2 + lunge * 0.35);
+                    const beat = storm * Math.sin(t * (42 + wing.pair * 5) + wing.pair * 1.7);
+                    wing.hinge.rotation.z = wing.side * (
+                        0.16 + fold * 0.46 + beat * (0.045 + wing.pair * 0.012)
+                    );
+                    wing.hinge.rotation.x = Math.sin(t * 2 + wing.pair) * 0.03
+                        + storm * Math.sin(t * 28 + wing.pair) * 0.04;
+                    wing.edge.material.emissiveIntensity = 0.8 + storm * 2.8 + charge * 1.2;
+                    wing.wing.material.opacity = 0.24 + storm * 0.16;
+                });
+            }
+
+            if (wasp.abdomenPivot) {
+                wasp.abdomenPivot.rotation.x = -charge * 0.18 - lunge * 0.36 + recoil * 0.12;
+                wasp.abdomenPivot.rotation.z = Math.sin(t * 1.7) * 0.025;
+            }
+
+            if (wasp.stinger) {
+                const strike = Math.max(charge, lunge * 1.5);
+                wasp.stinger.material.emissiveIntensity = 0.75 + strike * 3.4 + storm * 1.2;
+                wasp.stinger.scale.set(
+                    1 + strike * 0.18,
+                    1 + strike * 0.18,
+                    1 + strike * 0.32
+                );
+            }
+
+            if (wasp.eyes) {
+                wasp.eyes.material.emissiveIntensity = 1.8 + windup * 1.5 + charge * 2.4 + lunge * 1.2;
+                wasp.eyes.scale.y = 1 + storm * 0.10;
+            }
+
+            if (wasp.mandibles) {
+                wasp.mandibles.forEach(mandible => {
+                    const jaw = 0.06 + charge * 0.24 + lunge * 0.12;
+                    mandible.mesh.rotation.x = mandible.side * jaw + Math.sin(t * 9 + mandible.side) * 0.035;
+                });
+            }
+
+            if (wasp.legs) {
+                wasp.legs.forEach(leg => {
+                    const step = Math.sin(t * 8 + leg.phase);
+                    const lift = Math.max(0, step) * (1 - storm * 0.75);
+                    leg.segments[0].rotation.z = leg.segments[0].userData.baseBend - lift * 0.30 - charge * 0.08;
+                    leg.segments[0].rotation.x = Math.cos(t * 8 + leg.phase) * 0.22 * (1 - charge * 0.7);
+                    leg.segments[1].rotation.z = leg.segments[1].userData.baseBend + lift * 0.38 + charge * 0.10;
+                    leg.segments[2].rotation.z = leg.segments[2].userData.baseBend + lift * 0.16;
+                });
+            }
+
+            // Y is formation-safe during a swoop; only the child body pivot
+            // receives hover motion while the swoop controller owns the group.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = Math.abs(hover) + windup * 0.03 - lunge * 0.02;
+            }
+            break;
+        }
+
+        case 9: { // Sentinel - shatter bloom, aperture lock, lance discharge
+            const sentinel = alien.userData;
+            const t = time;
+            const p = (t % 9.2) / 9.2;
+
+            // Phase weights. Every gain that varies is expressed as
+            // rate * weight added to a t-driven base, never as t * rate, so a
+            // phase change can never jump the cycle.
+            const seg = (a, b) => Math.min(1, Math.max(0, (p - a) / (b - a)));
+            const ease = v => v * v * (3 - 2 * v);
+
+            const bloom = ease(seg(0.18, 0.42)) * (1 - ease(seg(0.78, 0.96)));
+            const lock = ease(seg(0.50, 0.66)) * (1 - ease(seg(0.72, 0.82)));
+            const charge = ease(seg(0.46, 0.70)) * (1 - ease(seg(0.70, 0.77)));
+            // Explicit window, not a steep power curve: this has to read as a
+            // discharge, not a permanent glow.
+            const flash = p >= 0.700 && p < 0.742
+                ? Math.sin(((p - 0.700) / 0.042) * Math.PI)
+                : 0;
+            const slam = p >= 0.90 ? Math.sin(((p - 0.90) / 0.10) * Math.PI) : 0;
+            const breathe = Math.sin(t * 1.6) * 0.5 + 0.5;
+
+            if (sentinel.hoverPivot) {
+                sentinel.hoverPivot.rotation.y = Math.sin(t * 0.5) * 0.22 + bloom * 0.30;
+                sentinel.hoverPivot.rotation.x = Math.sin(t * 0.9) * 0.05 - charge * 0.06 + slam * 0.10;
+                sentinel.hoverPivot.rotation.z = Math.cos(t * 0.7) * 0.04 + slam * Math.sin(t * 34) * 0.03;
+                sentinel.hoverPivot.position.y = Math.sin(t * 1.3) * 0.04 - slam * 0.05;
+            }
+
+            // The shell comes apart: each shard pushes out along its own radial,
+            // its pivot orbits the core, then the whole cloud blends into a flat
+            // ring standing in front of the emitter.
+            if (sentinel.shards) {
+                sentinel.shards.forEach(shard => {
+                    const orbit = shard.angle + shard.spin * (bloom * 2.4 + Math.sin(t * 0.8 + shard.phase) * 0.10);
+                    shard.pivot.rotation.y = orbit * (1 - lock);
+
+                    // Kept tight on purpose: at ALIEN_SPACING 2 the animated
+                    // peak half-width has to stay near 0.8, so the shatter
+                    // reads through tumble and orbit rather than through throw.
+                    const outY = shard.y * (1 + bloom * 0.5) + shard.lift * bloom * 0.5;
+                    const outZ = shard.radius * (1 + bloom * 0.75) + bloom * 0.09;
+                    const ringX = Math.cos(shard.ringAngle) * 0.50;
+                    const ringY = Math.sin(shard.ringAngle) * 0.50;
+
+                    shard.mesh.position.set(
+                        ringX * lock,
+                        outY * (1 - lock) + ringY * lock,
+                        outZ * (1 - lock) + 0.42 * lock
+                    );
+
+                    const tumble = bloom * (1 - lock);
+                    shard.mesh.rotation.x = shard.restTilt
+                        + Math.sin(t * 2.6 + shard.phase) * 1.5 * tumble
+                        - lock * shard.restTilt;
+                    shard.mesh.rotation.y = Math.cos(t * 2.1 + shard.phase) * 1.2 * tumble;
+                    shard.mesh.rotation.z = Math.sin(t * 1.8 + shard.phase * 1.7) * 1.0 * tumble
+                        + lock * (shard.ringAngle + Math.PI / 2);
+
+                    shard.mesh.material.emissiveIntensity =
+                        0.18 + bloom * 0.20 + lock * 0.18 + flash * 0.45 + slam * 0.25;
+                });
+            }
+
+            // Counter-rotating gimbals spin up with the bloom.
+            if (sentinel.rings) {
+                sentinel.rings.forEach((ring, index) => {
+                    ring.ring.rotation.y = ring.direction * (t * (0.6 + index * 0.35) + bloom * 3.6 + flash * 0.5);
+                    ring.tilt.rotation.z = (index === 0 ? -0.28 : 0.36) + Math.sin(t * 0.6 + index) * 0.12 * (1 + bloom);
+                    ring.ring.material.emissiveIntensity = 0.30 + bloom * 0.35 + charge * 0.45 + flash * 1.0;
+                });
+            }
+
+            // The iris slides open on the charge, exposing the emitter.
+            if (sentinel.iris) {
+                sentinel.iris.forEach(plate => {
+                    const open = Math.max(bloom * 0.35, charge);
+                    plate.mesh.position.x = plate.side * (0.07 + open * 0.26);
+                    plate.mesh.rotation.y = plate.side * open * 0.6;
+                    plate.mesh.material.emissiveIntensity = 0.35 + charge * 0.9 + flash * 1.6;
+                });
+            }
+
+            // Kept deliberately dim. Emissive is added flat on top of the vertex
+            // colours, so a hot core does not read as "bright core against dark
+            // shards" - it floods the whole sculpt and erases the obsidian ramp
+            // under bloom. The charge reads through scale and the iris instead.
+            if (sentinel.core) {
+                const heat = 0.9 + breathe * 0.18 + bloom * 0.35 + charge * 0.9 + flash * 1.5;
+                sentinel.core.material.emissiveIntensity = heat;
+                const swell = 1 + breathe * 0.04 + charge * 0.16 + flash * 0.26;
+                sentinel.core.scale.setScalar(swell);
+                sentinel.core.rotation.y = t * 0.9;
+                sentinel.core.rotation.x = t * 0.4;
+            }
+
+            if (sentinel.glow) {
+                sentinel.glow.material.opacity = 0.05 + bloom * 0.04 + charge * 0.06 + flash * 0.11;
+                sentinel.glow.scale.setScalar(1 + charge * 0.14 + flash * 0.30);
+                sentinel.glow.rotation.y = -t * 0.6;
+            }
+
+            // The lance geometry starts at its mount and runs forward, so
+            // scale.z grows the beam out of the emitter rather than sliding it.
+            if (sentinel.lance) {
+                sentinel.lance.scale.set(
+                    0.001 + flash * 1.1,
+                    0.001 + flash * 1.1,
+                    0.001 + flash
+                );
+                sentinel.lance.material.opacity = flash * 0.95;
+            }
+
+            // Guarded: updateSwoop() owns Y during a kamikaze dive.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = 0.06 + Math.sin(t * 1.1) * 0.05 + flash * 0.04;
+            }
+            break;
+        }
+
+        case 10: { // Warden - rolling hoop, gimbal flip, halo wave launch
+            const warden = alien.userData;
+            const t = time;
+            const p = (t % 8.8) / 8.8;
+
+            const seg = (a, b) => Math.min(1, Math.max(0, (p - a) / (b - a)));
+            const ease = v => v * v * (3 - 2 * v);
+
+            // Rises 0->1 across the flip, holds edge-on, then snaps back.
+            const flip = ease(seg(0.36, 0.56)) * (1 - ease(seg(0.66, 0.74)));
+            const windup = ease(seg(0.22, 0.40)) * (1 - ease(seg(0.78, 0.94)));
+            const retract = ease(seg(0.28, 0.44)) * (1 - ease(seg(0.80, 0.96)));
+            const charge = ease(seg(0.40, 0.72)) * (1 - ease(seg(0.74, 0.80)));
+            // Explicit window so the launch reads as one event, not a glow.
+            const flash = p >= 0.740 && p < 0.778
+                ? Math.sin(((p - 0.740) / 0.038) * Math.PI)
+                : 0;
+            // The wave leaves through the hoop's own hole.
+            const inWave = p >= 0.740 && p < 0.870;
+            const wave = inWave ? (p - 0.740) / 0.130 : 0;
+            const breathe = Math.sin(t * 1.9) * 0.5 + 0.5;
+
+            if (warden.hoverPivot) {
+                warden.hoverPivot.position.y = Math.sin(t * 1.25) * 0.045;
+                warden.hoverPivot.rotation.x = Math.sin(t * 0.8) * 0.05 - charge * 0.05;
+                warden.hoverPivot.rotation.z = Math.cos(t * 0.6) * 0.035 + flash * 0.05;
+            }
+
+            // The signature: the hoop turns fully edge-on, so the silhouette
+            // collapses from a circle to a line and back.
+            if (warden.flipPivot) {
+                warden.flipPivot.rotation.y = flip * (Math.PI / 2);
+            }
+
+            // Roll gains are added to a t-driven base as rate * weight, never
+            // as t * changingRate, so a phase change cannot jump the cycle.
+            if (warden.hoop) {
+                warden.hoop.rotation.z = t * 0.45 + windup * 2.4 + flash * 0.7;
+                warden.hoop.material.emissiveIntensity =
+                    0.45 + windup * 0.25 + charge * 0.30 + flash * 0.9;
+            }
+
+            if (warden.teeth) {
+                warden.teeth.rotation.z = -t * 0.7 - windup * 1.8;
+                warden.teeth.material.emissiveIntensity =
+                    0.8 + breathe * 0.15 + charge * 1.1 + flash * 2.2;
+                const bite = 1 - retract * 0.10 + flash * 0.06;
+                warden.teeth.scale.set(bite, bite, 1);
+            }
+
+            // Geometry is centred on the origin, so scaling retracts the spokes
+            // toward the core instead of sliding them sideways.
+            if (warden.spokes) {
+                const reach = 1 - retract * 0.62;
+                warden.spokes.scale.set(reach, reach, 1);
+                warden.spokes.material.emissiveIntensity = 0.45 + retract * 0.35;
+            }
+
+            if (warden.core) {
+                warden.core.material.emissiveIntensity =
+                    1.1 + breathe * 0.2 + charge * 1.3 + flash * 1.9;
+                const swell = 1 + breathe * 0.05 + charge * 0.28 + flash * 0.35;
+                warden.core.scale.setScalar(swell);
+                warden.core.rotation.z = t * 1.1 + charge * 1.6;
+            }
+
+            if (warden.halo) {
+                warden.halo.scale.setScalar(inWave ? 0.35 + wave * 1.55 : 0.001);
+                warden.halo.material.opacity = inWave ? (1 - wave) * 0.85 : 0;
+                warden.halo.rotation.z = t * 2.0;
+            }
+
+            if (warden.anchor) {
+                warden.anchor.rotation.x = Math.sin(t * 1.1) * 0.06 + charge * 0.10;
+                warden.anchor.rotation.y = Math.sin(t * 0.9) * 0.08;
+            }
+
+            // Guarded: updateSwoop() owns Y during a kamikaze dive.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = 0.05 + Math.abs(Math.sin(t * 1.25)) * 0.04;
+            }
+            break;
+        }
+        case 11: { // Gyre - inward chase light, the drain, corkscrew launch, rebound
+            const gyre = alien.userData;
+            const t = time;
+            const phase = (t % 9.2) / 9.2;
+
+            // The drain: a long eased pull inward, a brief hold at full
+            // collapse, then a fast release into the rebound.
+            const drain = phase >= 0.30 && phase < 0.56
+                ? Math.sin(((phase - 0.30) / 0.26) * Math.PI / 2)
+                : phase >= 0.56 && phase < 0.62 ? 1
+                : phase >= 0.62 && phase < 0.72 ? Math.max(0, 1 - (phase - 0.62) / 0.10)
+                : 0;
+            // Explicit window, so the launch reads as one event rather than a
+            // permanent glow on the core.
+            const flash = phase >= 0.620 && phase < 0.665
+                ? Math.sin(((phase - 0.620) / 0.045) * Math.PI)
+                : 0;
+            // Overshoot outward after the bolt leaves, then settle.
+            const rebound = phase >= 0.66 && phase < 0.88
+                ? Math.sin(((phase - 0.66) / 0.22) * Math.PI)
+                : 0;
+            const inSwirl = phase >= 0.620 && phase < 0.800;
+            const swirl = inSwirl ? (phase - 0.620) / 0.180 : 0;
+            const breathe = Math.sin(t * 1.6) * 0.5 + 0.5;
+
+            // Hover carries the bob and the launch recoil; the formation keeps
+            // group.position.x / .z untouched.
+            if (gyre.hoverPivot) {
+                gyre.hoverPivot.position.y = Math.sin(t * 1.15) * 0.05;
+                gyre.hoverPivot.position.z = -drain * 0.06 + flash * 0.13;
+                gyre.hoverPivot.rotation.x = Math.sin(t * 0.7) * 0.06 + drain * 0.05;
+                gyre.hoverPivot.rotation.y = Math.cos(t * 0.55) * 0.08;
+            }
+
+            // Constant rate, so multiplying it into t cannot jump the cycle.
+            if (gyre.coilPivot) {
+                gyre.coilPivot.rotation.z = t * 0.32;
+            }
+
+            if (gyre.coil) {
+                gyre.coil.forEach(plate => {
+                    const i = plate.index;
+                    const depth = i / (GYRE_SEGMENT_COUNT - 1);   // 0 mouth .. 1 tip
+
+                    // A pearl light stepping from the mouth inward to the core.
+                    const chase = Math.pow((Math.sin(t * 2.6 - i * 0.62) + 1) / 2, 3);
+                    // A slow wave travelling the same way, so the funnel is
+                    // never entirely still between drains.
+                    const ripple = Math.sin(t * 1.8 - i * 0.45);
+
+                    // Inner plates draw in hardest, which is what makes the
+                    // collapse read as a corkscrew rather than a shrink.
+                    const pull = drain * (0.30 + depth * 0.32);
+                    const push = rebound * (0.05 + depth * 0.09);
+
+                    plate.pivot.rotation.z = plate.restAngle
+                        + drain * (1.5 + depth * 2.4)
+                        - rebound * 0.9;
+
+                    plate.mesh.position.x = plate.restRadius * (1 - pull + push)
+                        + ripple * 0.018;
+                    plate.mesh.position.z = plate.restZ
+                        + (GYRE_CORE_Z - plate.restZ) * drain * 0.55
+                        + ripple * 0.02;
+                    plate.mesh.rotation.y = GYRE_LEAN - drain * 0.50 + rebound * 0.25;
+                    plate.mesh.rotation.z = ripple * 0.18 + drain * 0.40;
+
+                    // Cloned per plate, so the chase actually travels. Kept
+                    // under ~1.5: past that, bloom fuses the plates into one
+                    // pale mass and the whole ramp stops reading.
+                    plate.mesh.material.emissiveIntensity =
+                        0.45 + chase * 0.50 + drain * 0.20 + flash * 0.40;
+                });
+            }
+
+            // Orbiting dust, dragged inward as the vortex tightens. Only x/y are
+            // scaled: the motes' z offsets are baked into the geometry.
+            if (gyre.motes) {
+                gyre.motes.rotation.z = -t * 0.55 + drain * 1.2;
+                const draw = 1 - drain * 0.20 + rebound * 0.06;
+                gyre.motes.scale.set(draw, draw, 1);
+                gyre.motes.material.opacity =
+                    Math.max(0, Math.min(1, 0.55 + breathe * 0.30 - drain * 0.30 + flash * 0.45));
+            }
+
+            if (gyre.hub) {
+                gyre.hub.rotation.z = -t * 0.22 - drain * 0.8;
+            }
+
+            // Geometry is centred on the bead and the offset lives on
+            // mesh.position, so the flare swells in place.
+            if (gyre.core) {
+                gyre.core.rotation.z = t * 1.4 + drain * 3.0;
+                gyre.core.rotation.x = t * 0.6;
+                const swell = 1 + breathe * 0.06 + drain * 0.20 + flash * 0.30;
+                gyre.core.scale.setScalar(swell);
+                gyre.core.material.emissiveIntensity =
+                    0.9 + breathe * 0.15 + drain * 0.55 + flash * 1.30;
+            }
+
+            if (gyre.swirl) {
+                gyre.swirl.scale.setScalar(inSwirl ? 0.25 + swirl * 1.45 : 0.001);
+                gyre.swirl.material.opacity = inSwirl ? (1 - swirl) * 0.7 : 0;
+                gyre.swirl.rotation.z = t * 3.0 + swirl * 6.0;
+            }
+
+            // Guarded: updateSwoop() owns Y during a kamikaze dive.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = 0.06 + Math.abs(Math.sin(t * 1.15)) * 0.035;
+            }
+            break;
+        }
+        case 12: { // Mantis - watchful stillness, the arm strike, slow recovery
+            const mantis = alien.userData;
+            const t = time;
+            const phase = (t % 7.6) / 7.6;
+
+            // Stillness is the point of this one, so the amplitudes below the
+            // strike are deliberately tiny — the contrast is what sells it.
+            const stalk = phase >= 0.44 && phase < 0.62
+                ? Math.sin(((phase - 0.44) / 0.18) * Math.PI / 2)
+                : phase >= 0.62 && phase < 0.68 ? 1
+                : 0;
+            // Explicit window: the strike is on for ~0.9s of a 7.6s cycle.
+            const strike = phase >= 0.680 && phase < 0.800
+                ? Math.sin(((phase - 0.680) / 0.120) * Math.PI)
+                : 0;
+            // Snap out fast, draw back slow — the arms lead the recovery.
+            const snap = Math.pow(strike, 0.45);
+            const settle = phase >= 0.80 ? Math.max(0, 1 - (phase - 0.80) / 0.18) : 0;
+            const sway = Math.sin(t * 0.9) * 0.5 + 0.5;
+
+            if (mantis.bodyPivot) {
+                // A slow, almost imperceptible weave — mantises do this to look
+                // like foliage. It must stay small or the stillness is lost.
+                mantis.bodyPivot.rotation.z = Math.sin(t * 0.75) * 0.035;
+                mantis.bodyPivot.rotation.x = Math.sin(t * 0.55) * 0.02
+                    - stalk * 0.10 + snap * 0.16;
+                mantis.bodyPivot.position.y = Math.sin(t * 0.85) * 0.012 + stalk * 0.03;
+                mantis.bodyPivot.position.z = -stalk * 0.05 + snap * 0.09;
+            }
+
+            if (mantis.abdomenPivot) {
+                mantis.abdomenPivot.rotation.x = Math.sin(t * 0.65) * 0.03
+                    + stalk * 0.14 - snap * 0.20;
+            }
+
+            // The head tracks continuously even while the body is still, which
+            // is what makes the stillness read as watchful rather than dead.
+            if (mantis.headPivot) {
+                const track = Math.sin(t * 0.42) * 0.55 + Math.sin(t * 1.13) * 0.12;
+                mantis.headPivot.rotation.y = track * (1 - stalk * 0.75);
+                mantis.headPivot.rotation.z = Math.cos(t * 0.6) * 0.10;
+                mantis.headPivot.rotation.x = -stalk * 0.16 + snap * 0.10;
+            }
+
+            if (mantis.eyes) {
+                mantis.eyes.material.emissiveIntensity =
+                    1.8 + sway * 0.25 + stalk * 1.10 + strike * 1.60;
+            }
+
+            if (mantis.antennae) {
+                mantis.antennae.forEach((antenna, i) => {
+                    const lash = Math.sin(t * 1.7 + i * 2.1);
+                    antenna.pivot.rotation.y = antenna.baseYaw
+                        + lash * 0.30 * antenna.side
+                        - stalk * 0.22 * antenna.side;
+                    antenna.pivot.rotation.x = -0.35 + Math.cos(t * 2.3 + i) * 0.16
+                        - stalk * 0.20;
+                });
+            }
+
+            // The arms are the signature: folded almost flat at rest, driven
+            // through to nearly straight on the strike, then eased back.
+            if (mantis.arms) {
+                mantis.arms.forEach(arm => {
+                    const cock = stalk * 0.30;   // wind back before the snap
+                    arm.femurPivot.rotation.x =
+                        MANTIS_ARM_REST.femur
+                        - cock
+                        + snap * (MANTIS_ARM_STRIKE.femur - MANTIS_ARM_REST.femur + cock);
+                    arm.tibiaPivot.rotation.x =
+                        MANTIS_ARM_REST.tibia
+                        + cock * 0.5
+                        + snap * (MANTIS_ARM_STRIKE.tibia - MANTIS_ARM_REST.tibia - cock * 0.5);
+                    // Arms close together as they extend, so the notch in the
+                    // silhouette shuts at the moment of the strike.
+                    arm.femurPivot.rotation.y = arm.baseYaw * (1 - snap * 0.55)
+                        + Math.sin(t * 0.8 + arm.side) * 0.02;
+                    // Cloned material: the spine teeth flash on contact only.
+                    arm.tibia.material.emissiveIntensity =
+                        0.5 + stalk * 0.55 + strike * 2.20;
+                });
+            }
+
+            // Tegmina crack open on the strike and close again. They never beat
+            // — that is the Wasp's motion, not this one's.
+            if (mantis.wings) {
+                mantis.wings.forEach(wing => {
+                    wing.pivot.rotation.z = wing.side * (strike * 0.30 + settle * 0.06);
+                    wing.pivot.rotation.y = wing.side * strike * 0.16;
+                    wing.mesh.material.opacity = 0.88 - strike * 0.22;
+                });
+            }
+
+            // Offset from baseBend; buildLimbChain stored the rest pose there.
+            // The gait is a slow creep, not a march — it mostly holds position
+            // and braces on the strike.
+            if (mantis.legs) {
+                mantis.legs.forEach(leg => {
+                    const creep = Math.sin(t * 1.15 + leg.phase);
+                    const lift = Math.max(0, creep) * (1 - stalk * 0.8);
+                    leg.segments[0].rotation.z = leg.segments[0].userData.baseBend
+                        - lift * 0.16 + stalk * 0.18;
+                    leg.segments[0].rotation.x = Math.cos(t * 1.15 + leg.phase) * 0.07;
+                    leg.segments[1].rotation.z = leg.segments[1].userData.baseBend
+                        + lift * 0.20 - stalk * 0.24 - snap * 0.10;
+                    leg.segments[2].rotation.z = leg.segments[2].userData.baseBend
+                        + lift * 0.10;
+                });
+            }
+
+            // Guarded: updateSwoop() owns Y during a kamikaze dive.
+            if (!alien.userData.isSwooping) {
+                alien.position.y = 0.02 + Math.abs(Math.sin(t * 0.85)) * 0.015;
             }
             break;
         }

@@ -17,6 +17,11 @@ let webBombs = [];
 let webZones = [];
 let blasterBolts = [];
 let venomDarts = [];
+let waspNeedles = [];
+let prismLances = [];
+let haloWaves = [];
+let vortexBolts = [];
+let ambushSpurs = [];
 let lastAlienFireTime = 0;
 let lastPlayerFireTime = 0;
 
@@ -271,7 +276,8 @@ function checkMissileCollision(missile, missileIndex, scene, scoreCallback, game
             createExplosion(alien.position, scene);
             playExplosion(1.0);
 
-            // Update score (8 rows: row 0 = 60pts down to row 7 = 0pts)
+            // Update score (13 rows: row 0 = 60pts down to row 6, and every row
+            // from 6 to 12 scores 0 — the formula clamps at zero)
             const points = Math.max(0, (6 - alien.userData.row) * 10);
             scoreCallback(points);
 
@@ -545,6 +551,164 @@ function createBlasterBolt(position) {
     return group;
 }
 
+// Create Wasp needle - compact amber projectile with a bright stinger core
+function createWaspNeedle(position) {
+    const group = new THREE.Group();
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.10, 0.10, 0.48),
+        new THREE.MeshPhongMaterial({
+            color: 0xff9d16,
+            emissive: 0xff7a00,
+            emissiveIntensity: 5.0,
+            flatShading: true
+        })
+    );
+    group.add(body);
+
+    const core = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.05, 0.34),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffc0,
+            emissive: 0xffe066,
+            emissiveIntensity: 8.0,
+            flatShading: true
+        })
+    );
+    group.add(core);
+
+    const tip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.07, 0.07, 0.12),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            emissive: 0xfff2a8,
+            emissiveIntensity: 9.0,
+            flatShading: true
+        })
+    );
+    tip.position.z = 0.28;
+    group.add(tip);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z += 0.78;
+    group.userData.isWaspNeedle = true;
+    group.userData.speed = 0.46;
+    group.userData.createdAt = Date.now();
+
+    return group;
+}
+
+// ---------------------------------------------------------------------------
+// Sentinel prism lance — fired as a diverging three-shot fan, so the Sentinel
+// denies a cone of the play area rather than a single lane
+// ---------------------------------------------------------------------------
+
+function createPrismLance(position, driftX) {
+    const group = new THREE.Group();
+
+    const shaft = new THREE.Mesh(
+        new THREE.BoxGeometry(0.09, 0.09, 0.9),
+        new THREE.MeshPhongMaterial({
+            color: 0x9fd8ff,
+            emissive: 0x6fe0ff,
+            emissiveIntensity: 5.0,
+            transparent: true,
+            opacity: 0.85,
+            depthWrite: false,
+            flatShading: true
+        })
+    );
+    group.add(shaft);
+
+    const core = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.04, 1.1),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            emissive: 0xd6f4ff,
+            emissiveIntensity: 9.0,
+            flatShading: true
+        })
+    );
+    group.add(core);
+
+    const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.14, 0.14),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 8.0,
+            flatShading: true
+        })
+    );
+    head.position.z = 0.5;
+    group.add(head);
+
+    group.position.copy(position);
+    group.position.y = 0;
+    group.position.z += 0.6;
+
+    group.userData.isPrismLance = true;
+    group.userData.speed = 0.42;
+    group.userData.driftX = driftX;   // constant lateral drift gives the fan
+    group.userData.createdAt = Date.now();
+
+    // Point the lance along its actual heading so the fan reads as a spread
+    group.rotation.y = -Math.atan2(driftX, group.userData.speed);
+
+    return group;
+}
+
+// ---------------------------------------------------------------------------
+// Warden halo wave — an expanding hollow ring. Every other alien projectile is
+// dodged by moving away from it; this one is dodged by being in its hole or
+// outside its rim, so the safe ground is both the centre line and the far
+// edges, and standing at the wrong radius is what kills you.
+// ---------------------------------------------------------------------------
+
+const HALO_BAND = 0.55;      // half-thickness of the lethal rim, in world units
+const HALO_MAX_RADIUS = 3.4;
+
+function createHaloWave(position) {
+    const group = new THREE.Group();
+
+    // Built at radius 1.0 and centred on the origin, so scaling the group
+    // expands the ring about its own centre rather than sliding it sideways.
+    const steps = 14;
+    for (let i = 0; i < steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        const rim = new THREE.Mesh(
+            new THREE.BoxGeometry(0.46, 0.16, 0.16),
+            new THREE.MeshPhongMaterial({
+                color: i % 3 === 0 ? 0xffc94a : 0xd77aa0,
+                emissive: i % 3 === 0 ? 0xffe9a8 : 0xc2568f,
+                emissiveIntensity: 5.5,
+                transparent: true,
+                opacity: 0.92,
+                depthWrite: false,
+                flatShading: true
+            })
+        );
+        rim.position.set(Math.cos(a), Math.sin(a), 0);
+        rim.rotation.z = a + Math.PI / 2;
+        group.add(rim);
+    }
+
+    group.position.copy(position);
+    group.position.y = 0;       // play happens on the y = 0 plane
+    group.position.z += 0.7;    // clear the firing alien's own hitbox
+
+    group.userData.isHaloWave = true;
+    group.userData.speed = 0.30;
+    group.userData.radius = 0.45;
+    group.userData.growth = 0.055;
+    group.userData.createdAt = Date.now();
+
+    group.scale.set(0.45, 0.45, 1);
+
+    return group;
+}
+
 // ---------------------------------------------------------------------------
 // Scorpion venom dart — mortar arc: launches upward, then dives toward player
 // ---------------------------------------------------------------------------
@@ -591,6 +755,152 @@ function createVenomDart(position) {
     return group;
 }
 
+// ---------------------------------------------------------------------------
+// Gyre vortex bolt — corkscrews around a descending axis on a widening helix.
+// Every other alien projectile occupies one lane the whole way down, so it is
+// dodged by leaving that lane. This one sweeps a corridor that opens as it
+// travels, and it is only over any given point for part of each turn: the dodge
+// is a matter of timing rather than of position.
+// ---------------------------------------------------------------------------
+
+const VORTEX_MAX_RADIUS = 1.05;   // half-width of the corridor, once fully open
+const VORTEX_FLARE = 0.0142;      // world units per frame the helix widens
+const VORTEX_SPIN = 0.0867;       // radians per frame the bolt winds
+const VORTEX_Y_SQUASH = 0.45;     // keeps the helix near the y = 0 play plane
+
+function createVortexBolt(position) {
+    const group = new THREE.Group();
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.13, 0.13, 0.40),
+        new THREE.MeshPhongMaterial({
+            color: 0xb79cf0,
+            emissive: 0x9d7fdc,
+            emissiveIntensity: 5.0,
+            flatShading: true
+        })
+    );
+    group.add(body);
+
+    const tip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.08, 0.14),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            emissive: 0xffe7b8,
+            emissiveIntensity: 9.0,
+            flatShading: true
+        })
+    );
+    tip.position.z = 0.24;      // offset on the mesh, not baked in the geometry
+    group.add(tip);
+
+    // Vanes make the roll readable — without them a symmetrical bolt spinning
+    // about its own axis looks stationary.
+    [-1, 1].forEach(side => {
+        const vane = new THREE.Mesh(
+            new THREE.BoxGeometry(0.26, 0.05, 0.12),
+            new THREE.MeshPhongMaterial({
+                color: 0xdb9ccc,
+                emissive: 0xdb9ccc,
+                emissiveIntensity: 4.2,
+                transparent: true,
+                opacity: 0.9,
+                flatShading: true
+            })
+        );
+        vane.position.set(side * 0.14, 0, -0.10);
+        group.add(vane);
+    });
+
+    group.position.copy(position);
+    group.position.y = 0;       // play happens on the y = 0 plane
+    group.position.z += 0.8;    // clear the firing alien's own hitbox
+
+    group.userData.isVortexBolt = true;
+    group.userData.speed = 0.34;
+    group.userData.axisX = position.x;                       // the axis it winds around
+    // Angle and radius accumulate per frame, like the halo wave's radius, so the
+    // helix stays in step with the per-frame +Z march. Driving the wind off
+    // wall-clock age instead would tighten the corkscrew whenever the frame rate
+    // dropped, since only the Z advance would slow down.
+    group.userData.angle = Math.random() * Math.PI * 2;
+    group.userData.radius = 0;
+    group.userData.dir = Math.random() < 0.5 ? -1 : 1;       // handedness
+    group.userData.createdAt = Date.now();
+
+    return group;
+}
+
+// ---------------------------------------------------------------------------
+// Mantis ambush spur — a two-phase *speed* profile. Every other projectile in
+// the game holds one speed for its whole flight (the venom dart is two-phase in
+// height, not speed). This one drifts in slower than anything else, coils
+// almost to a standstill at a fixed distance, then lunges. The tell is the
+// coil: the danger is not where it is, it is when it stops.
+// ---------------------------------------------------------------------------
+
+const SPUR_STALK_SPEED = 0.16;
+const SPUR_LUNGE_SPEED = 0.46;
+const SPUR_TRIGGER_GAP = 9.0;    // world units ahead of the player it coils at
+const SPUR_COIL_FRAMES = 14;     // ~0.23s of telegraph before the lunge
+
+function createAmbushSpur(position) {
+    const group = new THREE.Group();
+
+    const shaft = new THREE.Mesh(
+        new THREE.BoxGeometry(0.11, 0.11, 0.42),
+        new THREE.MeshPhongMaterial({
+            color: 0xc2c98a,
+            emissive: 0x8fa04e,
+            emissiveIntensity: 4.2,
+            flatShading: true
+        })
+    );
+    group.add(shaft);
+
+    const barb = new THREE.Mesh(
+        new THREE.BoxGeometry(0.07, 0.07, 0.16),
+        new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            emissive: 0x6ff5e0,
+            emissiveIntensity: 7.0,
+            flatShading: true
+        })
+    );
+    barb.position.z = 0.26;      // offset on the mesh, not baked in the geometry
+    group.add(barb);
+
+    // Backward-swept flukes, so the rear-up during the coil is readable.
+    [-1, 1].forEach(side => {
+        const fluke = new THREE.Mesh(
+            new THREE.BoxGeometry(0.16, 0.04, 0.12),
+            new THREE.MeshPhongMaterial({
+                color: 0x5d7033,
+                emissive: 0x6ff5e0,
+                emissiveIntensity: 3.0,
+                transparent: true,
+                opacity: 0.9,
+                flatShading: true
+            })
+        );
+        fluke.position.set(side * 0.11, 0, -0.16);
+        fluke.rotation.z = side * 0.35;
+        group.add(fluke);
+    });
+
+    group.position.copy(position);
+    group.position.y = 0;        // play happens on the y = 0 plane
+    group.position.z += 0.8;     // clear the firing alien's own hitbox
+
+    group.userData.isAmbushSpur = true;
+    group.userData.speed = SPUR_STALK_SPEED;
+    group.userData.coil = 0;
+    group.userData.hasLunged = false;
+    group.userData.createdAt = Date.now();
+
+    return group;
+}
+
 // Aliens fire missiles
 export function alienFire(scene) {
     const aliens = getAliens();
@@ -623,6 +933,38 @@ export function alienFire(scene) {
                 // Scorpion aliens fire venom darts — mortar arc toward player
                 missile = createVenomDart(randomAlien.position);
                 venomDarts.push(missile);
+                scene.add(missile);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 8) {
+                // Wasp aliens fire fast amber needles
+                missile = createWaspNeedle(randomAlien.position);
+                waspNeedles.push(missile);
+                scene.add(missile);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 9) {
+                // Sentinel aliens discharge a diverging three-lance fan
+                [-0.085, 0, 0.085].forEach(drift => {
+                    const lance = createPrismLance(randomAlien.position, drift);
+                    prismLances.push(lance);
+                    scene.add(lance);
+                });
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 10) {
+                // Warden aliens launch an expanding halo wave
+                missile = createHaloWave(randomAlien.position);
+                haloWaves.push(missile);
+                scene.add(missile);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 11) {
+                // Gyre aliens spit a corkscrewing vortex bolt
+                missile = createVortexBolt(randomAlien.position);
+                vortexBolts.push(missile);
+                scene.add(missile);
+                continue; // Skip adding to alienMissiles
+            } else if (randomAlien.userData.row === 12) {
+                // Mantis aliens loose an ambush spur that stalks, then lunges
+                missile = createAmbushSpur(randomAlien.position);
+                ambushSpurs.push(missile);
                 scene.add(missile);
                 continue; // Skip adding to alienMissiles
             } else {
@@ -1147,6 +1489,275 @@ export function updateVenomDarts(player, scene, gameActive, livesCallback, gameO
     }
 }
 
+// Update Wasp needles (Wasp weapon)
+export function updateWaspNeedles(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = waspNeedles.length - 1; i >= 0; i--) {
+        const needle = waspNeedles[i];
+
+        needle.position.z += needle.userData.speed;
+        needle.rotation.x = time * 14;
+        needle.rotation.z = time * 10;
+
+        const pulse = 1 + Math.sin(time * 12) * 0.12;
+        needle.scale.set(pulse, pulse, 1 + (pulse - 1) * 0.4);
+
+        if (checkBarrierCollision(needle.position, 0.14, scene)) {
+            createExplosion(needle.position, scene);
+            scene.remove(needle);
+            waspNeedles.splice(i, 1);
+            continue;
+        }
+
+        if (needle.position.z > 20) {
+            scene.remove(needle);
+            waspNeedles.splice(i, 1);
+            continue;
+        }
+
+        if (gameActive) {
+            const distance = needle.position.distanceTo(player.position);
+            if (distance < 1.2) {
+                scene.remove(needle);
+                waspNeedles.splice(i, 1);
+
+                createExplosion(needle.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
+// Update Sentinel prism lances (Sentinel weapon)
+export function updatePrismLances(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = prismLances.length - 1; i >= 0; i--) {
+        const lance = prismLances[i];
+
+        lance.position.z += lance.userData.speed;
+        lance.position.x += lance.userData.driftX;
+        lance.rotation.z = time * 16;
+
+        const shimmer = 1 + Math.sin(time * 22 + i) * 0.18;
+        lance.scale.set(shimmer, shimmer, 1);
+
+        if (checkBarrierCollision(lance.position, 0.16, scene)) {
+            createExplosion(lance.position, scene);
+            scene.remove(lance);
+            prismLances.splice(i, 1);
+            continue;
+        }
+
+        if (lance.position.z > 20 || Math.abs(lance.position.x) > 26) {
+            scene.remove(lance);
+            prismLances.splice(i, 1);
+            continue;
+        }
+
+        if (gameActive) {
+            const distance = lance.position.distanceTo(player.position);
+            if (distance < 1.2) {
+                scene.remove(lance);
+                prismLances.splice(i, 1);
+
+                createExplosion(lance.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
+// Update Warden halo waves (Warden weapon)
+export function updateHaloWaves(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = haloWaves.length - 1; i >= 0; i--) {
+        const wave = haloWaves[i];
+
+        wave.position.z += wave.userData.speed;
+        wave.userData.radius = Math.min(
+            HALO_MAX_RADIUS,
+            wave.userData.radius + wave.userData.growth
+        );
+
+        const r = wave.userData.radius;
+        wave.scale.set(r, r, 1);
+        wave.rotation.z = time * 1.4;
+
+        // Sample the rim at four points rather than the centre: the middle of a
+        // halo wave is empty, so a centre-point test would never touch anything.
+        let hitBarrier = false;
+        for (let k = 0; k < 4 && !hitBarrier; k++) {
+            const a = (k / 4) * Math.PI * 2;
+            const probe = new THREE.Vector3(
+                wave.position.x + Math.cos(a) * r,
+                0,
+                wave.position.z
+            );
+            if (checkBarrierCollision(probe, 0.3, scene)) {
+                createExplosion(probe, scene);
+                hitBarrier = true;
+            }
+        }
+        if (hitBarrier) {
+            scene.remove(wave);
+            haloWaves.splice(i, 1);
+            continue;
+        }
+
+        if (wave.position.z > 20) {
+            scene.remove(wave);
+            haloWaves.splice(i, 1);
+            continue;
+        }
+
+        if (gameActive) {
+            // Annulus test: lethal only near the rim. Being close to the centre
+            // line or well outside the ring is safe, which is the whole point.
+            const dz = Math.abs(wave.position.z - player.position.z);
+            if (dz < 0.7) {
+                const dx = Math.abs(player.position.x - wave.position.x);
+                if (Math.abs(dx - r) < HALO_BAND) {
+                    scene.remove(wave);
+                    haloWaves.splice(i, 1);
+
+                    createExplosion(player.position, scene);
+                    playExplosion(1.3);
+
+                    const newLives = livesCallback();
+                    if (newLives <= 0) {
+                        gameOverCallback(false);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Update vortex bolts (Gyre weapon)
+export function updateVortexBolts(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = vortexBolts.length - 1; i >= 0; i--) {
+        const bolt = vortexBolts[i];
+
+        // The axis marches straight down the lane; the bolt itself winds around
+        // it on a helix that opens out as it travels.
+        bolt.userData.radius = Math.min(VORTEX_MAX_RADIUS, bolt.userData.radius + VORTEX_FLARE);
+        bolt.userData.angle += VORTEX_SPIN * bolt.userData.dir;
+
+        const radius = bolt.userData.radius;
+        const angle = bolt.userData.angle;
+
+        bolt.position.z += bolt.userData.speed;
+        bolt.position.x = bolt.userData.axisX + Math.cos(angle) * radius;
+        bolt.position.y = Math.sin(angle) * radius * VORTEX_Y_SQUASH;
+        bolt.rotation.z = angle;
+        bolt.rotation.x = time * 9;
+
+        if (checkBarrierCollision(bolt.position, 0.15, scene)) {
+            createExplosion(bolt.position, scene);
+            scene.remove(bolt);
+            vortexBolts.splice(i, 1);
+            continue;
+        }
+
+        if (bolt.position.z > 20) {
+            scene.remove(bolt);
+            vortexBolts.splice(i, 1);
+            continue;
+        }
+
+        if (gameActive) {
+            if (bolt.position.distanceTo(player.position) < 1.2) {
+                scene.remove(bolt);
+                vortexBolts.splice(i, 1);
+
+                createExplosion(bolt.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
+// Update ambush spurs (Mantis weapon)
+export function updateAmbushSpurs(player, scene, gameActive, livesCallback, gameOverCallback) {
+    const time = Date.now() * 0.001;
+
+    for (let i = ambushSpurs.length - 1; i >= 0; i--) {
+        const spur = ambushSpurs[i];
+
+        // Phase 1: a slow drift. Phase 2: a coil that brakes almost to nothing
+        // at a fixed distance from the ship. Phase 3: the lunge.
+        if (!spur.userData.hasLunged && player.position.z - spur.position.z < SPUR_TRIGGER_GAP) {
+            spur.userData.coil++;
+            if (spur.userData.coil >= SPUR_COIL_FRAMES) {
+                spur.userData.hasLunged = true;
+                spur.userData.speed = SPUR_LUNGE_SPEED;
+            } else {
+                spur.userData.speed =
+                    SPUR_STALK_SPEED * (1 - spur.userData.coil / SPUR_COIL_FRAMES);
+            }
+        }
+
+        spur.position.z += spur.userData.speed;
+
+        // Rears back while coiling and snaps flat on the lunge, so the tell is
+        // visible from the ship rather than only in the speed change.
+        const coilAmount = spur.userData.hasLunged
+            ? 0
+            : spur.userData.coil / SPUR_COIL_FRAMES;
+        spur.rotation.x = -coilAmount * 0.9;
+        spur.rotation.z = spur.userData.hasLunged ? time * 16 : time * 1.6;
+        spur.scale.set(1, 1, 1 + (spur.userData.hasLunged ? 0.6 : coilAmount * -0.25));
+
+        if (checkBarrierCollision(spur.position, 0.15, scene)) {
+            createExplosion(spur.position, scene);
+            scene.remove(spur);
+            ambushSpurs.splice(i, 1);
+            continue;
+        }
+
+        if (spur.position.z > 20) {
+            scene.remove(spur);
+            ambushSpurs.splice(i, 1);
+            continue;
+        }
+
+        if (gameActive) {
+            if (spur.position.distanceTo(player.position) < 1.2) {
+                scene.remove(spur);
+                ambushSpurs.splice(i, 1);
+
+                createExplosion(spur.position, scene);
+                playExplosion(1.3);
+
+                const newLives = livesCallback();
+                if (newLives <= 0) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+    }
+}
+
 // Check if aliens should fire
 export function checkAlienFire(scene) {
     const currentTime = Date.now();
@@ -1165,6 +1776,11 @@ export function resetMissiles(scene) {
     webZones.forEach(zone => scene.remove(zone));
     blasterBolts.forEach(bolt => scene.remove(bolt));
     venomDarts.forEach(dart => scene.remove(dart));
+    waspNeedles.forEach(needle => scene.remove(needle));
+    prismLances.forEach(lance => scene.remove(lance));
+    haloWaves.forEach(wave => scene.remove(wave));
+    vortexBolts.forEach(bolt => scene.remove(bolt));
+    ambushSpurs.forEach(spur => scene.remove(spur));
     missiles = [];
     alienMissiles = [];
     ufoMissiles = [];
@@ -1172,10 +1788,15 @@ export function resetMissiles(scene) {
     webZones = [];
     blasterBolts = [];
     venomDarts = [];
+    waspNeedles = [];
+    prismLances = [];
+    haloWaves = [];
+    vortexBolts = [];
+    ambushSpurs = [];
     lastAlienFireTime = 0;
 }
 
 // Get missile arrays
 export function getMissiles() {
-    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts };
+    return { missiles, alienMissiles, ufoMissiles, webBombs, webZones, blasterBolts, waspNeedles, prismLances, haloWaves, vortexBolts, ambushSpurs };
 }

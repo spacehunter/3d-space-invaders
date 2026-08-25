@@ -4,9 +4,9 @@ A modern 3D recreation of the classic Space Invaders arcade game built with THRE
 
 ## Current Project Status
 
-As of 2026-08-09, all 8 alien rows have distinct rebuilt voxel models and animations. The Row 7 Scorpion has completed a Beetle-inspired consistency pass: its compact burnt-orange carapace, raised segmented tail, chunky pincers, eight-legged tripod gait, and amber stinger now read clearly at formation distance. Venom-dart gameplay is unchanged.
+As of 2026-08-17, all 13 alien rows have distinct rebuilt voxel models and animations. The newest is the Row 12 Mantis, an upright ambush predator in olive and bone: it is the only invader that holds almost completely still, tracking you with its head while its oversized raptorial forearms stay folded — until they unfold and snap out in a fraction of a second, and it looses a spur that drifts in slowly, coils to a near-standstill, and then lunges.
 
-Latest validation: `npm run build` passes. Run `npm run dev` and open `http://localhost:5173/` to test the game, or `/alien-preview.html` to inspect the Scorpion directly.
+Latest validation: `npm run build` passes. Run the dev server with the browser-safe host command below and open `http://127.0.0.1:5173/` to test the game, or `http://127.0.0.1:5173/alien-preview.html` to inspect the Scorpion directly.
 
 ## Features
 
@@ -21,7 +21,7 @@ Latest validation: `npm run build` passes. Run `npm run dev` and open `http://lo
 - **Lives System**: Start with 3 lives - survive as long as you can!
 
 ### Aliens
-The game features 8 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
+The game features 13 rows of aliens, each with distinctive 3D designs and dramatically enhanced animations:
 
 1. **Octopus Aliens** (Top Row - Purple)
    - **Sculpted voxel mantle**: tapering domed hood with a crest, brow ridge, cheek plates and side fins
@@ -44,10 +44,14 @@ The game features 8 rows of aliens, each with distinctive 3D designs and dramati
    - Worth 50 points
 
 3. **Squid Aliens** (Row 3 - Green)
-   - **Jet propulsion swimming** (fast stretch forward, slow relax back)
-   - **Trailing legs** that drag behind during propulsion
-   - **Dynamic squash and stretch** synced with movement
-   - Red glowing eyes
+   - **Deep-green mantle** with a dorsal keel fin and a wide mint-to-shadow colour ramp
+   - **Amber bioluminescent veins** that pump bright as the jet coils - the "inhale" before every thrust
+   - **Coil-then-jet cycle**: the mantle stretches tall, then squeezes narrow as the siphon flashes and the plume stabs out
+   - **Diamond fin wings** that ripple root-to-tip, then sweep flat to streamline into the thrust
+   - **Chromatophore spots** that flush mint-bright with each jet
+   - **Eight-arm crown** with a curl that travels around the ring and down each arm, sucker glow rippling behind it
+   - **Amber lure clubs** on the two feeding tentacles - they drift, then lash out and flare every few seconds
+   - **Blinking amber eyes** with horizontal slit pupils that flare on the strike
    - Fires standard red missiles
    - Worth 40 points
 
@@ -89,11 +93,50 @@ The game features 8 rows of aliens, each with distinctive 3D designs and dramati
     - **Chunky pedipalp pincers** that snap at the front
     - **8 jointed walking legs** with a clear alternating tripod gait
     - **Fires venom darts** - slow-arcing mortar projectiles that drop from above!
-    - Worth 5 points
+    - Worth 0 points
+
+9. **Wasp Aliens** (Row 8 - Amber)
+    - **Compact charcoal thorax** with amber-and-black warning stripes, angular face plates and a bright terminal stinger
+    - **Two pairs of smoky voxel wings** that fold, vibrate, snap open and beat through a spectacular wingstorm sequence
+    - **Six jointed legs** driven by alternating tripod shifts while the body hovers and leans into a sting lunge
+    - **Compound eyes and mandibles** that intensify and open during the charge
+    - **Fires amber needles** - fast, straight-flying stinger volleys
+    - Worth 0 points
+
+10. **Sentinel Aliens** (Row 9 - Obsidian)
+    - **A levitating construct with no limbs at all** - ten angular armour shards closed around an exposed plasma core, with a keel spike that never touches the ground
+    - **Two counter-rotating gimbal rings** tilted against each other, orbiting the core continuously
+    - **Shatter bloom** - the shell unlocks, blows apart into a tumbling orbital cloud, then locks into a flat firing lens in front of the core
+    - **Iris and lance** - the front plates slide open, the core charges, and a lance discharges before the shards slam back together
+    - **Fires prism lances** - a diverging three-shot fan that denies a cone rather than a lane
+    - Worth 0 points
+
+11. **Warden Aliens** (Row 10 - Plum)
+    - **The only invader with a hole through it** - a standing plum hoop with inward-pointing teeth and a bright ring of bevels, empty in the middle
+    - **A molten gold core** suspended at the centre on four spokes that retract toward it
+    - **The gimbal flip** - the hoop rolls, the spokes pull in, and it turns fully edge-on, collapsing the silhouette from a circle to a line before snapping back face-on
+    - **Fires halo waves** - expanding hollow rings, lethal only at the rim, so you survive by lining up with the hole or getting outside the edge rather than by running away
+    - Worth 0 points
+
+12. **Gyre Aliens** (Row 11 - Nacre)
+    - **Not a body but a whirlpool** - fourteen loose nacre shell plates wound in a receding conical spiral, widest at the back and tapering forward to a gold bead aimed down the lane
+    - **Dust motes** caught orbiting outside the funnel, counter-rotating against the coil
+    - **A pearl chase light** stepping inward from the mouth to the core, over a slow travelling ripple
+    - **The drain** - the whole funnel corkscrews down into its own core, flares white-gold, spits a bolt and springs open again on a rebound wave
+    - **Fires vortex bolts** - projectiles that corkscrew around a descending axis on a helix that widens as it travels
+    - Worth 0 points
+
+13. **Mantis Aliens** (Row 12 - Olive)
+    - **An upright ambush predator** - a narrow prothorax carried at an angle, in olive shading to bone, with a triangular head on its own neck
+    - **Two oversized raptorial forearms** folded in front, leaving a deep notch in the outline that shuts when it strikes
+    - **The only invader that holds still** - between attacks only the head tracks you and the antennae sweep, which is what makes the strike land
+    - **The ambush** - the arms unfold and snap out and shut in a fraction of a second, cyan spine teeth flashing as the folded wings crack open
+    - **Fires ambush spurs** - they drift in slower than any other projectile, coil to a near-standstill, then lunge
+    - Worth 0 points
 
 ### Bestiary Gallery
 A field guide reached from the **BESTIARY** option on the landing page (or the **B** key):
-- Browse all 8 alien types one at a time, rendered large and centred on a slowly turning display
+- Browse all 13 alien types one at a time, rendered large and centred on a slowly turning display
 - Each model runs its full in-game animation - tentacle curls, snapping claws, chase lights, rolling treads and all
 - Shows the alien's name, row colour, point value, behaviour summary and armament
 - **← / →** (or the on-screen arrows) page between types and wrap around at both ends
@@ -169,6 +212,27 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
   - **High speed** (0.4 units/frame - faster than other projectiles)
   - Pulsing glow animation as they travel
   - Fires from the center blaster cannon
+- **Venom Darts** (Row 7 - Scorpion Aliens):
+  - Amber mortar rounds that climb to a peak, then dive at you under gravity
+  - **Come down from above**, so a barrier in front of you is no cover
+- **Amber Needles** (Row 8 - Wasp Aliens):
+  - Small, bright, fast-flying stinger volleys on a straight line
+  - **Tumble as they travel**, with a hot white tip leading
+- **Prism Lances** (Row 9 - Sentinel Aliens):
+  - Three ice-white lances fired at once on slightly diverging headings
+  - **Denies a cone rather than a lane** - sidestepping one can put you into another
+- **Halo Waves** (Row 10 - Warden Aliens):
+  - An expanding hollow ring that grows as it closes on you
+  - **Lethal only at the rim**: you are safe lined up with the hole in the middle, and safe outside the edge
+  - **Dodge through it, not away from it** - backing straight up keeps you at the wrong radius as it widens
+- **Vortex Bolts** (Row 11 - Gyre Aliens):
+  - A single bolt that corkscrews around the lane it was fired down, on a helix that opens out as it travels
+  - **Sweeps a corridor rather than holding a lane** - by the time it reaches you it is crossing roughly two units of ground, so sidestepping into the next lane is not automatically safe
+  - **Only over any one point for part of each turn**, so the dodge is a matter of timing: hold still and let it wind past, or move as it swings away
+- **Ambush Spurs** (Row 12 - Mantis Aliens):
+  - A barbed spur that drifts in at a third of the usual speed, so it is easy to stop watching
+  - **Coils to a near-standstill** about nine units out, rearing back with its flukes flared - that pause is the only warning you get
+  - **Then lunges** at nearly three times its approach speed. Judge it by the coil, not by how slowly it started
 
 ### Visual Effects
 - **Animated Starfield**: Thousands of stars flying toward you for immersive depth
@@ -357,13 +421,32 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 ### Quick Start
 ```bash
 npm install        # Install dependencies
-npm run dev        # Start dev server with hot reload (http://localhost:5173)
+npm run dev -- --host 0.0.0.0 --strictPort  # Start dev server on port 5173
 ```
+
+### Local Server Access
+
+Use these exact HTTP addresses after starting Vite:
+
+- **This Mac:** `http://127.0.0.1:5173/` (also works as `http://localhost:5173/`)
+- **Another device on the same Wi-Fi:** `http://192.168.0.61:5173/` (use the Mac's current LAN address if it changes)
+- **Scorpion preview:** append `/alien-preview.html` to either address
+
+Do not use `172.23.7.133`; that is a tunnel/VPN interface address and is not the browser-facing LAN address. Do not use `https://`; Vite serves plain HTTP locally. If the terminal reports a different port, use that reported port rather than a stale `5173` URL.
+
+If a browser reports that the server is down, verify the server and port from the same Mac:
+
+```bash
+curl -I http://127.0.0.1:5173/
+lsof -nP -iTCP:5173 -sTCP:LISTEN
+```
+
+The first command should return `HTTP/1.1 200 OK`, and the second should show Vite listening on `*:5173`.
 
 ### Build Commands
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Development server with hot reload |
+| `npm run dev -- --host 0.0.0.0 --strictPort` | Development server with hot reload on port 5173 |
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Preview production build locally |
 | `npm run package` | Build + bump version + create `3d-space-invaders.zip` for distribution |
@@ -429,7 +512,7 @@ Tested on:
 
 ## Performance
 
-- Renders 88 aliens (8 rows × 11 columns) with individual animations
+- Renders up to 121 aliens (11 rows × 11 columns) with individual animations
 - Hundreds of particles for explosions and trails
 - Thousands of animated stars
 - Runs at 60 FPS on modern hardware
@@ -437,14 +520,17 @@ Tested on:
 ## Development Highlights
 
 ### Recent Improvements
-- ✅ **Alien Model Overhaul** - All eight alien types now use distinct voxel sculpts and animations!
+- ✅ **Alien Model Overhaul** - All eleven alien types now use distinct voxel sculpts and animations!
   - **Octopus** - domed mantle, six jointed tentacles that curl a wave down their length, blinking hooded eyes, pulsing collar vents
   - **Crab** - tiered carapace, jointed pincers that thrust as the jaws snap, alternating tripod gait, swivelling eye stalks
   - **UFO** - layered saucer hull, counter-rotating light collar, pilot visible in the canopy, downward scan beam
   - **Tank** - sloped armour, tread belts that roll at the formation's actual speed, rotating turret, recoiling gun
   - **Beetle** - wing cases that split open into buzzing flight, creeping gait, glowing web-bomb sac
   - **Scorpion** - compact burnt-orange carapace, raised five-segment tail, amber stinger, snapping pincers and tripod gait
-  - **Per-part animation restored across all eight types** - claws, legs, chase lights, cannons and marching feet had been silently inert
+  - **Wasp** - charcoal thorax, amber warning stripes, smoky wings, wingstorm animation and fast needle volleys
+  - **Sentinel** - obsidian shard shell around an exposed plasma core, counter-rotating gimbals, a shatter-bloom disassembly cycle and diverging prism lance fans
+  - **Warden** - a hollow plum hoop with a gold core on retractable spokes, a gimbal flip that turns it edge-on, and expanding halo waves
+  - **Per-part animation restored across all eleven types** - claws, legs, chase lights, cannons, marching feet, Wasp wings and Sentinel shards are animated independently
 - ✅ **Bestiary Gallery** - Browse every alien model up close from the landing page
 - ✅ **Settings Panel** - Comprehensive game customization!
   - Audio controls (Master, SFX, Music volumes, Mute All)
