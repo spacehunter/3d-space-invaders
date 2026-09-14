@@ -1,5 +1,9 @@
 // Audio system using Web Audio API
 let audioContext;
+// Lowest gain worth playing, and the floor getFinalVolume() clamps to so that
+// exponentialRampToValueAtTime() never receives an illegal zero target.
+const SILENT_GAIN = 0.0001;
+
 let ufoTravelOscillator = null;
 let ufoTravelGain = null;
 let ufoTravelPanner = null;
@@ -36,9 +40,17 @@ export function setMute(muted) {
 
 // Helper function to calculate final volume
 function getFinalVolume(baseVolume = 1.0, type = 'sfx') {
-    if (isMuted) return 0;
     const typeVolume = type === 'music' ? musicVolume : sfxVolume;
-    return baseVolume * typeVolume * masterVolume;
+    const volume = isMuted ? 0 : baseVolume * typeVolume * masterVolume;
+    // Never return exactly 0. Several sounds feed this straight into
+    // exponentialRampToValueAtTime(), which throws RangeError on a zero target -
+    // and muting (or any volume slider at 0) made it exactly 0. In playUFOTravel()
+    // that RangeError landed between the oscillator being assigned and .start()
+    // being called, stranding a never-started oscillator in module state; every
+    // later stopUFOTravel() then threw InvalidStateError, including the one at the
+    // top of playUFOTravel(), so the sound could never recover for the whole session.
+    // SILENT_GAIN is -80dB: inaudible, but a legal ramp target.
+    return Math.max(volume, SILENT_GAIN);
 }
 
 // Play MASSIVE asteroid-impact BOOOOOM explosion sound
