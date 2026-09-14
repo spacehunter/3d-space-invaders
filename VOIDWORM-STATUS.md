@@ -4,7 +4,36 @@ Read this FIRST in any session (a Telegram reply is a fresh session with no
 memory of the cron runs). Update it after every grade and before releasing
 the lock. Keep it under ~60 lines: newest facts on top, prune stale detail.
 
-## Now (updated 2026-08-14 19:45)
+## Now (updated 2026-09-14 13:50)
+
+- **ARMS ATTACHED — fix landed (this session, js/invaders/voidworm.js).**
+  Note the live model code is `js/invaders/voidworm.js`, NOT `js/aliens.js` —
+  aliens.js is now a thin dispatcher importing `js/invaders/index.js`.
+  All three causes fixed: both arms mount on segment 1 (`segIdx = 1`, not
+  `idx + 1`), shoulder inset to x = 0.55r / y +0.03 (inside the octahedron,
+  verified analytically + by frame inspection), and the upper-arm mesh double
+  offset removed (geometry already bakes y −0.11; mesh-level −0.11 left dead
+  air). Arm prisms slimmed 0.14→0.10 so they read as limbs not slabs; forearm
+  re-hung at y −0.22 off the joint bead (creation AND animate case — the
+  animator overwrote it to −0.28 every frame).
+  Verified: capture clean, `bestiary shows "VOIDWORM": YES`, RMS 12–17 vs HEAD
+  frames, and the local vLLM vision check (port 8006, model
+  qwen3.8-flash-next, `scripts/ask-frames.py` pattern) now answers ATTACHED /
+  same height / mirror pair on both checked frames; OLD frame 2 under the same
+  question said "staggered diagonally, not a mirror pair" — fix confirmed to
+  have taken.
+  Grades after fix: 6,6,5,6,7 (mean 6.0) vs HEAD build 6,6,7,7 (mean 6.5) —
+  inside the ±2 noise band; the arms are NO LONGER the grader's worst_flaw.
+  **The grader's remaining complaint is the BODY: segments read as disconnected
+  flat chevrons/cubes — "no joint, tendril, or overlap between segments"**
+  (detail 5, cohesion 6). That is the next fix, not the arms.
+- **Vision tooling notes**: `vision_analyze` timed out on every frame this
+  session. Workaround that works: POST the frame (downscaled ≤768px JPEG
+  base64) to `http://127.0.0.1:8006/v1/chat/completions` with model
+  **qwen3.8-flash-next** and `max_tokens` ≥ 2000 — the model spends budget on
+  hidden reasoning and returns `content: null` if the cap is small.
+  `grade-invader.py` defaults to the dead `qwen3.6` model on that endpoint —
+  pass `--model qwen3.8-flash-next`.
 
 - Arms were added in `387b966` and graded 8.0 twice (a real confirmation under
   the fixed gate). Cron c94c41ea9af6 PAUSED. Full write-up of everything this
