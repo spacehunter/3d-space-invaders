@@ -943,8 +943,8 @@ export function alienFire(scene) {
                 scene.add(beam);
                 continue; // Skip adding to alienMissiles
             } else if (randomAlien.userData.row === 13) {
-                // Voidworm aliens fire fractal spores — split mid-flight into 3
-                const spore = createVoidwormSpore(randomAlien.position);
+                // Gravworm aliens fire gravity-surge orbs — split mid-flight into 3
+                const spore = createGravwormSpore(randomAlien.position);
                 fractalSpores.push(spore);
                 scene.add(spore);
                 continue; // Skip adding to alienMissiles
@@ -1876,12 +1876,12 @@ function createSerpentineBeam(position) {
     return group;
 }
 
-// Create Voidworm fractal spore — splits into 3 after 0.6s
-function createVoidwormSpore(position) {
+// Create Gravworm gravity orb — splits into 3 after 0.6s
+function createGravwormSpore(position) {
     const group = new THREE.Group();
 
-    // Main spore body — small faceted crystal
-    const bodyGeom = new THREE.BoxGeometry(0.08, 0.08, 0.20);
+    // Heavy orb core — darker and chunkier than a crystal shard
+    const bodyGeom = new THREE.BoxGeometry(0.10, 0.10, 0.10);
     const bodyMat = new THREE.MeshPhongMaterial({
         color: 0xc8a0ff,
         emissive: 0x9b6dcf,
@@ -1890,6 +1890,9 @@ function createVoidwormSpore(position) {
     });
     const body = new THREE.Mesh(bodyGeom, bodyMat);
     group.add(body);
+
+    // The surge sheds 3 diverging shards after 0.6s (see updateGravwormSpores).
+    for (let k = 0; k < 3; k++) group.userData['surgeChild' + k] = null;
 
     group.position.copy(position);
     group.position.y = 0;
@@ -1991,8 +1994,8 @@ export function updateRavenNeedles(player, scene, gameActive, livesCallback, gam
     }
 }
 
-// Update Voidworm fractal spores — split into 3 sub-projectiles mid-flight
-export function updateVoidwormSpores(player, scene, gameActive, livesCallback, gameOverCallback) {
+// Update Gravworm gravity orbs — split into 3 sub-projectiles mid-flight
+export function updateGravwormSpores(player, scene, gameActive, livesCallback, gameOverCallback) {
     const time = Date.now() * 0.001;
 
     for (let i = fractalSpores.length - 1; i >= 0; i--) {

@@ -126,13 +126,13 @@ const BESTIARY_ENTRIES = [
         weapon: 'Serpentine beams — an elongated crystal projectile that travels in a sinusoidal wave'
     },
     {
-        name: 'VOIDWORM',
+        name: 'GRAVWORM',
         row: 13,
         points: 0,
         color: '#9b6dcf',
         tagline: 'ROW 14 - VOID',
-        description: 'A sinuous chain of seven linked crystalline spheres with an undulating wave that travels the length of its body. Crown teeth flare open during weapon windup and snap shut on burst, while segments rotate in a travelling phase pattern.',
-        weapon: 'Fractal spores — a crystal projectile that splits mid-flight into diverging shards'
+        description: 'A low-slung armored larva that crawls in a horizontal arc across its formation slot, six legs pedaling in a metachronal wave. Its segmented body ripples in sequence and the maw on its head widens as it charges a shot.',
+        weapon: 'Gravity surge — a heavy orb that sheds 3 diverging shards mid-flight'
     },
     {
         name: 'RAVEN',
@@ -178,6 +178,15 @@ const BESTIARY_ENTRIES = [
         tagline: 'ROW 19 - DEEP',
         description: 'A wide flat manta ray — broad diamond wings sweeping back from a compact body, tapering to a thin tail segment. The wings flap in a smooth continuous glide motion. On weapon windup the wings snap wide and upward, body rises, then settles back with a small bounce.',
         weapon: 'Harmonic waves — sinusoidal lateral oscillation during forward travel, 3 staggered projectiles with different phase offsets'
+    },
+    {
+        name: 'PEACOCK',
+        row: 19,
+        points: 0,
+        color: '#22d3ee',
+        tagline: 'ROW 20 - IRIDESCENT',
+        description: 'A male peacock spider — enormous forward-facing eyes dominate a small cephalothorax in front of a large bulbous iridescent abdomen. Two long hairy arms wave in display dance while the nurse-hat abdomen fans out with color-shifting iridescence from cyan through emerald to vivid red. Six banded legs trail behind.',
+        weapon: 'Iridescent needles — fast straight shots with chromatic shimmer trails that shift color during flight'
     }
 ];
 

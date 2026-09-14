@@ -2,6 +2,30 @@ import * as THREE from 'three';
 import { playSwoopWarning } from './audio.js';
 import { ALIEN_ROWS, ALIEN_COLS, ALIEN_SPACING } from './constants.js';
 import { buildVoxelGeometry, mirrorBoxes, saucerTier, buildLimbSegmentGeometry, buildLimbChain } from './voxel.js';
+import { spawnPowerUp } from './powerups.js';
+import {
+    createOctopusAlien,
+    createCrabAlien,
+    createSquidAlien,
+    createUFOAlien,
+    createTankAlien,
+    createBeetleAlien,
+    createWaspAlien,
+    createInvaderAlien,
+    createScorpionAlien,
+    createSentinelAlien,
+    createWardenAlien,
+    createSpireAlien,
+    createPrismAlien,
+    createGravwormAlien,
+    createRavenAlien,
+    createNexusAlien,
+    createApexAlien,
+    createBasiliskAlien,
+    createMantaAlien,
+    createPeacockAlien,
+} from './invaders/index.js';
+import { animateGravworm } from './invaders/gravworm.js';
 
 let aliens = [];
 let alienDirection = 1;
@@ -49,8 +73,8 @@ export function createAliens(scene, customRows = null, customCols = null) {
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            // Cycle through 18 alien types based on row
-            const alienType = row % 19;
+            // Cycle through 20 alien types based on row
+            const alienType = row % 20;
             const alien = createAlien(alienType);
             alien.position.x = startX + col * ALIEN_SPACING;
             alien.position.z = startZ - row * ALIEN_SPACING;
@@ -79,7 +103,7 @@ export function createAliens(scene, customRows = null, customCols = null) {
  * anything to a scene, so it can be called while a game is in progress without
  * corrupting the formation. The caller owns the returned Group.
  *
- * @param {number} type - alien type 0-18 (same numbering as the row types)
+ * @param {number} type - alien type 0-19 (same numbering as the row types)
  * @returns {THREE.Group} an alien ready to be passed to animateAlien()
  */
 export function createAlienPreview(type) {
@@ -96,1058 +120,274 @@ export function createAlienPreview(type) {
     return alien;
 }
 
-// Create a single alien based on row type
 function createAlien(row) {
     const group = new THREE.Group();
 
-    // Different alien types for each row
-    switch (row) {
-        case 0: // Top row - Octopus style
-            createOctopusAlien(group);
-            break;
-        case 1: // Crab style
-            createCrabAlien(group);
-            break;
-        case 2: // Squid style
-            createSquidAlien(group);
-            break;
-        case 3: // UFO style
-            createUFOAlien(group);
-            break;
-        case 4: // Tank style
-            createTankAlien(group);
-            break;
-        case 5: // Beetle style - classic 70s arcade insect
-            createBeetleAlien(group);
-            break;
-        case 6: // Invader style - classic retro arcade invader
-            createInvaderAlien(group);
-            break;
-        case 7: // Scorpion style - arachnid with segmented tail and venom darts
-            createScorpionAlien(group);
-            break;
-        case 8: // Wasp style - striped insect with wingstorm animation
-            createWaspAlien(group);
-            break;
-        case 9: // Sentinel style - levitating construct that shatters and reforms
-            createSentinelAlien(group);
-            break;
-        case 10: // Warden style - hollow hoop that flips edge-on and fires through itself
-            createWardenAlien(group);
-            break;
-        case 11: // Spire style - tall crystalline tower that fires crystal shards
-            createSpireAlien(group);
-            break;
-        case 12: // Prism style - crystal diamond frame with orbiting shards
-            createPrismAlien(group);
-            break;
-        case 13: // Voidworm style - sinuous chain of 7 linked crystalline spheres
-            createVoidwormAlien(group);
-            break;
-        case 14: // Raven style - compact bird with sweeping wings, beak, crest and talons
-            createRavenAlien(group);
-            break;
-        case 15: // Nexus style - orbital station with rotating crystal arms and energy ring
-            createNexusAlien(group);
-            break;
-        case 16: // Apex style - floating geometric core with orbiting prismatic shards
-            createApexAlien(group);
-            break;
-        case 17: // Basilisk style - two-headed serpent with twin arching necks and fanged heads
-            createBasiliskAlien(group);
-            break;
-        case 18: // Manta style - wide flat manta ray with sweeping diamond wings
-            createMantaAlien(group);
-            break;
-    }
+    const creators = [
+        createOctopusAlien,
+        createCrabAlien,
+        createSquidAlien,
+        createUFOAlien,
+        createTankAlien,
+        createBeetleAlien,
+        createInvaderAlien,
+        createScorpionAlien,
+        createWaspAlien,
+        createSentinelAlien,
+        createWardenAlien,
+        createSpireAlien,
+        createPrismAlien,
+        createGravwormAlien,
+        createRavenAlien,
+        createNexusAlien,
+        createApexAlien,
+        createBasiliskAlien,
+        createMantaAlien,
+        createPeacockAlien,
+    ];
+
+    creators[row](group);
 
     return group;
 }
 
+export function updateAliens(gameOverCallback) {
+    if (aliens.length === 0) return;
+
+    // Dynamic speed calculation based on remaining aliens
+    // As aliens are destroyed, they speed up significantly
+    const totalAliens = levelConfig.rows * levelConfig.cols;
+    const remainingRatio = Math.min(aliens.length / totalAliens, 1.0);  // Clamp to prevent NaN
+
+    // Use level config base speed, scale up to 6x at the end
+    const minSpeed = levelConfig.baseSpeed;
+    const maxSpeed = levelConfig.baseSpeed * 6;
+
+    // Non-linear speed curve (gets faster more quickly at the end)
+    alienSpeed = minSpeed + (maxSpeed - minSpeed) * Math.pow(1 - remainingRatio, 1.5);
+
+    let shouldMoveDown = false;
+
+    // Check if any alien hit the edge
+    for (let alien of aliens) {
+        if (alien.userData.destroyed) continue;
+        if (alien.userData.isSwooping || alien.userData.isTelegraphing) continue; // Ignore swooping aliens for edge check
+
+        if ((alienDirection > 0 && alien.position.x > 13) ||
+            (alienDirection < 0 && alien.position.x < -13)) {
+            shouldMoveDown = true;
+            break;
+        }
+    }
+
+    if (shouldMoveDown) {
+        alienDirection *= -1;
+        for (let alien of aliens) {
+            if (!alien.userData.destroyed && !alien.userData.isSwooping && !alien.userData.isTelegraphing) {
+                alien.position.z += 1;
+
+                // Check if aliens reached player
+                if (alien.position.z > 8) {
+                    gameOverCallback(false);
+                }
+            }
+        }
+        // Speed is now calculated per frame, so we don't need to multiply here
+    }
+
+    // Move aliens
+    for (let alien of aliens) {
+        if (alien.userData.destroyed) continue;
+
+        // Handle Kamikaze Swoop
+        if (alien.userData.isTelegraphing) {
+            updateTelegraph(alien);
+        } else if (alien.userData.isSwooping) {
+            updateSwoop(alien);
+        } else {
+            // Normal formation movement
+            alien.position.x += alienDirection * alienSpeed;
+        }
+    }
+
+    // Check for new swoop triggers
+    checkSwoopTrigger();
+}
+
+// Swoop state
+let lastSwoopTime = 0;
+const SWOOP_INTERVAL_MIN = 5000; // 5 seconds
+const SWOOP_INTERVAL_MAX = 10000; // 10 seconds
+let nextSwoopInterval = 5000;
+
+function checkSwoopTrigger() {
+    // Only swoop if few aliens remain (based on level config)
+    if (aliens.length >= levelConfig.swoopThreshold) return;
+
+    const now = Date.now();
+    if (now - lastSwoopTime > nextSwoopInterval) {
+        triggerSwoop();
+        lastSwoopTime = now;
+        nextSwoopInterval = SWOOP_INTERVAL_MIN + Math.random() * (SWOOP_INTERVAL_MAX - SWOOP_INTERVAL_MIN);
+    }
+}
+
+function triggerSwoop() {
+    // Find available aliens not already swooping
+    const availableAliens = aliens.filter(a => !a.userData.destroyed && !a.userData.isSwooping);
+
+    if (availableAliens.length === 0) return;
+
+    // Pick a random alien
+    const alien = availableAliens[Math.floor(Math.random() * availableAliens.length)];
+
+    // Initialize telegraph state (Warning phase)
+    alien.userData.isTelegraphing = true;
+    alien.userData.telegraphStartTime = Date.now();
+    alien.userData.originalScale = alien.scale.clone();
+
+    // Play warning sound
+    playSwoopWarning();
+}
+
+function updateTelegraph(alien) {
+    const now = Date.now();
+    const elapsed = (now - alien.userData.telegraphStartTime) / 1000;
+
+    // Pulse effect (scale up and down rapidly)
+    const pulse = 1 + Math.sin(elapsed * 20) * 0.3;
+    alien.scale.set(
+        alien.userData.originalScale.x * pulse,
+        alien.userData.originalScale.y * pulse,
+        alien.userData.originalScale.z * pulse
+    );
+
+    // Shake effect
+    alien.position.x += (Math.random() - 0.5) * 0.2;
+
+    // End telegraph after 1 second
+    if (elapsed > 1.0) {
+        alien.userData.isTelegraphing = false;
+        alien.scale.copy(alien.userData.originalScale); // Reset scale
+        startSwoop(alien);
+    }
+}
+
+function startSwoop(alien) {
+    // Initialize swoop state
+    alien.userData.isSwooping = true;
+    alien.userData.swoopStartTime = Date.now();
+    alien.userData.swoopStartX = alien.position.x;
+    alien.userData.swoopStartZ = alien.position.z;
+
+    // Randomize swoop pattern
+    alien.userData.swoopFreqX = 2 + Math.random() * 3; // Frequency of X wobble
+    alien.userData.swoopAmpX = 3 + Math.random() * 4;  // Amplitude of X wobble
+
+    // Increased speed: 0.25 to 0.40 (was 0.15 to 0.25)
+    alien.userData.swoopSpeedZ = 0.25 + Math.random() * 0.15;
+}
+
+function updateSwoop(alien) {
+    const time = (Date.now() - alien.userData.swoopStartTime) * 0.001;
+
+    // Move forward rapidly
+    alien.position.z += alien.userData.swoopSpeedZ;
+
+    // Sine wave motion on X
+    alien.position.x = alien.userData.swoopStartX + Math.sin(time * alien.userData.swoopFreqX) * alien.userData.swoopAmpX;
+
+    // Dive motion on Y (dip down then up)
+    alien.position.y = Math.sin(time * 3) * 2;
+
+    // Banking rotation
+    alien.rotation.z = Math.cos(time * alien.userData.swoopFreqX) * 0.5;
+
+    // Check if passed player (Z > 15)
+    if (alien.position.z > 15) {
+        resetSwoop(alien);
+    }
+}
+
+function resetSwoop(alien) {
+    alien.userData.isSwooping = false;
+
+    // Reset to back of formation
+    alien.position.z = -25;
+
+    // Random X position within bounds
+    alien.position.x = (Math.random() - 0.5) * 20;
+
+    // Reset rotation
+    alien.rotation.z = 0;
+    alien.position.y = 0;
+
+    // Ensure it's not too close to edges immediately
+    alien.position.x = Math.max(-10, Math.min(10, alien.position.x));
+}
+
+// Get all aliens
+export function getAliens() {
+    return aliens;
+}
+
+// Hide all aliens
+export function hideAliens() {
+    aliens.forEach(alien => {
+        alien.visible = false;
+    });
+}
+
+// Show all aliens
+export function showAliens() {
+    aliens.forEach(alien => {
+        alien.visible = true;
+    });
+}
+
+// Remove alien from array
+export function removeAlien(alien, scene) {
+    alien.userData.destroyed = true;
+
+    // Chance to drop power-up (10%)
+    if (Math.random() < 0.1) {
+        spawnPowerUp(alien.position, scene);
+    }
+
+    scene.remove(alien);
+    const alienIndex = aliens.indexOf(alien);
+    if (alienIndex > -1) {
+        aliens.splice(alienIndex, 1);
+    }
+}
+
+// Reset aliens for new game
+export function resetAliens(scene) {
+    aliens.forEach(alien => scene.remove(alien));
+    aliens = [];
+    alienDirection = 1;
+    alienSpeed = levelConfig.baseSpeed;
+    lastSwoopTime = 0;
+    nextSwoopInterval = 5000;
+}
+
+// Get alien state for reset
+export function getAlienState() {
+    return {
+        direction: alienDirection,
+        speed: alienSpeed
+    };
+}
+
 // ---------------------------------------------------------------------------
-// Octopus (row 0) - detailed voxel sculpt
+// Shared constants referenced by animateAlien
 // ---------------------------------------------------------------------------
-
-// Mantle: tapering tiers read as a rounded dome while staying blocky
-const OCTOPUS_MANTLE = [
-    { size: [0.44, 0.18, 0.44], pos: [0, 0.80, -0.02], color: 0xff7bf9 },
-    { size: [0.80, 0.24, 0.66], pos: [0, 0.60, -0.02], color: 0xff45ee },
-    { size: [1.06, 0.28, 0.86], pos: [0, 0.34, 0.00], color: 0xff1ce2 },
-    { size: [1.22, 0.30, 1.00], pos: [0, 0.05, 0.02], color: 0xef00d6 },
-    { size: [1.10, 0.14, 0.90], pos: [0, -0.16, 0.02], color: 0x8e0aa6 },  // collar
-    { size: [0.94, 0.14, 0.78], pos: [0, -0.29, 0.02], color: 0xc400b4 },  // base
-    // Crest spikes along the top of the hood
-    { size: [0.12, 0.16, 0.12], pos: [-0.20, 0.94, -0.02], color: 0xffd0ff },
-    { size: [0.12, 0.20, 0.12], pos: [0.00, 0.97, -0.02], color: 0xffd0ff },
-    { size: [0.12, 0.16, 0.12], pos: [0.20, 0.94, -0.02], color: 0xffd0ff },
-    // Side fins widen the silhouette
-    { size: [0.18, 0.22, 0.62], pos: [-0.68, 0.10, 0.00], color: 0xff45ee },
-    { size: [0.18, 0.22, 0.62], pos: [0.68, 0.10, 0.00], color: 0xff45ee },
-    // Dark brow ridge, angled at the outer ends for a scowl
-    { size: [1.00, 0.13, 0.16], pos: [0, 0.30, 0.48], color: 0x6d0080 },
-    { size: [0.30, 0.12, 0.14], pos: [-0.44, 0.36, 0.44], rotZ: 0.35, color: 0x6d0080 },
-    { size: [0.30, 0.12, 0.14], pos: [0.44, 0.36, 0.44], rotZ: -0.35, color: 0x6d0080 },
-    // Cheek plates frame the face
-    { size: [0.16, 0.30, 0.22], pos: [-0.56, 0.02, 0.40], color: 0xff45ee },
-    { size: [0.16, 0.30, 0.22], pos: [0.56, 0.02, 0.40], color: 0xff45ee }
-];
-
-const OCTOPUS_SOCKETS = [
-    { size: [0.36, 0.30, 0.16], pos: [-0.30, 0.12, 0.42], color: 0x2a0030 },
-    { size: [0.36, 0.30, 0.16], pos: [0.30, 0.12, 0.42], color: 0x2a0030 }
-];
-
-// Iris plus a hotter pupil, merged so both eyes track together as one mesh
-const OCTOPUS_EYES = [
-    { size: [0.24, 0.20, 0.10], pos: [-0.30, 0.12, 0.50], color: 0xffe000 },
-    { size: [0.24, 0.20, 0.10], pos: [0.30, 0.12, 0.50], color: 0xffe000 },
-    { size: [0.10, 0.13, 0.06], pos: [-0.30, 0.12, 0.545], color: 0xfffbe0 },
-    { size: [0.10, 0.13, 0.06], pos: [0.30, 0.12, 0.545], color: 0xfffbe0 }
-];
-
-// Heavy hooded lids, parked under the brow until a blink drops them
-const OCTOPUS_LIDS = [
-    { size: [0.38, 0.18, 0.12], pos: [-0.30, 0, 0.44], color: 0xd11ce0 },
-    { size: [0.38, 0.18, 0.12], pos: [0.30, 0, 0.44], color: 0xd11ce0 }
-];
 const OCTOPUS_LID_OPEN_Y = 0.38;
 const OCTOPUS_LID_CLOSED_Y = 0.10;
-
-// Bioluminescent vents ringing the collar - these carry most of the bloom
-const OCTOPUS_VENTS = [
-    { size: [0.34, 0.08, 0.12], pos: [0, -0.16, 0.47], color: 0xff9cf0 },
-    { size: [0.12, 0.08, 0.12], pos: [-0.55, -0.16, 0.20], color: 0xff9cf0 },
-    { size: [0.12, 0.08, 0.12], pos: [0.55, -0.16, 0.20], color: 0xff9cf0 },
-    { size: [0.12, 0.08, 0.12], pos: [-0.55, -0.16, -0.20], color: 0xff9cf0 },
-    { size: [0.12, 0.08, 0.12], pos: [0.55, -0.16, -0.20], color: 0xff9cf0 }
-];
-
-const OCTOPUS_TENTACLE_COUNT = 6;
-const OCTOPUS_MOUNT_RADIUS = 0.42;
-const OCTOPUS_MOUNT_Y = -0.30;
-
-// Segments taper toward the tip; baseTilt splays then curls them back inward
-const OCTOPUS_SEGMENTS = [
-    { length: 0.34, width: 0.20, baseTilt: 0.55, color: 0xff3cf0 },
-    { length: 0.30, width: 0.16, baseTilt: -0.20, color: 0xf215e0 },
-    { length: 0.26, width: 0.12, baseTilt: -0.45, color: 0xd400c8 }
-];
-
-// Geometries and non-animated materials are built once and shared by every
-// octopus in the formation
-let octopusParts = null;
-
-function getOctopusParts() {
-    if (octopusParts) return octopusParts;
-
-    const segmentGeometries = OCTOPUS_SEGMENTS.map(segment => {
-        const cup = Math.max(0.05, segment.width * 0.36);
-        // Origin sits at the top of the segment so it doubles as the joint pivot
-        return buildVoxelGeometry([
-            { size: [segment.width, segment.length, segment.width], pos: [0, -segment.length / 2, 0], color: segment.color },
-            { size: [segment.width + 0.05, 0.07, segment.width + 0.05], pos: [0, -0.02, 0], color: 0x8e0aa6 },
-            { size: [cup, cup, cup], pos: [-segment.width / 2, -segment.length * 0.3, 0], color: 0xffd6ff },
-            { size: [cup, cup, cup], pos: [segment.width / 2, -segment.length * 0.5, 0], color: 0xffd6ff },
-            { size: [cup, cup, cup], pos: [-segment.width / 2, -segment.length * 0.7, 0], color: 0xffd6ff }
-        ]);
-    });
-
-    octopusParts = {
-        mantleGeometry: buildVoxelGeometry(OCTOPUS_MANTLE),
-        socketGeometry: buildVoxelGeometry(OCTOPUS_SOCKETS),
-        eyeGeometry: buildVoxelGeometry(OCTOPUS_EYES),
-        lidGeometry: buildVoxelGeometry(OCTOPUS_LIDS),
-        ventGeometry: buildVoxelGeometry(OCTOPUS_VENTS),
-        beakGeometry: new THREE.BoxGeometry(0.26, 0.14, 0.20),
-        segmentGeometries,
-        shellMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xb800c4,
-            emissiveIntensity: 1.0,
-            shininess: 30,
-            flatShading: true
-        }),
-        socketMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x18001c,
-            emissiveIntensity: 0.4,
-            flatShading: true
-        }),
-        lidMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x8e0aa6,
-            emissiveIntensity: 1.0,
-            flatShading: true
-        }),
-        limbMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xc800c8,
-            emissiveIntensity: 1.3,
-            flatShading: true
-        }),
-        beakMaterial: new THREE.MeshPhongMaterial({
-            color: 0xffe0a8,
-            emissive: 0xff9c3c,
-            emissiveIntensity: 0.9,
-            flatShading: true
-        }),
-        // Cloned per alien so each one can pulse on its own animation offset
-        eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xffe23a,
-            emissiveIntensity: 2.0,
-            flatShading: true
-        }),
-        ventMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xff5cff,
-            emissiveIntensity: 1.1,
-            flatShading: true
-        })
-    };
-
-    return octopusParts;
-}
-
-function createOctopusAlien(group) {
-    const parts = getOctopusParts();
-
-    const mantle = new THREE.Mesh(parts.mantleGeometry, parts.shellMaterial);
-    mantle.castShadow = true;
-    group.add(mantle);
-    group.userData.mantle = mantle;
-
-    group.add(new THREE.Mesh(parts.socketGeometry, parts.socketMaterial));
-
-    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
-    group.add(eyes);
-    group.userData.eyes = eyes;
-
-    const lids = new THREE.Mesh(parts.lidGeometry, parts.lidMaterial);
-    lids.position.y = OCTOPUS_LID_OPEN_Y;
-    group.add(lids);
-    group.userData.lids = lids;
-
-    const vents = new THREE.Mesh(parts.ventGeometry, parts.ventMaterial.clone());
-    group.add(vents);
-    group.userData.vents = vents;
-
-    // Beak halves chomp open and shut between the front tentacles
-    const beakUpper = new THREE.Mesh(parts.beakGeometry, parts.beakMaterial);
-    beakUpper.position.set(0, -0.40, 0.26);
-    group.add(beakUpper);
-    group.userData.beakUpper = beakUpper;
-
-    const beakLower = new THREE.Mesh(parts.beakGeometry, parts.beakMaterial);
-    beakLower.position.set(0, -0.52, 0.26);
-    group.add(beakLower);
-    group.userData.beakLower = beakLower;
-
-    // Six tentacles, each a chain of nested segments so a curl travels down the
-    // limb instead of the whole thing swinging rigidly
-    group.userData.tentacles = [];
-    for (let i = 0; i < OCTOPUS_TENTACLE_COUNT; i++) {
-        const angle = (i / OCTOPUS_TENTACLE_COUNT) * Math.PI * 2;
-
-        const mount = new THREE.Group();
-        mount.position.set(
-            Math.cos(angle) * OCTOPUS_MOUNT_RADIUS,
-            OCTOPUS_MOUNT_Y,
-            Math.sin(angle) * OCTOPUS_MOUNT_RADIUS
-        );
-        // Local +X now points away from the body, so Z rotation flexes outward
-        mount.rotation.y = -angle;
-        group.add(mount);
-
-        const segments = [];
-        let parent = mount;
-        OCTOPUS_SEGMENTS.forEach((segment, j) => {
-            const mesh = new THREE.Mesh(parts.segmentGeometries[j], parts.limbMaterial);
-            mesh.position.y = j === 0 ? 0 : -OCTOPUS_SEGMENTS[j - 1].length;
-            mesh.rotation.z = segment.baseTilt;
-            mesh.userData.baseTilt = segment.baseTilt;
-            parent.add(mesh);
-            parent = mesh;
-            segments.push(mesh);
-        });
-
-        group.userData.tentacles.push(segments);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Crab (row 1) - detailed voxel sculpt
-// ---------------------------------------------------------------------------
-
-// Low, wide carapace - the counterpoint to the octopus's tall dome
-const CRAB_CARAPACE = [
-    { size: [1.50, 0.18, 0.95], pos: [0, -0.04, 0.02], color: 0xd41414 },  // shell rim
-    { size: [1.32, 0.24, 0.85], pos: [0, 0.14, 0.00], color: 0xff2a2a },
-    { size: [1.00, 0.20, 0.68], pos: [0, 0.34, -0.02], color: 0xff4a3a },
-    { size: [0.60, 0.14, 0.44], pos: [0, 0.48, -0.04], color: 0xff6b4a },  // crown
-    { size: [1.10, 0.12, 0.70], pos: [0, -0.18, 0.02], color: 0x9c0d0d },  // underplate
-    // Serrated front rim
-    { size: [0.14, 0.10, 0.16], pos: [-0.56, -0.02, 0.50], color: 0xff4a3a },
-    { size: [0.14, 0.10, 0.16], pos: [-0.28, -0.02, 0.52], color: 0xff4a3a },
-    { size: [0.14, 0.10, 0.16], pos: [0.28, -0.02, 0.52], color: 0xff4a3a },
-    { size: [0.14, 0.10, 0.16], pos: [0.56, -0.02, 0.50], color: 0xff4a3a },
-    // Lateral spikes
-    { size: [0.18, 0.12, 0.16], pos: [-0.78, -0.02, 0.10], color: 0xff4a3a },
-    { size: [0.18, 0.12, 0.16], pos: [0.78, -0.02, 0.10], color: 0xff4a3a },
-    { size: [0.14, 0.10, 0.14], pos: [-0.74, -0.02, -0.24], color: 0xd41414 },
-    { size: [0.14, 0.10, 0.14], pos: [0.74, -0.02, -0.24], color: 0xd41414 },
-    // Dark brow shading the eye stalks
-    { size: [0.92, 0.12, 0.16], pos: [0, 0.30, 0.40], color: 0x6b0505 },
-    // Shoulder blocks where the claw arms mount
-    { size: [0.20, 0.22, 0.26], pos: [-0.66, 0.04, 0.34], color: 0xd41414 },
-    { size: [0.20, 0.22, 0.26], pos: [0.66, 0.04, 0.34], color: 0xd41414 }
-];
-
-// Molten seams in the shell - the crab's answer to the octopus's vents
-const CRAB_SEAMS = [
-    { size: [0.44, 0.07, 0.16], pos: [0, 0.55, -0.02], color: 0xff8a1e },
-    { size: [0.30, 0.07, 0.13], pos: [-0.30, 0.45, 0.12], color: 0xff8a1e },
-    { size: [0.30, 0.07, 0.13], pos: [0.30, 0.45, 0.12], color: 0xff8a1e },
-    { size: [0.15, 0.07, 0.32], pos: [-0.54, 0.26, -0.06], color: 0xff8a1e },
-    { size: [0.15, 0.07, 0.32], pos: [0.54, 0.26, -0.06], color: 0xff8a1e }
-];
-
-// Compound eye: bright cyan block crossed by a dark slit
-const CRAB_EYE = [
-    { size: [0.22, 0.21, 0.21], pos: [0, 0.11, 0], color: 0x2ad8e8 },
-    { size: [0.24, 0.06, 0.09], pos: [0, 0.13, 0.09], color: 0x04333a },
-    { size: [0.24, 0.05, 0.07], pos: [0, 0.20, 0.00], color: 0x04333a }
-];
-
-const CRAB_MANDIBLE = [
-    { size: [0.14, 0.12, 0.20], pos: [0, -0.06, 0.06], color: 0xffb08a }
-];
-
-// Stalks and limbs grow upward from their origin so the origin doubles as the joint
 const CRAB_STALK_Y = 0.30;
-
-const CRAB_STALK_SEGMENTS = [
-    { length: 0.26, width: 0.13, baseTilt: 0.12 },
-    { length: 0.22, width: 0.11, baseTilt: -0.20 }
-];
-
-// Arm segments run forward along +Z, so yaw swings the claw in and out,
-// lift raises it, and the jaws hinge about X
-const CRAB_ARM_SEGMENTS = [
-    { length: 0.34, width: 0.22, yaw: 0.34, lift: -0.10 },   // upper arm, out and forward
-    { length: 0.30, width: 0.19, yaw: -0.60, lift: 0.06 }    // forearm turns back inward
-];
-
-const CRAB_LEG_SEGMENTS = [
-    { length: 0.34, width: 0.14, baseBend: 0.80 },   // femur, splays outward
-    { length: 0.32, width: 0.10, baseBend: -1.15 }   // tibia, kinks back down
-];
-
-// Three legs per side; z offset places them front to back
-const CRAB_LEG_MOUNTS = [
-    { side: -1, z: 0.24, phase: 0 },
-    { side: -1, z: -0.02, phase: Math.PI },
-    { side: -1, z: -0.28, phase: 0 },
-    { side: 1, z: 0.24, phase: Math.PI },
-    { side: 1, z: -0.02, phase: 0 },
-    { side: 1, z: -0.28, phase: Math.PI }
-];
-
-let crabParts = null;
-
-// Arm segment that extends forward from its origin
-function buildCrabArmGeometry(segment) {
-    const height = segment.width * 0.9;
-    return buildVoxelGeometry([
-        { size: [segment.width, height, segment.length], pos: [0, 0, segment.length / 2], color: 0xff3a2a },
-        { size: [segment.width + 0.05, height + 0.05, 0.07], pos: [0, 0, 0.03], color: 0x8c0808 }
-    ]);
-}
-
-// Stalk segment that extends upward from its origin
-function buildCrabStalkGeometry(segment) {
-    return buildVoxelGeometry([
-        { size: [segment.width, segment.length, segment.width], pos: [0, segment.length / 2, 0], color: 0xe01c1c },
-        { size: [segment.width + 0.05, 0.06, segment.width + 0.05], pos: [0, 0.02, 0], color: 0x8c0808 }
-    ]);
-}
-
-function getCrabParts() {
-    if (crabParts) return crabParts;
-
-    crabParts = {
-        carapaceGeometry: buildVoxelGeometry(CRAB_CARAPACE),
-        seamGeometry: buildVoxelGeometry(CRAB_SEAMS),
-        eyeGeometry: buildVoxelGeometry(CRAB_EYE),
-        mandibleGeometry: buildVoxelGeometry(CRAB_MANDIBLE),
-        stalkGeometries: CRAB_STALK_SEGMENTS.map(buildCrabStalkGeometry),
-        armGeometries: CRAB_ARM_SEGMENTS.map(buildCrabArmGeometry),
-        legGeometries: CRAB_LEG_SEGMENTS.map(s => buildLimbSegmentGeometry(s, 0xe01c1c, 0x8c0808)),
-        // Pincer jaws: a tapered blade with a lighter biting edge
-        jawGeometry: buildVoxelGeometry([
-            { size: [0.19, 0.13, 0.34], pos: [0, 0, 0.17], color: 0xff3a2a },
-            { size: [0.15, 0.06, 0.18], pos: [0, 0, 0.41], color: 0xffb08a }
-        ]),
-        // Palm block the jaws hinge from
-        palmGeometry: buildVoxelGeometry([
-            { size: [0.26, 0.30, 0.26], pos: [0, 0, 0.11], color: 0xff3a2a },
-            { size: [0.28, 0.09, 0.10], pos: [0, 0, 0.02], color: 0x8c0808 }
-        ]),
-        shellMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xa81010,
-            emissiveIntensity: 1.0,
-            shininess: 40,
-            flatShading: true
-        }),
-        limbMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xb01414,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        }),
-        // Cloned per alien so each one pulses on its own animation offset
-        eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x00c8e0,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        }),
-        seamMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xff7a10,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        })
-    };
-
-    return crabParts;
-}
-
-function createCrabAlien(group) {
-    const parts = getCrabParts();
-    const eyeMaterial = parts.eyeMaterial.clone();
-
-    const carapace = new THREE.Mesh(parts.carapaceGeometry, parts.shellMaterial);
-    carapace.castShadow = true;
-    group.add(carapace);
-    group.userData.carapace = carapace;
-
-    const seams = new THREE.Mesh(parts.seamGeometry, parts.seamMaterial.clone());
-    group.add(seams);
-    group.userData.seams = seams;
-
-    // Chattering mandibles under the front rim
-    group.userData.mandibles = [-1, 1].map(side => {
-        const mandible = new THREE.Mesh(parts.mandibleGeometry, parts.limbMaterial);
-        mandible.position.set(side * 0.13, -0.14, 0.44);
-        group.add(mandible);
-        return mandible;
-    });
-
-    // Two jointed eye stalks that swivel and retract independently
-    group.userData.stalks = [-1, 1].map(side => {
-        const mount = new THREE.Group();
-        mount.position.set(side * 0.32, CRAB_STALK_Y, 0.26);
-        group.add(mount);
-
-        const segments = buildLimbChain(mount, parts.stalkGeometries, CRAB_STALK_SEGMENTS, parts.limbMaterial, 1);
-
-        const eye = new THREE.Mesh(parts.eyeGeometry, eyeMaterial);
-        eye.position.y = CRAB_STALK_SEGMENTS[1].length;
-        segments[1].add(eye);
-
-        return { mount, segments, eye, side };
-    });
-
-    // Pincer claws on jointed arms - the arm thrusts as the jaws snap
-    group.userData.claws = [-1, 1].map(side => {
-        const mount = new THREE.Group();
-        mount.position.set(side * 0.74, 0.06, 0.42);
-        group.add(mount);
-
-        // Arm segments chain forward along +Z; mirroring yaw keeps both arms
-        // sweeping outward from the body
-        const segments = [];
-        let parent = mount;
-        CRAB_ARM_SEGMENTS.forEach((segment, j) => {
-            const mesh = new THREE.Mesh(parts.armGeometries[j], parts.limbMaterial);
-            mesh.position.z = j === 0 ? 0 : CRAB_ARM_SEGMENTS[j - 1].length;
-            mesh.rotation.y = side * segment.yaw;
-            mesh.rotation.x = segment.lift;
-            mesh.userData.baseYaw = side * segment.yaw;
-            mesh.userData.baseLift = segment.lift;
-            parent.add(mesh);
-            parent = mesh;
-            segments.push(mesh);
-        });
-
-        const palm = new THREE.Group();
-        palm.position.z = CRAB_ARM_SEGMENTS[1].length;
-        segments[1].add(palm);
-        palm.add(new THREE.Mesh(parts.palmGeometry, parts.limbMaterial));
-
-        // Jaws hinge about X so the pincer opens vertically, facing the player
-        const jawUpper = new THREE.Mesh(parts.jawGeometry, parts.limbMaterial);
-        jawUpper.position.y = 0.09;
-        palm.add(jawUpper);
-
-        const jawLower = new THREE.Mesh(parts.jawGeometry, parts.limbMaterial);
-        jawLower.position.y = -0.09;
-        palm.add(jawLower);
-
-        return { mount, segments, jawUpper, jawLower, side };
-    });
-
-    // Six walking legs with a real knee bend, driven as alternating tripods
-    group.userData.legs = CRAB_LEG_MOUNTS.map(config => {
-        const mount = new THREE.Group();
-        mount.position.set(config.side * 0.62, -0.10, config.z);
-        // Local +X points outward on both sides, so Z rotation always splays out
-        mount.rotation.y = config.side > 0 ? 0 : Math.PI;
-        group.add(mount);
-
-        const segments = buildLimbChain(mount, parts.legGeometries, CRAB_LEG_SEGMENTS, parts.limbMaterial, -1);
-
-        return { mount, segments, phase: config.phase, side: config.side };
-    });
-}
-
-// ---------------------------------------------------------------------------
-// Squid (row 2) - jet-propelled voxel sculpt
-// ---------------------------------------------------------------------------
-
-// Mantle: tapering tiers from a pointed tail down to the collar. saucerTier()
-// (shared with the UFO hull) unions three boxes into a cut-corner disc, which
-// reads as a round mantle where a plain stack of boxes would look like a
-// chimney.
-const SQUID_MANTLE = [
-    ...saucerTier(0.18, 0.16, 0.16, 1.00, 0xb4ffb8),
-    ...saucerTier(0.38, 0.32, 0.17, 0.85, 0x5cff64),
-    ...saucerTier(0.56, 0.46, 0.19, 0.68, 0x2cec38),
-    ...saucerTier(0.70, 0.58, 0.20, 0.49, 0x14cc20),
-    ...saucerTier(0.80, 0.66, 0.20, 0.29, 0x11b81c),
-    ...saucerTier(0.82, 0.68, 0.20, 0.09, 0x0fa418),
-    ...saucerTier(0.74, 0.62, 0.14, -0.05, 0x0a7d14),   // collar
-    // Dorsal keel running down the back of the hood
-    { size: [0.10, 0.16, 0.32], pos: [0, 0.86, -0.16], color: 0x7cff88 },
-    { size: [0.12, 0.16, 0.28], pos: [0, 0.66, -0.28], color: 0x3cf048 },
-    { size: [0.12, 0.14, 0.24], pos: [0, 0.44, -0.33], color: 0x22d02e },
-    // Darker belly panels, so the front reads as underside rather than more back
-    { size: [0.56, 0.50, 0.10], pos: [0, 0.30, 0.30], color: 0x0c8c16 },
-    { size: [0.60, 0.46, 0.09], pos: [0, 0.08, 0.31], color: 0x0a7d14 }
-];
-
-// Chromatophore spots scattered over the skin - these carry most of the bloom
-// and flush together on the jet
-const SQUID_SPOTS = [
-    { size: [0.11, 0.11, 0.06], pos: [-0.17, 0.62, 0.23], color: 0x8cffb4 },
-    { size: [0.09, 0.09, 0.06], pos: [0.13, 0.47, 0.29], color: 0xc8ffd8 },
-    { size: [0.12, 0.12, 0.06], pos: [-0.05, 0.28, 0.33], color: 0x8cffb4 },
-    { size: [0.08, 0.08, 0.06], pos: [0.21, 0.13, 0.32], color: 0xc8ffd8 },
-    { size: [0.06, 0.11, 0.13], pos: [-0.36, 0.36, 0.05], color: 0x8cffb4 },
-    { size: [0.06, 0.09, 0.11], pos: [0.36, 0.50, -0.06], color: 0xc8ffd8 },
-    { size: [0.06, 0.10, 0.12], pos: [-0.39, 0.14, -0.12], color: 0x8cffb4 },
-    { size: [0.06, 0.09, 0.11], pos: [0.38, 0.24, 0.12], color: 0x8cffb4 },
-    { size: [0.10, 0.10, 0.06], pos: [0.09, 0.62, -0.26], color: 0xc8ffd8 },
-    { size: [0.10, 0.10, 0.06], pos: [-0.13, 0.36, -0.31], color: 0x8cffb4 }
-];
-
-// Head under the collar: eye pods, jaw plate and the beak between the arms
-const SQUID_HEAD = [
-    { size: [0.62, 0.20, 0.54], pos: [0, -0.16, 0.00], color: 0x0fa418 },
-    { size: [0.66, 0.09, 0.18], pos: [0, -0.04, 0.24], color: 0x075c0e },   // brow
-    { size: [0.30, 0.30, 0.24], pos: [-0.28, -0.18, 0.14], color: 0x064a0c },
-    { size: [0.30, 0.30, 0.24], pos: [0.28, -0.18, 0.14], color: 0x064a0c },
-    { size: [0.46, 0.14, 0.20], pos: [0, -0.32, 0.16], color: 0x0a7d14 },   // jaw plate
-    { size: [0.18, 0.14, 0.16], pos: [0, -0.44, 0.06], color: 0x053c0a },
-    { size: [0.14, 0.09, 0.10], pos: [0, -0.51, 0.08], color: 0xd8ffc8 }    // beak tip
-];
-
-// Iris plus a horizontal slit pupil, merged so both eyes pulse as one mesh
-const SQUID_EYES = [
-    { size: [0.26, 0.24, 0.12], pos: [-0.30, -0.17, 0.26], color: 0xff2a1e },
-    { size: [0.26, 0.24, 0.12], pos: [0.30, -0.17, 0.26], color: 0xff2a1e },
-    { size: [0.17, 0.07, 0.06], pos: [-0.30, -0.17, 0.325], color: 0xfff0d0 },
-    { size: [0.17, 0.07, 0.06], pos: [0.30, -0.17, 0.325], color: 0xfff0d0 }
-];
-
-// Nictitating lids, parked up under the brow until a blink drops them
-const SQUID_LIDS = [
-    { size: [0.30, 0.16, 0.16], pos: [-0.30, 0, 0.29], color: 0x0a7d14 },
-    { size: [0.30, 0.16, 0.16], pos: [0.30, 0, 0.29], color: 0x0a7d14 }
-];
 const SQUID_LID_OPEN_Y = 0.04;
 const SQUID_LID_CLOSED_Y = -0.17;
-
-// One side fin, hinged at the mantle wall so it can undulate outward
-const SQUID_FIN = [
-    { size: [0.26, 0.10, 0.56], pos: [-0.13, 0, -0.02], color: 0x2cec38 },
-    { size: [0.22, 0.08, 0.44], pos: [-0.34, 0, -0.06], color: 0x1ed42a },
-    { size: [0.13, 0.06, 0.26], pos: [-0.51, 0, -0.12], color: 0x14bc20 },
-    { size: [0.58, 0.05, 0.07], pos: [-0.29, 0.035, 0.22], color: 0x9cff9c }, // leading edge
-    { size: [0.10, 0.07, 0.50], pos: [-0.05, -0.02, -0.02], color: 0x0a7d14 } // root rib
-];
-const SQUID_FIN_X = 0.26;
-const SQUID_FIN_Y = 0.52;
-
-// Siphon slung under the head - the nozzle the jet fires from
-const SQUID_SIPHON = [
-    { size: [0.24, 0.18, 0.24], pos: [0, -0.28, 0.30], color: 0x3cff5a },
-    { size: [0.18, 0.12, 0.12], pos: [0, -0.30, 0.44], color: 0x9cffb4 },
-    { size: [0.12, 0.08, 0.06], pos: [0, -0.31, 0.52], color: 0xe0ffd8 }
-];
-
-// Expelled water, hidden until a thrust burst. Kept inside a ~0.95 reach so it
-// never pokes into the neighbouring column.
-const SQUID_PLUME = [
-    { size: [0.14, 0.14, 0.20], pos: [0, -0.31, 0.62], color: 0xe0ffd8 },
-    { size: [0.20, 0.20, 0.20], pos: [0, -0.32, 0.74], color: 0x6cff86 },
-    { size: [0.26, 0.26, 0.14], pos: [0, -0.33, 0.85], color: 0x1a9f2a }
-];
-
-const SQUID_ARM_COUNT = 6;
-const SQUID_ARM_RADIUS = 0.24;
-const SQUID_ARM_Y = -0.44;
-
-// Arms taper toward the tip; baseBend splays them then curls them back inward
-const SQUID_ARM_SEGMENTS = [
-    { length: 0.30, width: 0.17, baseBend: 0.42, color: 0x22d02e },
-    { length: 0.26, width: 0.13, baseBend: -0.28, color: 0x16a820 },
-    { length: 0.22, width: 0.10, baseBend: -0.52, color: 0x0f8a18 }
-];
-
-// The two long feeding tentacles hang almost straight and lash on a strike
-const SQUID_TENTACLE_SEGMENTS = [
-    { length: 0.30, width: 0.11, baseBend: 0.16, color: 0x1ed42a },
-    { length: 0.28, width: 0.09, baseBend: -0.10, color: 0x16a820 },
-    { length: 0.26, width: 0.07, baseBend: -0.14, color: 0x0f8a18 }
-];
-const SQUID_TENTACLE_Y = -0.46;
-// Yaw aims each tentacle's local +X outward; the forward lash rides on a
-// separate un-yawed pivot so both sides strike toward the player
-const SQUID_TENTACLE_MOUNTS = [
-    { side: -1, yaw: Math.PI + 0.7 },
-    { side: 1, yaw: -0.7 }
-];
-
-// Geometries and non-animated materials are built once and shared by every
-// squid in the formation
-let squidParts = null;
-
-// Arm segment with a row of suckers on its inner face
-function buildSquidArmGeometry(segment) {
-    const sucker = Math.max(0.05, segment.width * 0.32);
-    const inner = -segment.width / 2;
-    // Origin sits at the top of the segment so it doubles as the joint pivot
-    return buildVoxelGeometry([
-        { size: [segment.width, segment.length, segment.width * 0.85], pos: [0, -segment.length / 2, 0], color: segment.color },
-        { size: [segment.width + 0.04, 0.06, segment.width * 0.85 + 0.04], pos: [0, -0.02, 0], color: 0x075c0e },
-        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.28, 0], color: 0xd8ffc8 },
-        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.55, 0], color: 0xd8ffc8 },
-        { size: [sucker, sucker, sucker], pos: [inner, -segment.length * 0.82, 0], color: 0xd8ffc8 }
-    ]);
-}
-
-function getSquidParts() {
-    if (squidParts) return squidParts;
-
-    squidParts = {
-        mantleGeometry: buildVoxelGeometry(SQUID_MANTLE),
-        spotGeometry: buildVoxelGeometry(SQUID_SPOTS),
-        headGeometry: buildVoxelGeometry(SQUID_HEAD),
-        eyeGeometry: buildVoxelGeometry(SQUID_EYES),
-        lidGeometry: buildVoxelGeometry(SQUID_LIDS),
-        siphonGeometry: buildVoxelGeometry(SQUID_SIPHON),
-        plumeGeometry: buildVoxelGeometry(SQUID_PLUME),
-        finGeometries: {
-            '-1': buildVoxelGeometry(SQUID_FIN),
-            '1': buildVoxelGeometry(mirrorBoxes(SQUID_FIN))
-        },
-        armGeometries: SQUID_ARM_SEGMENTS.map(buildSquidArmGeometry),
-        tentacleGeometries: SQUID_TENTACLE_SEGMENTS.map(s => buildLimbSegmentGeometry(s, s.color, 0x075c0e)),
-        // Paddle club on the end of each feeding tentacle
-        clubGeometry: buildVoxelGeometry([
-            { size: [0.15, 0.24, 0.11], pos: [0, -0.12, 0], color: 0x2ee03a },
-            { size: [0.07, 0.07, 0.05], pos: [-0.08, -0.07, 0], color: 0xd8ffc8 },
-            { size: [0.07, 0.07, 0.05], pos: [-0.08, -0.17, 0], color: 0xd8ffc8 }
-        ]),
-        shellMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x0a8c16,
-            emissiveIntensity: 1.0,
-            shininess: 45,
-            flatShading: true
-        }),
-        limbMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x0f9c1a,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        }),
-        lidMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x086010,
-            emissiveIntensity: 0.9,
-            flatShading: true
-        }),
-        // Cloned per alien so each squid pulses on its own animation offset
-eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x000000,
-            emissiveIntensity: 0,
-            flatShading: true
-        }),
-        eyeHighlightMaterial: new THREE.MeshPhongMaterial({
-            color: 0xffdd66,
-            emissive: 0xffaa00,
-            emissiveIntensity: 0.6,
-            flatShading: true
-        }),
-        spotMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x6cff9c,
-            emissiveIntensity: 1.0,
-            flatShading: true
-        }),
-        siphonMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x5cff78,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        }),
-        plumeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x8cffa0,
-            emissiveIntensity: 1.4,
-            transparent: true,
-            opacity: 0.0,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-            flatShading: true
-        })
-    };
-
-    return squidParts;
-}
-
-function createSquidAlien(group) {
-    const parts = getSquidParts();
-
-    // The mantle carries the squash and stretch. Scaling it rather than the
-    // group leaves alien.scale free for the swoop telegraph.
-    const mantle = new THREE.Mesh(parts.mantleGeometry, parts.shellMaterial);
-    mantle.castShadow = true;
-    group.add(mantle);
-    group.userData.mantle = mantle;
-
-    // Spots ride on the mantle so they flex with it
-    const spots = new THREE.Mesh(parts.spotGeometry, parts.spotMaterial.clone());
-    mantle.add(spots);
-    group.userData.spots = spots;
-
-    // Head cranes against the body pitch; eyes and lids are parented to it so
-    // they stay in their sockets while it moves
-    const head = new THREE.Mesh(parts.headGeometry, parts.shellMaterial);
-    group.add(head);
-    group.userData.head = head;
-
-    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
-    head.add(eyes);
-    group.userData.eyes = eyes;
-
-    const lids = new THREE.Mesh(parts.lidGeometry, parts.lidMaterial);
-    lids.position.y = SQUID_LID_OPEN_Y;
-    head.add(lids);
-    group.userData.lids = lids;
-
-    const siphon = new THREE.Mesh(parts.siphonGeometry, parts.siphonMaterial.clone());
-    group.add(siphon);
-    group.userData.siphon = siphon;
-
-    const plume = new THREE.Mesh(parts.plumeGeometry, parts.plumeMaterial.clone());
-    plume.visible = false;
-    group.add(plume);
-    group.userData.plume = plume;
-
-    // Side fins hinge at the mantle wall. Mirrored geometry rather than
-    // scale.x = -1, which would invert the normals on one side.
-    group.userData.fins = [-1, 1].map(side => {
-        const fin = new THREE.Mesh(parts.finGeometries[side], parts.shellMaterial);
-        fin.position.set(side * SQUID_FIN_X, SQUID_FIN_Y, -0.02);
-        fin.castShadow = true;
-        group.add(fin);
-        return { mesh: fin, side };
-    });
-
-    // Arm crown: each arm is a chain of nested segments, so a curl travels down
-    // the limb instead of the whole thing swinging rigidly
-    group.userData.arms = [];
-    for (let i = 0; i < SQUID_ARM_COUNT; i++) {
-        const angle = (i / SQUID_ARM_COUNT) * Math.PI * 2;
-
-        const mount = new THREE.Group();
-        mount.position.set(
-            Math.cos(angle) * SQUID_ARM_RADIUS,
-            SQUID_ARM_Y,
-            Math.sin(angle) * SQUID_ARM_RADIUS
-        );
-        // Local +X now points away from the crown, so Z rotation splays outward
-        mount.rotation.y = -angle;
-        group.add(mount);
-
-        const segments = buildLimbChain(mount, parts.armGeometries, SQUID_ARM_SEGMENTS, parts.limbMaterial, -1);
-
-        group.userData.arms.push({ mount, segments, phase: i * 0.9 });
-    }
-
-    // Two long feeding tentacles. The pivot is un-yawed so a rotation about its
-    // X axis lashes both tentacles toward the player; the mount under it holds
-    // the outward yaw the segment bends splay against.
-    group.userData.tentacles = SQUID_TENTACLE_MOUNTS.map(config => {
-        const pivot = new THREE.Group();
-        pivot.position.set(config.side * 0.20, SQUID_TENTACLE_Y, 0.20);
-        group.add(pivot);
-
-        const mount = new THREE.Group();
-        mount.rotation.y = config.yaw;
-        pivot.add(mount);
-
-        const segments = buildLimbChain(mount, parts.tentacleGeometries, SQUID_TENTACLE_SEGMENTS, parts.limbMaterial, -1);
-
-        const club = new THREE.Mesh(parts.clubGeometry, parts.limbMaterial);
-        club.position.y = -SQUID_TENTACLE_SEGMENTS[2].length;
-        segments[2].add(club);
-
-        return { pivot, mount, segments, club, side: config.side };
-    });
-}
-
-// ---------------------------------------------------------------------------
-// UFO (row 3) - hard-surface saucer
-// ---------------------------------------------------------------------------
-
-const UFO_HULL = [
-    // Stacked discs taper up from the rim into the fuselage
-    ...saucerTier(1.68, 1.12, 0.13, -0.06, 0xd8a800),   // rim, darker trim
-    ...saucerTier(1.34, 0.90, 0.16, 0.07, 0xffe814),
-    ...saucerTier(0.96, 0.64, 0.14, 0.21, 0xfff268),
-    // Underside taper
-    ...saucerTier(1.16, 0.78, 0.12, -0.18, 0xb8860b),
-    ...saucerTier(0.62, 0.42, 0.10, -0.28, 0x8a6508),
-    // Hull panel seams across the rim
-    { size: [1.74, 0.05, 0.10], pos: [0, 0.02, 0], color: 0x8a6508 },
-    { size: [0.10, 0.05, 1.74], pos: [0, 0.02, 0], color: 0x8a6508 },
-    // Landing struts tucked under the rim
-    { size: [0.12, 0.20, 0.12], pos: [-0.52, -0.34, 0.52], color: 0x8a6508 },
-    { size: [0.12, 0.20, 0.12], pos: [0.52, -0.34, 0.52], color: 0x8a6508 },
-    { size: [0.12, 0.20, 0.12], pos: [-0.52, -0.34, -0.52], color: 0x8a6508 },
-    { size: [0.12, 0.20, 0.12], pos: [0.52, -0.34, -0.52], color: 0x8a6508 }
-];
-
-// Canopy tiers, kept translucent so the pilot reads through them
-const UFO_DOME = [
-    ...saucerTier(0.66, 0.46, 0.14, 0.35, 0x9ff5ff),
-    ...saucerTier(0.48, 0.34, 0.14, 0.49, 0xc8faff),
-    { size: [0.24, 0.10, 0.24], pos: [0, 0.60, 0], color: 0xe8feff }
-];
-
-// A pilot silhouette inside the canopy
-const UFO_PILOT = [
-    { size: [0.24, 0.20, 0.20], pos: [0, 0.44, 0], color: 0x86b32e },
-    { size: [0.16, 0.12, 0.14], pos: [0, 0.31, 0], color: 0x5e8020 },
-    { size: [0.05, 0.05, 0.04], pos: [-0.06, 0.47, 0.10], color: 0xff3b3b },
-    { size: [0.05, 0.05, 0.04], pos: [0.06, 0.47, 0.10], color: 0xff3b3b }
-];
-
-// Downward scan beam, hidden until a sweep fires
-const UFO_BEAM = [
-    { size: [0.30, 0.40, 0.30], pos: [0, -0.60, 0], color: 0x9ff8ff },
-    { size: [0.46, 0.40, 0.46], pos: [0, -1.00, 0], color: 0x4fc0e0 },
-    { size: [0.62, 0.40, 0.62], pos: [0, -1.40, 0], color: 0x1a5a70 }
-];
-
 const UFO_LIGHT_COUNT = 8;
-const UFO_LIGHT_RADIUS = 0.84;
-
-let ufoParts = null;
-
-function getUfoParts() {
-    if (ufoParts) return ufoParts;
-
-    // Rotating collar the running lights are mounted to
-    const ringBoxes = [];
-    for (let i = 0; i < UFO_LIGHT_COUNT; i++) {
-        const angle = (i / UFO_LIGHT_COUNT) * Math.PI * 2;
-        ringBoxes.push({
-            size: [0.30, 0.10, 0.16],
-            pos: [Math.cos(angle) * 0.74, -0.02, Math.sin(angle) * 0.74],
-            rotY: -angle,
-            color: 0x8a6508
-        });
-    }
-
-    ufoParts = {
-        hullGeometry: buildVoxelGeometry(UFO_HULL),
-        domeGeometry: buildVoxelGeometry(UFO_DOME),
-        pilotGeometry: buildVoxelGeometry(UFO_PILOT),
-        beamGeometry: buildVoxelGeometry(UFO_BEAM),
-        ringGeometry: buildVoxelGeometry(ringBoxes),
-        lightGeometry: buildVoxelGeometry([
-            { size: [0.14, 0.14, 0.14], pos: [0, 0, 0], color: 0x8ffcff }
-        ]),
-        emitterGeometry: buildVoxelGeometry([
-            { size: [0.34, 0.10, 0.34], pos: [0, -0.36, 0], color: 0x6fe8ff },
-            { size: [0.22, 0.08, 0.22], pos: [0, -0.44, 0], color: 0xc8faff }
-        ]),
-        hullMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xb8860b,
-            emissiveIntensity: 0.85,
-            shininess: 100,
-            flatShading: true
-        }),
-        ringMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x7a5a08,
-            emissiveIntensity: 0.7,
-            flatShading: true
-        }),
-        pilotMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x2e4a08,
-            emissiveIntensity: 1.1,
-            flatShading: true
-        }),
-        // Cloned per alien (and per light) so each can pulse independently
-        domeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x2ad8f0,
-            emissiveIntensity: 0.7,
-            shininess: 120,
-            flatShading: true,
-            transparent: true,
-            opacity: 0.42
-        }),
-        lightMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x00e5ff,
-            emissiveIntensity: 1.5,
-            flatShading: true
-        }),
-        beamMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x5fe0ff,
-            emissiveIntensity: 1.2,
-            transparent: true,
-            opacity: 0.0,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-            flatShading: true
-        })
-    };
-
-    return ufoParts;
-}
-
-function createUFOAlien(group) {
-    const parts = getUfoParts();
-
-    // Hull spins on its own axis so the canopy and pilot stay level
-    const hull = new THREE.Mesh(parts.hullGeometry, parts.hullMaterial);
-    hull.castShadow = true;
-    group.add(hull);
-    group.userData.hull = hull;
-
-    const dome = new THREE.Mesh(parts.domeGeometry, parts.domeMaterial.clone());
-    group.add(dome);
-    group.userData.dome = dome;
-
-    const pilot = new THREE.Mesh(parts.pilotGeometry, parts.pilotMaterial);
-    group.add(pilot);
-    group.userData.pilot = pilot;
-
-    // Light collar counter-rotates against the hull
-    const ring = new THREE.Group();
-    group.add(ring);
-    group.userData.ring = ring;
-    ring.add(new THREE.Mesh(parts.ringGeometry, parts.ringMaterial));
-
-    group.userData.lights = [];
-    for (let i = 0; i < UFO_LIGHT_COUNT; i++) {
-        const angle = (i / UFO_LIGHT_COUNT) * Math.PI * 2;
-        // Each light owns its material - a shared one would make the chase
-        // write the same intensity eight times and never actually chase
-        const light = new THREE.Mesh(parts.lightGeometry, parts.lightMaterial.clone());
-        light.position.set(
-            Math.cos(angle) * UFO_LIGHT_RADIUS,
-            -0.02,
-            Math.sin(angle) * UFO_LIGHT_RADIUS
-        );
-        ring.add(light);
-        group.userData.lights.push(light);
-    }
-
-    const emitter = new THREE.Mesh(parts.emitterGeometry, parts.domeMaterial.clone());
-    group.add(emitter);
-    group.userData.emitter = emitter;
-
-    const beam = new THREE.Mesh(parts.beamGeometry, parts.beamMaterial.clone());
-    beam.visible = false;
-    group.add(beam);
-    group.userData.beam = beam;
-}
-
-// ---------------------------------------------------------------------------
-// Tank (row 4) - armoured chassis with rolling treads
-// ---------------------------------------------------------------------------
-
-// Sloped and stepped armour rather than one slab
-const TANK_HULL = [
-    { size: [1.28, 0.30, 1.28], pos: [0, -0.06, 0], color: 0x1fb8c4 },       // lower hull
-    { size: [1.08, 0.22, 1.02], pos: [0, 0.20, 0], color: 0x2ad4e0 },        // upper deck
-    { size: [1.04, 0.34, 0.12], pos: [0, 0.10, 0.60], rotX: -0.60, color: 0x2ad4e0 },  // glacis
-    { size: [0.98, 0.26, 0.12], pos: [0, 0.12, -0.60], rotX: 0.40, color: 0x0d6b78 },  // rear plate
-    // Side skirts armouring the treads, with fenders over the top
-    { size: [0.10, 0.18, 1.22], pos: [-0.70, 0.09, 0], color: 0x0d6b78 },
-    { size: [0.10, 0.18, 1.22], pos: [0.70, 0.09, 0], color: 0x0d6b78 },
-    { size: [0.26, 0.06, 1.34], pos: [-0.62, 0.20, 0], color: 0x1fb8c4 },
-    { size: [0.26, 0.06, 1.34], pos: [0.62, 0.20, 0], color: 0x1fb8c4 },
-    // Bolt heads across the glacis
-    { size: [0.08, 0.08, 0.08], pos: [-0.36, 0.22, 0.56], color: 0x0a4a55 },
-    { size: [0.08, 0.08, 0.08], pos: [0.36, 0.22, 0.56], color: 0x0a4a55 },
-    { size: [0.08, 0.08, 0.08], pos: [-0.36, -0.06, 0.66], color: 0x0a4a55 },
-    { size: [0.08, 0.08, 0.08], pos: [0.36, -0.06, 0.66], color: 0x0a4a55 },
-    // Exhaust stacks at the rear deck
-    { size: [0.11, 0.20, 0.11], pos: [-0.34, 0.32, -0.42], color: 0x0a4a55 },
-    { size: [0.11, 0.20, 0.11], pos: [0.34, 0.32, -0.42], color: 0x0a4a55 },
-    // Stowage box
-    { size: [0.44, 0.14, 0.20], pos: [0, 0.28, -0.44], color: 0x0d6b78 },
-    // Bogie frames the track belts ride around
-    { size: [0.16, 0.24, 0.92], pos: [-0.58, -0.20, 0], color: 0x0a4a55 },
-    { size: [0.16, 0.24, 0.92], pos: [0.58, -0.20, 0], color: 0x0a4a55 }
-];
-
-// Turret yaws as one piece, so it is built in its own local space
-const TANK_TURRET = [
-    { size: [0.64, 0.09, 0.64], pos: [0, 0.34, 0], color: 0x0d6b78 },        // turret ring
-    { size: [0.72, 0.26, 0.78], pos: [0, 0.50, 0.02], color: 0x2ad4e0 },
-    { size: [0.60, 0.30, 0.12], pos: [0, 0.48, 0.42], rotX: -0.50, color: 0x2ad4e0 },  // sloped face
-    { size: [0.48, 0.08, 0.54], pos: [0, 0.66, 0.02], color: 0x37e4f0 },     // roof
-    { size: [0.32, 0.24, 0.18], pos: [0, 0.46, 0.44], color: 0x0d6b78 },     // mantlet
-    { size: [0.22, 0.13, 0.22], pos: [0.15, 0.74, -0.10], color: 0x1fb8c4 }, // cupola
-    { size: [0.07, 0.16, 0.07], pos: [-0.20, 0.76, -0.24], color: 0x0a4a55 } // radar mast
-];
-
-// Energy coils - the tank's glowing accent, charging between shots
-const TANK_COILS = [
-    { size: [0.90, 0.06, 0.09], pos: [0, 0.32, 0.44], color: 0x7ff8ff },
-    { size: [0.09, 0.06, 0.60], pos: [-0.50, 0.24, -0.10], color: 0x7ff8ff },
-    { size: [0.09, 0.06, 0.60], pos: [0.50, 0.24, -0.10], color: 0x7ff8ff },
-    { size: [0.10, 0.09, 0.10], pos: [-0.34, 0.43, -0.42], color: 0xc8feff },
-    { size: [0.10, 0.09, 0.10], pos: [0.34, 0.43, -0.42], color: 0xc8feff }
-];
-
 const TANK_TREAD_X = 0.58;
 const TANK_TREAD_PLATES = 14;
 const TANK_WHEEL_Z = [-0.40, 0, 0.40];
@@ -1156,8 +396,9 @@ const TANK_WHEEL_SIZE = 0.26;
 const TANK_TREAD_RUN = 0.80;
 const TANK_TREAD_RADIUS = 0.20;
 
-// Position along the tread loop, 0..1, returning the local Y/Z and the angle
-// the plate should sit at
+// ---------------------------------------------------------------------------
+// Helper: tread point along tank tread loop
+// ---------------------------------------------------------------------------
 function treadPointAt(u) {
     const run = TANK_TREAD_RUN;
     const r = TANK_TREAD_RADIUS;
@@ -1183,2409 +424,9 @@ function treadPointAt(u) {
     return { y: r * Math.cos(t), z: -half - r * Math.sin(t), angle: Math.PI + t };
 }
 
-let tankParts = null;
-
-function getTankParts() {
-    if (tankParts) return tankParts;
-
-    tankParts = {
-        hullGeometry: buildVoxelGeometry(TANK_HULL),
-        turretGeometry: buildVoxelGeometry(TANK_TURRET),
-        coilGeometry: buildVoxelGeometry(TANK_COILS),
-        // Barrel runs forward from its breech so recoil is a slide along Z
-        barrelGeometry: buildVoxelGeometry([
-            { size: [0.13, 0.13, 0.64], pos: [0, 0, 0.32], color: 0x1fb8c4 },
-            { size: [0.17, 0.17, 0.09], pos: [0, 0, 0.30], color: 0x0a4a55 },
-            { size: [0.19, 0.19, 0.15], pos: [0, 0, 0.68], color: 0x0d6b78 }   // muzzle brake
-        ]),
-        muzzleGeometry: buildVoxelGeometry([
-            { size: [0.26, 0.26, 0.10], pos: [0, 0, 0], color: 0xd8ffff },
-            { size: [0.14, 0.14, 0.22], pos: [0, 0, 0.08], color: 0x9ff4ff }
-        ]),
-        dishGeometry: buildVoxelGeometry([
-            { size: [0.26, 0.05, 0.20], pos: [0, 0, 0.04], color: 0x37e4f0 },
-            { size: [0.06, 0.05, 0.06], pos: [0, 0, -0.06], color: 0x0a4a55 }
-        ]),
-        // Contrasting spokes make the wheel rotation legible
-        wheelGeometry: buildVoxelGeometry([
-            { size: [0.08, TANK_WHEEL_SIZE, TANK_WHEEL_SIZE], pos: [0, 0, 0], color: 0x0d6b78 },
-            { size: [0.09, TANK_WHEEL_SIZE, 0.06], pos: [0, 0, 0], color: 0x37e4f0 },
-            { size: [0.09, 0.06, TANK_WHEEL_SIZE], pos: [0, 0, 0], color: 0x37e4f0 }
-        ]),
-        plateGeometry: buildVoxelGeometry([
-            { size: [0.30, 0.07, 0.19], pos: [0, 0, 0], color: 0x14555f },
-            { size: [0.32, 0.04, 0.07], pos: [0, 0.03, 0], color: 0x2a8a99 }
-        ]),
-        armourMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x0a5a66,
-            emissiveIntensity: 0.9,
-            shininess: 60,
-            flatShading: true
-        }),
-        treadMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x062a33,
-            emissiveIntensity: 0.5,
-            flatShading: true
-        }),
-        // Cloned per alien so charge and muzzle flash run on each tank's own clock
-        coilMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x00e5ff,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        }),
-        muzzleMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x9ff4ff,
-            emissiveIntensity: 1.8,
-            transparent: true,
-            opacity: 0.0,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-            flatShading: true
-        })
-    };
-
-    return tankParts;
-}
-
-function createTankAlien(group) {
-    const parts = getTankParts();
-
-    const hull = new THREE.Mesh(parts.hullGeometry, parts.armourMaterial);
-    hull.castShadow = true;
-    group.add(hull);
-    group.userData.hull = hull;
-
-    const coils = new THREE.Mesh(parts.coilGeometry, parts.coilMaterial.clone());
-    group.add(coils);
-    group.userData.coils = coils;
-
-    // Turret assembly yaws to track the player
-    const turret = new THREE.Group();
-    group.add(turret);
-    group.userData.turret = turret;
-    turret.add(new THREE.Mesh(parts.turretGeometry, parts.armourMaterial));
-
-    // Sweeping radar dish on the turret rear
-    const dish = new THREE.Mesh(parts.dishGeometry, parts.armourMaterial);
-    dish.position.set(-0.20, 0.86, -0.24);
-    turret.add(dish);
-    group.userData.dish = dish;
-
-    // Barrel slides back into the mantlet on recoil
-    const barrel = new THREE.Mesh(parts.barrelGeometry, parts.armourMaterial);
-    barrel.position.set(0, 0.46, 0.44);
-    turret.add(barrel);
-    group.userData.barrel = barrel;
-    group.userData.barrelRestZ = 0.44;
-
-    const muzzle = new THREE.Mesh(parts.muzzleGeometry, parts.muzzleMaterial.clone());
-    muzzle.position.set(0, 0, 0.80);
-    muzzle.visible = false;
-    barrel.add(muzzle);
-    group.userData.muzzle = muzzle;
-
-    // Road wheels and a loop of tread plates per side
-    group.userData.wheels = [];
-    group.userData.treadPlates = [];
-    [-1, 1].forEach(side => {
-        TANK_WHEEL_Z.forEach(z => {
-            const wheel = new THREE.Mesh(parts.wheelGeometry, parts.treadMaterial);
-            wheel.position.set(side * TANK_TREAD_X, -TANK_TREAD_RADIUS, z);
-            group.add(wheel);
-            group.userData.wheels.push(wheel);
-        });
-
-        for (let i = 0; i < TANK_TREAD_PLATES; i++) {
-            const plate = new THREE.Mesh(parts.plateGeometry, parts.treadMaterial);
-            plate.position.x = side * TANK_TREAD_X;
-            group.add(plate);
-            group.userData.treadPlates.push({ mesh: plate, offset: i / TANK_TREAD_PLATES });
-        }
-    });
-}
-
 // ---------------------------------------------------------------------------
-// Beetle (row 5) - armoured shell that opens into flight
+// Animate all aliens
 // ---------------------------------------------------------------------------
-
-// Body under the wing cases: dark, only fully seen when the elytra lift
-const BEETLE_BODY = [
-    { size: [1.00, 0.34, 0.90], pos: [0, 0.02, -0.18], color: 0x6b3200 },   // abdomen
-    { size: [0.86, 0.14, 0.86], pos: [0, 0.20, -0.18], color: 0x532600 },   // wing bed
-    { size: [0.80, 0.28, 0.44], pos: [0, 0.16, 0.42], color: 0xff8f14 },    // pronotum shield
-    { size: [0.86, 0.10, 0.14], pos: [0, 0.26, 0.30], color: 0xa34e00 },    // pronotum lip
-    { size: [0.30, 0.12, 0.16], pos: [-0.34, 0.06, 0.36], color: 0xa34e00 },
-    { size: [0.30, 0.12, 0.16], pos: [0.34, 0.06, 0.36], color: 0xa34e00 }
-];
-
-// Head carries the rhinoceros horn - the beetle's signature silhouette
-const BEETLE_HEAD = [
-    { size: [0.46, 0.26, 0.34], pos: [0, 0.02, 0.16], color: 0xd96a00 },
-    { size: [0.34, 0.12, 0.12], pos: [0, -0.10, 0.32], color: 0xa34e00 },   // clypeus
-    // Horn curving up and forward
-    { size: [0.13, 0.26, 0.13], pos: [0, 0.22, 0.22], rotX: -0.30, color: 0xffa838 },
-    { size: [0.12, 0.22, 0.12], pos: [0, 0.40, 0.31], rotX: -0.75, color: 0xffa838 },
-    { size: [0.10, 0.18, 0.10], pos: [0, 0.51, 0.44], rotX: -1.15, color: 0xffc86a },
-    // Compound eyes
-    { size: [0.14, 0.14, 0.12], pos: [-0.22, 0.06, 0.26], color: 0x3cff3c },
-    { size: [0.14, 0.14, 0.12], pos: [0.22, 0.06, 0.26], color: 0x3cff3c }
-];
-
-// One wing case, hinged at the spine so it lifts outward
-const BEETLE_ELYTRON = [
-    { size: [0.44, 0.16, 0.92], pos: [-0.24, 0.00, -0.16], color: 0xff8f14 },
-    { size: [0.36, 0.12, 0.78], pos: [-0.21, 0.11, -0.18], color: 0xffa838 },
-    { size: [0.10, 0.06, 0.80], pos: [-0.40, 0.06, -0.16], color: 0xa34e00 },  // outer rib
-    { size: [0.07, 0.05, 0.68], pos: [-0.14, 0.16, -0.18], color: 0xa34e00 },  // inner stripe
-    { size: [0.30, 0.10, 0.14], pos: [-0.22, 0.02, -0.60], color: 0xd96a00 }   // tail taper
-];
-
-// Flight wing, revealed and blurred when the elytra open
-const BEETLE_WING = [
-    { size: [0.86, 0.05, 0.94], pos: [-0.50, 0, -0.22], color: 0xffe2b0 },
-    { size: [0.62, 0.05, 0.34], pos: [-0.42, 0, -0.74], color: 0xffd9a0 },
-    { size: [0.07, 0.06, 0.96], pos: [-0.06, 0, -0.22], color: 0xd9a860 }      // leading spar
-];
-
-// Web-bomb sac slung under the abdomen, charging between shots
-const BEETLE_SAC = [
-    { size: [0.38, 0.18, 0.32], pos: [0, -0.18, -0.46], color: 0xc8ff4a },
-    { size: [0.20, 0.12, 0.16], pos: [0, -0.26, -0.62], color: 0xe8ff9a }
-];
-
-// Club-tipped antenna, built as one piece extending forward from its origin
-const BEETLE_ANTENNA = [
-    { size: [0.07, 0.07, 0.26], pos: [0, 0, 0.13], color: 0xa34e00 },
-    { size: [0.09, 0.09, 0.18], pos: [0, 0.04, 0.32], color: 0xcc6600 },
-    { size: [0.15, 0.13, 0.14], pos: [0, 0.09, 0.46], color: 0xffe14a }        // club
-];
-
-const BEETLE_LEG_SEGMENTS = [
-    { length: 0.26, width: 0.10, baseBend: 0.90 },   // femur, out from the body
-    { length: 0.24, width: 0.08, baseBend: -1.30 },  // tibia, down
-    { length: 0.14, width: 0.06, baseBend: -0.35 }   // tarsus
-];
-
-const BEETLE_LEG_MOUNTS = [
-    { side: -1, z: 0.30, phase: 0 },
-    { side: -1, z: 0.00, phase: Math.PI },
-    { side: -1, z: -0.30, phase: 0 },
-    { side: 1, z: 0.30, phase: Math.PI },
-    { side: 1, z: 0.00, phase: 0 },
-    { side: 1, z: -0.30, phase: Math.PI }
-];
-
-let beetleParts = null;
-
-function getBeetleParts() {
-    if (beetleParts) return beetleParts;
-
-    beetleParts = {
-        bodyGeometry: buildVoxelGeometry(BEETLE_BODY),
-        headGeometry: buildVoxelGeometry(BEETLE_HEAD),
-        elytronGeometries: {
-            '-1': buildVoxelGeometry(BEETLE_ELYTRON),
-            '1': buildVoxelGeometry(mirrorBoxes(BEETLE_ELYTRON))
-        },
-        wingGeometries: {
-            '-1': buildVoxelGeometry(BEETLE_WING),
-            '1': buildVoxelGeometry(mirrorBoxes(BEETLE_WING))
-        },
-        sacGeometry: buildVoxelGeometry(BEETLE_SAC),
-        antennaGeometry: buildVoxelGeometry(BEETLE_ANTENNA),
-        legGeometries: BEETLE_LEG_SEGMENTS.map(s => buildLimbSegmentGeometry(s, 0xcc6600, 0x7a3c00)),
-        shellMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x8a4400,
-            emissiveIntensity: 1.0,
-            shininess: 80,
-            flatShading: true
-        }),
-        limbMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x7a3c00,
-            emissiveIntensity: 1.0,
-            flatShading: true
-        }),
-        // Cloned per alien so each beetle runs its own flight and charge cycle
-        wingMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xffd9a0,
-            emissiveIntensity: 0.8,
-            transparent: true,
-            opacity: 0.34,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-            flatShading: true
-        }),
-        sacMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x9de026,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        })
-    };
-
-    return beetleParts;
-}
-
-function createBeetleAlien(group) {
-    const parts = getBeetleParts();
-
-    const body = new THREE.Mesh(parts.bodyGeometry, parts.shellMaterial);
-    body.castShadow = true;
-    group.add(body);
-    group.userData.body = body;
-
-    const head = new THREE.Mesh(parts.headGeometry, parts.shellMaterial);
-    head.position.set(0, 0.10, 0.66);
-    group.add(head);
-    group.userData.head = head;
-
-    const sac = new THREE.Mesh(parts.sacGeometry, parts.sacMaterial.clone());
-    group.add(sac);
-    group.userData.sac = sac;
-
-    // Club-tipped antennae sweeping forward from the head
-    group.userData.antennae = [-1, 1].map(side => {
-        const antenna = new THREE.Mesh(parts.antennaGeometry, parts.limbMaterial);
-        antenna.position.set(side * 0.16, 0.10, 0.28);
-        antenna.rotation.y = side * 0.45;
-        antenna.rotation.x = -0.25;
-        antenna.userData.baseYaw = side * 0.45;
-        head.add(antenna);
-        return { mesh: antenna, side };
-    });
-
-    // Elytra hinge at the spine; wings sit underneath them
-    group.userData.elytra = [];
-    group.userData.wings = [];
-    [-1, 1].forEach(side => {
-        const elytron = new THREE.Mesh(parts.elytronGeometries[side], parts.shellMaterial);
-        elytron.position.set(side * 0.05, 0.28, 0);
-        elytron.castShadow = true;
-        group.add(elytron);
-        group.userData.elytra.push({ mesh: elytron, side });
-
-        const wing = new THREE.Mesh(parts.wingGeometries[side], parts.wingMaterial.clone());
-        wing.position.set(side * 0.05, 0.17, 0);
-        wing.visible = false;
-        group.add(wing);
-        group.userData.wings.push({ mesh: wing, side });
-    });
-
-    // Six jointed legs that tuck up in flight
-    group.userData.legs = BEETLE_LEG_MOUNTS.map(config => {
-        const mount = new THREE.Group();
-        mount.position.set(config.side * 0.46, -0.10, config.z);
-        // Local +X points outward on both sides
-        mount.rotation.y = config.side > 0 ? 0 : Math.PI;
-        group.add(mount);
-
-        const segments = buildLimbChain(mount, parts.legGeometries, BEETLE_LEG_SEGMENTS, parts.limbMaterial, -1);
-
-        return { mount, segments, phase: config.phase, side: config.side };
-    });
-}
-
-
-// ---------------------------------------------------------------------------
-// Wasp (row 8) - striped voxel insect with a wingstorm cycle
-// ---------------------------------------------------------------------------
-
-const WASP_DARK = 0x1c100d;
-const WASP_RECESS = 0x24150d;
-const WASP_SHADE = 0x65300f;
-const WASP_AMBER = 0xc8620d;
-const WASP_GOLD = 0xffad28;
-const WASP_HOT = 0xffdf70;
-const WASP_EYE = 0xffe05b;
-const WASP_WING_COLOR = 0xa5e7f0;
-
-const WASP_THORAX = [
-    { size: [0.72, 0.28, 0.50], pos: [0, 0.10, 0.08], color: WASP_SHADE },
-    { size: [0.88, 0.20, 0.42], pos: [0, -0.04, 0.02], color: WASP_AMBER },
-    { size: [0.62, 0.14, 0.34], pos: [0, 0.30, 0.00], color: WASP_GOLD },
-    { size: [0.24, 0.08, 0.46], pos: [0, 0.38, -0.02], color: WASP_DARK },
-    { size: [0.20, 0.22, 0.30], pos: [-0.48, 0.08, 0.00], color: WASP_SHADE },
-    { size: [0.20, 0.22, 0.30], pos: [0.48, 0.08, 0.00], color: WASP_SHADE },
-    { size: [0.10, 0.10, 0.20], pos: [-0.56, 0.24, 0.08], color: WASP_GOLD },
-    { size: [0.10, 0.10, 0.20], pos: [0.56, 0.24, 0.08], color: WASP_GOLD },
-    { size: [0.12, 0.06, 0.28], pos: [0, -0.22, 0.12], color: WASP_DARK },
-    { size: [0.20, 0.06, 0.16], pos: [0, 0.16, 0.34], color: WASP_RECESS }
-];
-
-// Thin coloured plates make the amber/black warning stripes survive the
-// formation camera and bloom.
-const WASP_ABDOMEN = [
-    { size: [0.56, 0.40, 0.72], pos: [0, 0.04, -0.34], color: WASP_DARK },
-    { size: [0.62, 0.08, 0.16], pos: [0, 0.18, -0.08], color: WASP_GOLD },
-    { size: [0.62, 0.07, 0.16], pos: [0, 0.17, -0.28], color: WASP_DARK },
-    { size: [0.58, 0.08, 0.16], pos: [0, 0.16, -0.48], color: WASP_AMBER },
-    { size: [0.52, 0.06, 0.16], pos: [0, 0.14, -0.66], color: WASP_DARK },
-    { size: [0.42, 0.10, 0.38], pos: [0, 0.06, -0.75], color: WASP_SHADE },
-    { size: [0.14, 0.07, 0.70], pos: [0, 0.26, -0.36], color: WASP_HOT },
-    { size: [0.08, 0.08, 0.18], pos: [-0.34, 0.06, -0.26], color: WASP_AMBER },
-    { size: [0.08, 0.08, 0.18], pos: [0.34, 0.06, -0.26], color: WASP_AMBER }
-];
-
-const WASP_FACE = [
-    { size: [0.48, 0.24, 0.16], pos: [0, 0.10, 0.38], color: WASP_RECESS },
-    { size: [0.34, 0.12, 0.10], pos: [0, 0.24, 0.42], color: WASP_DARK },
-    { size: [0.14, 0.10, 0.12], pos: [-0.28, 0.12, 0.30], color: WASP_SHADE },
-    { size: [0.14, 0.10, 0.12], pos: [0.28, 0.12, 0.30], color: WASP_SHADE },
-    { size: [0.08, 0.08, 0.16], pos: [-0.12, -0.10, 0.38], color: WASP_DARK },
-    { size: [0.08, 0.08, 0.16], pos: [0.12, -0.10, 0.38], color: WASP_DARK }
-];
-
-const WASP_EYES = [
-    { size: [0.20, 0.18, 0.08], pos: [-0.23, 0.13, 0.48], color: WASP_EYE },
-    { size: [0.20, 0.18, 0.08], pos: [0.23, 0.13, 0.48], color: WASP_EYE },
-    { size: [0.06, 0.08, 0.04], pos: [-0.23, 0.13, 0.53], color: WASP_HOT },
-    { size: [0.06, 0.08, 0.04], pos: [0.23, 0.13, 0.53], color: WASP_HOT }
-];
-
-// One side of each angular wing. The second side is mirrored to keep normals
-// and lighting correct, just like the Beetle elytra and Invader shoulders.
-const WASP_WING = [
-    { size: [0.30, 0.035, 0.42], pos: [-0.18, 0.20, 0.00], rotZ: -0.18, color: WASP_WING_COLOR },
-    { size: [0.36, 0.035, 0.34], pos: [-0.48, 0.29, -0.04], rotZ: -0.38, color: WASP_WING_COLOR },
-    { size: [0.28, 0.035, 0.26], pos: [-0.78, 0.42, -0.08], rotZ: -0.56, color: WASP_WING_COLOR }
-];
-
-const WASP_WING_EDGES = [
-    { size: [0.06, 0.045, 0.34], pos: [-0.28, 0.24, 0.18], rotZ: -0.18, color: WASP_HOT },
-    { size: [0.06, 0.045, 0.28], pos: [-0.59, 0.34, 0.11], rotZ: -0.38, color: WASP_HOT },
-    { size: [0.05, 0.045, 0.20], pos: [-0.84, 0.46, 0.05], rotZ: -0.56, color: WASP_GOLD }
-];
-
-const WASP_MANDIBLES = [
-    { size: [0.12, 0.08, 0.22], pos: [-0.16, -0.04, 0.52], rotX: -0.22, color: WASP_GOLD },
-    { size: [0.08, 0.06, 0.16], pos: [-0.20, -0.12, 0.68], rotX: -0.40, color: WASP_SHADE }
-];
-
-const WASP_STINGER = [
-    { size: [0.20, 0.20, 0.22], pos: [0, 0.00, -0.18], color: WASP_SHADE },
-    { size: [0.12, 0.12, 0.24], pos: [0, 0.00, -0.38], color: WASP_GOLD },
-    { size: [0.05, 0.05, 0.24], pos: [0, 0.00, -0.58], color: WASP_HOT }
-];
-
-const WASP_LEG_SEGMENTS = [
-    { length: 0.24, width: 0.10, baseBend: 0.88 },
-    { length: 0.20, width: 0.08, baseBend: -1.25 },
-    { length: 0.12, width: 0.06, baseBend: -0.28 }
-];
-
-const WASP_LEG_MOUNTS = [
-    { side: -1, z: 0.22, phase: 0 },
-    { side: -1, z: 0.00, phase: Math.PI },
-    { side: -1, z: -0.22, phase: 0 },
-    { side: 1, z: 0.22, phase: Math.PI },
-    { side: 1, z: 0.00, phase: 0 },
-    { side: 1, z: -0.22, phase: Math.PI }
-];
-
-let waspParts = null;
-
-function getWaspParts() {
-    if (waspParts) return waspParts;
-
-    waspParts = {
-        thoraxGeometry: buildVoxelGeometry(WASP_THORAX),
-        abdomenGeometry: buildVoxelGeometry(WASP_ABDOMEN),
-        faceGeometry: buildVoxelGeometry(WASP_FACE),
-        eyeGeometry: buildVoxelGeometry(WASP_EYES),
-        wingGeometries: {
-            '-1': buildVoxelGeometry(WASP_WING),
-            '1': buildVoxelGeometry(mirrorBoxes(WASP_WING))
-        },
-        wingEdgeGeometries: {
-            '-1': buildVoxelGeometry(WASP_WING_EDGES),
-            '1': buildVoxelGeometry(mirrorBoxes(WASP_WING_EDGES))
-        },
-        mandibleGeometries: {
-            '-1': buildVoxelGeometry(WASP_MANDIBLES),
-            '1': buildVoxelGeometry(mirrorBoxes(WASP_MANDIBLES))
-        },
-        stingerGeometry: buildVoxelGeometry(WASP_STINGER),
-        legGeometries: WASP_LEG_SEGMENTS.map(segment =>
-            buildLimbSegmentGeometry(segment, WASP_AMBER, WASP_SHADE)
-        ),
-        shellMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WASP_SHADE,
-            emissiveIntensity: 0.65,
-            shininess: 45,
-            flatShading: true
-        }),
-        limbMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WASP_SHADE,
-            emissiveIntensity: 0.7,
-            flatShading: true
-        }),
-        wingMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WASP_WING_COLOR,
-            emissiveIntensity: 0.65,
-            transparent: true,
-            opacity: 0.32,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-            flatShading: true
-        }),
-        wingEdgeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WASP_HOT,
-            emissiveIntensity: 1.0,
-            flatShading: true
-        }),
-        eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WASP_EYE,
-            emissiveIntensity: 2.0,
-            flatShading: true
-        }),
-        stingerMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WASP_GOLD,
-            emissiveIntensity: 1.0,
-            flatShading: true
-        })
-    };
-
-    return waspParts;
-}
-
-function createWaspAlien(group) {
-    const parts = getWaspParts();
-    const bodyPivot = new THREE.Group();
-    group.add(bodyPivot);
-    group.userData.bodyPivot = bodyPivot;
-
-    const thorax = new THREE.Mesh(parts.thoraxGeometry, parts.shellMaterial);
-    thorax.castShadow = true;
-    bodyPivot.add(thorax);
-    group.userData.thorax = thorax;
-
-    const abdomenPivot = new THREE.Group();
-    abdomenPivot.position.set(0, 0.02, -0.24);
-    bodyPivot.add(abdomenPivot);
-    const abdomen = new THREE.Mesh(parts.abdomenGeometry, parts.shellMaterial);
-    abdomen.position.z = -0.18;
-    abdomenPivot.add(abdomen);
-    group.userData.abdomenPivot = abdomenPivot;
-    group.userData.abdomen = abdomen;
-
-    const face = new THREE.Mesh(parts.faceGeometry, parts.shellMaterial);
-    bodyPivot.add(face);
-    group.userData.face = face;
-
-    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
-    bodyPivot.add(eyes);
-    group.userData.eyes = eyes;
-
-    group.userData.mandibles = [-1, 1].map(side => {
-        const mandible = new THREE.Mesh(parts.mandibleGeometries[side], parts.limbMaterial);
-        mandible.position.x = side * 0.16;
-        bodyPivot.add(mandible);
-        return { mesh: mandible, side };
-    });
-
-    const stinger = new THREE.Mesh(parts.stingerGeometry, parts.stingerMaterial.clone());
-    stinger.position.set(0, 0.04, -0.70);
-    abdomenPivot.add(stinger);
-    group.userData.stinger = stinger;
-
-    group.userData.wings = [];
-    [-1, 1].forEach(side => {
-        [-1, 1].forEach((pair, pairIndex) => {
-            const hinge = new THREE.Group();
-            hinge.position.set(side * 0.18, 0.16 - pairIndex * 0.08, 0.04 - pairIndex * 0.18);
-            bodyPivot.add(hinge);
-
-            const wing = new THREE.Mesh(parts.wingGeometries[side], parts.wingMaterial.clone());
-            hinge.add(wing);
-
-            const edge = new THREE.Mesh(parts.wingEdgeGeometries[side], parts.wingEdgeMaterial.clone());
-            hinge.add(edge);
-
-            group.userData.wings.push({ hinge, wing, edge, side, pair: pairIndex });
-        });
-    });
-
-    group.userData.legs = WASP_LEG_MOUNTS.map(config => {
-        const mount = new THREE.Group();
-        mount.position.set(config.side * 0.46, -0.10, config.z);
-        mount.rotation.y = config.side > 0 ? 0 : Math.PI;
-        bodyPivot.add(mount);
-
-        const segments = buildLimbChain(
-            mount,
-            parts.legGeometries,
-            WASP_LEG_SEGMENTS,
-            parts.limbMaterial,
-            -1
-        );
-
-        return { mount, segments, phase: config.phase, side: config.side };
-    });
-}
-
-// ---------------------------------------------------------------------------
-// Invader (row 6) - the 1-bit arcade homage, sculpted but deliberately crisp
-// ---------------------------------------------------------------------------
-
-// This row is the homage row, so form comes from stacked bevels and hard
-// shadow steps rather than from hue. The ramp is a cool blue-grey rather than
-// neutral white: at a glance it still reads as the white/silver row, but a
-// near-white ramp (fff -> eaeaea -> cccccc) spans too little value for the
-// bevels to survive bloom, so the sculpt flattened into one mass. These steps
-// are spread much wider and tinted, which is what actually makes the form
-// legible. Red stays reserved for the blaster, cyan for the optics.
-const INVADER_WHITE = 0xf8fbff;   // highlight - bevel tops catching the light
-const INVADER_PLATE = 0xdfe9f6;   // main armour plate
-const INVADER_TRIM = 0xb2c1d4;    // edge trim and secondary panels
-const INVADER_SHADE = 0x7d8da5;   // shadow step under an overhang
-const INVADER_RECESS = 0x3d4860;  // sockets and seams only
-
-// Centre column of the hull - straddles x=0, so it is never mirrored
-const INVADER_HULL_CORE = [
-    { size: [0.44, 0.12, 0.36], pos: [0, 0.62, -0.02], color: INVADER_WHITE },  // crown cap
-    { size: [0.64, 0.16, 0.46], pos: [0, 0.50, -0.02], color: INVADER_PLATE },
-    { size: [0.92, 0.20, 0.58], pos: [0, 0.33, 0.00], color: INVADER_PLATE },   // head
-    { size: [0.84, 0.05, 0.50], pos: [0, 0.45, 0.00], color: INVADER_WHITE },   // head bevel
-    { size: [1.00, 0.09, 0.12], pos: [0, 0.21, 0.31], color: INVADER_SHADE },   // brow band
-    { size: [1.14, 0.26, 0.68], pos: [0, 0.06, 0.00], color: INVADER_PLATE },   // chest
-    { size: [1.06, 0.05, 0.60], pos: [0, 0.21, 0.00], color: INVADER_WHITE },   // chest bevel
-    { size: [1.22, 0.20, 0.72], pos: [0, -0.16, 0.00], color: INVADER_PLATE },  // belly, widest tier
-    { size: [1.10, 0.06, 0.64], pos: [0, -0.28, 0.00], color: INVADER_SHADE },  // under-lip
-    { size: [0.78, 0.16, 0.52], pos: [0, -0.38, 0.00], color: INVADER_PLATE },  // pelvis
-    { size: [0.66, 0.06, 0.44], pos: [0, -0.47, 0.00], color: INVADER_TRIM },
-    // Front-face detail: a centre seam and a stepped grille
-    { size: [0.07, 0.44, 0.06], pos: [0, 0.14, 0.37], color: INVADER_SHADE },
-    { size: [0.34, 0.07, 0.08], pos: [0, -0.06, 0.37], color: INVADER_RECESS },
-    { size: [0.26, 0.06, 0.08], pos: [0, -0.16, 0.37], color: INVADER_RECESS },
-    // Cannon housing the barrel slides into
-    { size: [0.34, 0.24, 0.26], pos: [0, -0.22, 0.36], color: INVADER_TRIM },
-    { size: [0.38, 0.06, 0.22], pos: [0, -0.09, 0.36], color: INVADER_WHITE }
-];
-
-// One half of the hull. mirrorBoxes() builds the other, so the two sides are
-// exact - symmetry carries this silhouette more than any other model's.
-const INVADER_HULL_SIDE = [
-    { size: [0.16, 0.26, 0.30], pos: [-0.44, 0.30, 0.16], color: INVADER_PLATE },   // cheek
-    { size: [0.30, 0.24, 0.12], pos: [-0.26, 0.15, 0.32], color: INVADER_RECESS },  // eye socket
-    { size: [0.34, 0.06, 0.16], pos: [-0.26, 0.29, 0.32], color: INVADER_TRIM },    // socket hood
-    { size: [0.24, 0.22, 0.44], pos: [-0.60, 0.10, 0.00], color: INVADER_PLATE },   // shoulder pad
-    { size: [0.20, 0.05, 0.38], pos: [-0.60, 0.22, 0.00], color: INVADER_WHITE },   // shoulder bevel
-    { size: [0.22, 0.06, 0.10], pos: [-0.60, -0.02, 0.00], color: INVADER_SHADE },  // shoulder shadow
-    { size: [0.08, 0.08, 0.08], pos: [-0.42, -0.16, 0.38], color: INVADER_SHADE },  // rivet
-    { size: [0.08, 0.08, 0.08], pos: [-0.42, 0.06, 0.36], color: INVADER_SHADE },
-    { size: [0.20, 0.14, 0.34], pos: [-0.42, -0.42, 0.00], color: INVADER_SHADE }   // hip block
-];
-
-// Both optics in one mesh, so a blink scales them together. Built around y=0
-// and lifted by INVADER_EYE_Y at mount time, so the squash closes the eyes in
-// place instead of sliding them down toward the group origin.
-const INVADER_EYE_Y = 0.15;
-const INVADER_EYE_HALF = [
-    { size: [0.22, 0.14, 0.10], pos: [-0.26, 0, 0.37], color: 0x00ffff },
-    { size: [0.10, 0.07, 0.06], pos: [-0.26, 0, 0.41], color: 0xd8ffff }
-];
-
-// Antenna: a stepped pixel stalk leaning outward from its base
-const INVADER_ANTENNA = [
-    { size: [0.10, 0.16, 0.10], pos: [0.00, 0.08, 0], color: INVADER_TRIM },
-    { size: [0.08, 0.14, 0.08], pos: [-0.05, 0.21, 0], color: INVADER_PLATE },
-    { size: [0.08, 0.12, 0.08], pos: [-0.10, 0.32, 0], color: INVADER_WHITE }
-];
-const INVADER_ANTENNA_PIP = [-0.13, 0.40, 0];
-
-// Arm, built extending along -X from its shoulder joint so it can swing
-const INVADER_ARM = [
-    { size: [0.22, 0.20, 0.34], pos: [-0.11, 0.00, 0], color: INVADER_PLATE },
-    { size: [0.24, 0.05, 0.30], pos: [-0.11, 0.10, 0], color: INVADER_WHITE },
-    { size: [0.20, 0.06, 0.32], pos: [-0.11, -0.10, 0], color: INVADER_SHADE },
-    { size: [0.16, 0.26, 0.26], pos: [-0.24, 0.14, 0], color: INVADER_PLATE },   // forearm
-    { size: [0.16, 0.05, 0.22], pos: [-0.24, 0.26, 0], color: INVADER_WHITE },
-    { size: [0.13, 0.16, 0.18], pos: [-0.28, 0.32, 0], color: INVADER_TRIM },    // claw
-    { size: [0.09, 0.09, 0.09], pos: [-0.28, 0.43, 0], color: INVADER_WHITE }
-];
-
-// Blaster coils - the one accent colour, matching the red bolt it fires
-const INVADER_COILS = [
-    { size: [0.30, 0.06, 0.08], pos: [0, -0.09, 0.44], color: 0xff6a6a },
-    { size: [0.09, 0.06, 0.26], pos: [-0.40, -0.14, 0.18], color: 0xff6a6a },
-    { size: [0.09, 0.06, 0.26], pos: [0.40, -0.14, 0.18], color: 0xff6a6a },
-    { size: [0.12, 0.05, 0.12], pos: [0, -0.35, 0.28], color: 0xffb0b0 }
-];
-
-// Straight pixel legs - no splay, because the crisp vertical stance is the
-// silhouette. All the march lives in fore/aft rotation.
-const INVADER_LEG_SEGMENTS = [
-    { length: 0.15, width: 0.16, baseBend: 0 },   // thigh
-    { length: 0.15, width: 0.13, baseBend: 0 }    // shin
-];
-
-const INVADER_LEG_X = 0.30;
-const INVADER_LEG_Y = -0.42;
-
-let invaderParts = null;
-
-function getInvaderParts() {
-    if (invaderParts) return invaderParts;
-
-    invaderParts = {
-        hullGeometry: buildVoxelGeometry([
-            ...INVADER_HULL_CORE,
-            ...INVADER_HULL_SIDE,
-            ...mirrorBoxes(INVADER_HULL_SIDE)
-        ]),
-        eyeGeometry: buildVoxelGeometry([
-            ...INVADER_EYE_HALF,
-            ...mirrorBoxes(INVADER_EYE_HALF)
-        ]),
-        antennaGeometries: {
-            '-1': buildVoxelGeometry(INVADER_ANTENNA),
-            '1': buildVoxelGeometry(mirrorBoxes(INVADER_ANTENNA))
-        },
-        armGeometries: {
-            '-1': buildVoxelGeometry(INVADER_ARM),
-            '1': buildVoxelGeometry(mirrorBoxes(INVADER_ARM))
-        },
-        coilGeometry: buildVoxelGeometry(INVADER_COILS),
-        pipGeometry: buildVoxelGeometry([
-            { size: [0.11, 0.11, 0.11], pos: [0, 0, 0], color: 0x9ffcff }
-        ]),
-        // Barrel runs forward from its breech, so recoil is a slide along Z
-        barrelGeometry: buildVoxelGeometry([
-            { size: [0.25, 0.25, 0.08], pos: [0, 0, 0.05], color: INVADER_SHADE },
-            { size: [0.20, 0.20, 0.34], pos: [0, 0, 0.18], color: INVADER_PLATE },
-            { size: [0.28, 0.05, 0.16], pos: [0, 0.11, 0.18], color: INVADER_WHITE },  // vent fin
-            { size: [0.24, 0.24, 0.10], pos: [0, 0, 0.35], color: INVADER_TRIM },      // muzzle ring
-            { size: [0.11, 0.11, 0.08], pos: [0, 0, 0.41], color: 0xff5a5a }           // bore
-        ]),
-        muzzleGeometry: buildVoxelGeometry([
-            { size: [0.26, 0.26, 0.09], pos: [0, 0, 0], color: 0xfff3d0 },
-            { size: [0.14, 0.14, 0.22], pos: [0, 0, 0.08], color: 0xffc44a }
-        ]),
-        footGeometry: buildVoxelGeometry([
-            { size: [0.24, 0.10, 0.30], pos: [0, -0.05, 0.05], color: INVADER_PLATE },
-            { size: [0.26, 0.05, 0.32], pos: [0, -0.11, 0.05], color: INVADER_SHADE }
-        ]),
-        legGeometries: INVADER_LEG_SEGMENTS.map(s => buildLimbSegmentGeometry(s, INVADER_PLATE, INVADER_TRIM)),
-        // Emissive is added flat, on top of the vertex colours rather than
-        // through them, so a bright grey emissive floods every tier equally and
-        // erases the ramp. Tinted cool and pulled well down, so the plate
-        // colours - not the glow - carry the form.
-        plateMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x647691,
-            emissiveIntensity: 0.85,
-            shininess: 20,
-            flatShading: true
-        }),
-        limbMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x4e5d76,
-            emissiveIntensity: 0.75,
-            flatShading: true
-        }),
-        // Cloned per alien so each invader blinks and charges on its own clock
-        eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x00e5ff,
-            emissiveIntensity: 3.0,
-            flatShading: true
-        }),
-        coilMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xff3a3a,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        }),
-        muzzleMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xffc44a,
-            emissiveIntensity: 2.2,
-            transparent: true,
-            opacity: 0.0,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-            flatShading: true
-        })
-    };
-
-    return invaderParts;
-}
-
-function createInvaderAlien(group) {
-    const parts = getInvaderParts();
-    // Optics and antenna pips share one clone, so the blink reads as one system
-    const eyeMaterial = parts.eyeMaterial.clone();
-
-    const hull = new THREE.Mesh(parts.hullGeometry, parts.plateMaterial);
-    hull.castShadow = true;
-    group.add(hull);
-    group.userData.hull = hull;
-
-    const eyes = new THREE.Mesh(parts.eyeGeometry, eyeMaterial);
-    eyes.position.y = INVADER_EYE_Y;
-    group.add(eyes);
-    group.userData.eyes = eyes;
-
-    const coils = new THREE.Mesh(parts.coilGeometry, parts.coilMaterial.clone());
-    group.add(coils);
-    group.userData.coils = coils;
-
-    // Blaster barrel slides back into its housing on recoil
-    const barrel = new THREE.Mesh(parts.barrelGeometry, parts.plateMaterial);
-    barrel.position.set(0, -0.22, 0.44);
-    group.add(barrel);
-    group.userData.barrel = barrel;
-    group.userData.barrelRestZ = 0.44;
-
-    const muzzle = new THREE.Mesh(parts.muzzleGeometry, parts.muzzleMaterial.clone());
-    muzzle.position.set(0, 0, 0.48);
-    muzzle.visible = false;
-    barrel.add(muzzle);
-    group.userData.muzzle = muzzle;
-
-    // Stepped antennae with a sensor pip that blinks with the optics
-    group.userData.antennae = [-1, 1].map(side => {
-        const antenna = new THREE.Mesh(parts.antennaGeometries[side], parts.limbMaterial);
-        antenna.position.set(side * 0.22, 0.54, -0.02);
-        group.add(antenna);
-
-        const pip = new THREE.Mesh(parts.pipGeometry, eyeMaterial);
-        pip.position.set(side * INVADER_ANTENNA_PIP[0], INVADER_ANTENNA_PIP[1], INVADER_ANTENNA_PIP[2]);
-        antenna.add(pip);
-
-        return { mesh: antenna, side };
-    });
-
-    // Arms hinge at the shoulder so they can pump with the march
-    group.userData.arms = [-1, 1].map(side => {
-        const arm = new THREE.Mesh(parts.armGeometries[side], parts.plateMaterial);
-        arm.position.set(side * 0.46, 0.10, 0);
-        group.add(arm);
-        return { mesh: arm, side };
-    });
-
-    // Two straight pixel legs, jointed at the knee
-    group.userData.legs = [-1, 1].map(side => {
-        const mount = new THREE.Group();
-        mount.position.set(side * INVADER_LEG_X, INVADER_LEG_Y, 0);
-        group.add(mount);
-
-        const segments = buildLimbChain(mount, parts.legGeometries, INVADER_LEG_SEGMENTS, parts.limbMaterial, -1);
-
-        const foot = new THREE.Mesh(parts.footGeometry, parts.limbMaterial);
-        foot.position.y = -INVADER_LEG_SEGMENTS[1].length;
-        segments[1].add(foot);
-
-        return { mount, segments, foot, side };
-    });
-}
-
-// ---------------------------------------------------------------------------
-// Scorpion (row 7) - segmented arachnid with venom arc
-// ---------------------------------------------------------------------------
-
-// Body — a compact Beetle-style hero mass with a raised rear and clear front
-// shield. The silhouette is intentionally chunkier than anatomically exact.
-const SCORPION_DARK = 0x351707;
-const SCORPION_SHADE = 0x6f2d0a;
-const SCORPION_RUST = 0xb94d0d;
-const SCORPION_ORANGE = 0xe87317;
-const SCORPION_GOLD = 0xffa52b;
-const SCORPION_RECESS = 0x21100a;
-
-const SCORPION_ABDOMEN = [
-    { size: [0.88, 0.18, 0.86], pos: [0, -0.08, -0.13], color: SCORPION_DARK },
-    { size: [0.82, 0.22, 0.74], pos: [0, 0.06, -0.10], color: SCORPION_SHADE },
-    { size: [0.72, 0.12, 0.66], pos: [0, 0.19, -0.03], color: SCORPION_ORANGE },
-    { size: [0.52, 0.07, 0.54], pos: [0, 0.29, 0.03], color: SCORPION_GOLD },
-    { size: [0.10, 0.06, 0.70], pos: [0, 0.33, -0.08], color: SCORPION_RUST },
-    { size: [0.12, 0.05, 0.12], pos: [-0.42, 0.04, -0.22], color: SCORPION_RUST },
-    { size: [0.12, 0.05, 0.12], pos: [0.42, 0.04, -0.22], color: SCORPION_RUST },
-];
-
-const SCORPION_CEPHALOTHORAX = [
-    { size: [0.74, 0.20, 0.34], pos: [0, 0.04, 0.34], color: SCORPION_SHADE },
-    { size: [0.62, 0.10, 0.26], pos: [0, 0.18, 0.39], color: SCORPION_ORANGE },
-    { size: [0.82, 0.08, 0.18], pos: [0, -0.04, 0.46], color: SCORPION_DARK },
-    { size: [0.22, 0.14, 0.24], pos: [-0.46, 0.03, 0.25], color: SCORPION_RUST },
-    { size: [0.22, 0.14, 0.24], pos: [0.46, 0.03, 0.25], color: SCORPION_RUST },
-    { size: [0.12, 0.08, 0.18], pos: [-0.59, -0.05, 0.28], color: SCORPION_SHADE },
-    { size: [0.12, 0.08, 0.18], pos: [0.59, -0.05, 0.28], color: SCORPION_SHADE },
-    { size: [0.42, 0.05, 0.08], pos: [0, 0.22, 0.46], color: SCORPION_GOLD },
-];
-
-// Head — one dark eye band and two bright readable lenses.
-const SCORPION_HEAD = [
-    { size: [0.48, 0.12, 0.10], pos: [0, 0.06, 0.48], color: SCORPION_RECESS },
-    { size: [0.14, 0.08, 0.06], pos: [-0.18, 0.08, 0.54], color: SCORPION_GOLD },
-    { size: [0.14, 0.08, 0.06], pos: [0.18, 0.08, 0.54], color: SCORPION_GOLD },
-    { size: [0.22, 0.06, 0.10], pos: [0, -0.02, 0.50], color: SCORPION_DARK },
-];
-
-// Tail segments — the signature S-curve, built as a chain of 5 tapered segments
-// that extend upward from their joint, each one bending slightly to form the
-// arc. Origin of each segment sits at its lower joint.
-// Lengths increased so the tail reads at formation distance.
-const SCORPION_TAIL_SEGMENTS = [
-    { length: 0.28, width: 0.24, bend: 0.08, name: 'base' },
-    { length: 0.24, width: 0.20, bend: 0.26, name: 'mid1' },
-    { length: 0.20, width: 0.16, bend: 0.48, name: 'mid2' },
-    { length: 0.16, width: 0.12, bend: 0.58, name: 'mid3' },
-    { length: 0.12, width: 0.08, bend: -0.12, name: 'tip' }
-];
-// Dermal plates at the join between each segment — read as carapace ridges
-// 5 plates for 5 tail segments for consistent indexing.
-const SCORPION_PLATES = [
-    { color: SCORPION_SHADE },
-    { color: SCORPION_RUST },
-    { color: SCORPION_ORANGE },
-    { color: SCORPION_GOLD },
-    { color: SCORPION_ORANGE }
-];
-
-// Stinger (aculeus) — a tapered poison spike, the very tip of the tail
-// All components centered on local origin for clean stacking.
-const SCORPION_STINGER = [
-    { size: [0.08, 0.24, 0.08], pos: [0, 0.00, 0], color: SCORPION_DARK },
-    { size: [0.16, 0.10, 0.14], pos: [0, 0.12, 0], color: SCORPION_RUST },
-    { size: [0.08, 0.07, 0.08], pos: [0, 0.19, 0], color: 0xffc331 },
-    { size: [0.04, 0.06, 0.05], pos: [0, 0.24, 0], color: 0xfff0a0 }
-];
-
-// Pedipalp (pincer) — a jointed grasping limb at the front
-// One side only; the other is mirrored via mirrorBoxes()
-const SCORPION_PINCER = [
-    { size: [0.20, 0.12, 0.22], pos: [0, 0, 0.08], color: SCORPION_SHADE },
-    { size: [0.16, 0.10, 0.22], pos: [0, 0.02, 0.26], color: SCORPION_RUST },
-    { size: [0.12, 0.08, 0.18], pos: [0, 0.01, 0.42], color: SCORPION_ORANGE },
-];
-
-const SCORPION_CLAW = [
-    { size: [0.10, 0.06, 0.18], pos: [0, 0, 0.12], color: SCORPION_RUST },
-    { size: [0.07, 0.05, 0.16], pos: [0, 0.02, 0.25], color: SCORPION_GOLD },
-];
-
-// Legs — four per side, each a three-segment chain
-const SCORPION_LEG_SEGMENTS = [
-    { length: 0.20, width: 0.11, baseBend: 0.85 },
-    { length: 0.17, width: 0.09, baseBend: -1.30 },
-    { length: 0.12, width: 0.06, baseBend: -0.20 }
-];
-
-const SCORPION_LEG_MOUNTS = [
-    { side: -1, z: 0.34, phase: 0 },
-    { side: -1, z: 0.12, phase: Math.PI },
-    { side: -1, z: -0.08, phase: 0 },
-    { side: -1, z: -0.26, phase: Math.PI },
-    { side: 1, z: 0.34, phase: 0 },
-    { side: 1, z: 0.12, phase: Math.PI },
-    { side: 1, z: -0.08, phase: 0 },
-    { side: 1, z: -0.26, phase: Math.PI }
-];
-
-// The tail rises above the rear of the carapace so its silhouette reads from
-// the same front-facing formation camera as the Beetle's horn and elytra.
-function buildScorpionTailChain(mount, geometries, segments, material) {
-    const chain = [];
-    let parent = mount;
-    segments.forEach((segment, index) => {
-        const mesh = new THREE.Mesh(geometries[index], material);
-        mesh.position.y = index === 0 ? 0 : segments[index - 1].length;
-        mesh.rotation.z = segment.bend;
-        mesh.userData.baseBend = segment.bend;
-        parent.add(mesh);
-        parent = mesh;
-        chain.push(mesh);
-    });
-    return chain;
-}
-
-// Geometries and materials are built once and cached — the scorpion follows
-// the same lazy registry pattern as all other alien types.
-
-let scorpionParts = null;
-
-function getScorpionParts() {
-    if (scorpionParts) return scorpionParts;
-
-    scorpionParts = {
-        abdomenGeometry: buildVoxelGeometry(SCORPION_ABDOMEN),
-        cephaloGeometry: buildVoxelGeometry(SCORPION_CEPHALOTHORAX),
-        eyeGeometry: buildVoxelGeometry(SCORPION_HEAD),
-        // A separate eye mesh lets the lenses pulse without flooding the shell.
-        eyeHighlightGeometry: buildVoxelGeometry([
-            { size: [0.05, 0.04, 0.04], pos: [-0.18, 0.08, 0.54], color: 0xffc331 },
-            { size: [0.05, 0.04, 0.04], pos: [0.18, 0.08, 0.54], color: 0xffc331 }
-        ]),
-        tailGeometries: SCORPION_TAIL_SEGMENTS.map((s, i) =>
-            buildVoxelGeometry([
-                { size: [s.width, s.length, s.width], pos: [0, s.length / 2, 0], color: SCORPION_RUST },
-                { size: [s.width + 0.05, 0.04, s.width + 0.05], pos: [0, 0.02, 0], color: SCORPION_PLATES[i].color }
-            ])
-        ),
-        stingerGeometry: buildVoxelGeometry(SCORPION_STINGER),
-        pincerGeometries: {
-            '-1': buildVoxelGeometry(mirrorBoxes(SCORPION_PINCER)),
-            '1': buildVoxelGeometry(SCORPION_PINCER)
-        },
-        clawGeometries: {
-            '-1': buildVoxelGeometry(mirrorBoxes(SCORPION_CLAW)),
-            '1': buildVoxelGeometry(SCORPION_CLAW)
-        },
-        legGeometries: SCORPION_LEG_SEGMENTS.map(s =>
-            buildLimbSegmentGeometry(s, SCORPION_RUST, SCORPION_DARK)
-        ),
-        abdomenMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x5b2106,
-            emissiveIntensity: 0.45,
-            shininess: 35,
-            flatShading: true
-        }),
-        cephaloMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x6d2608,
-            emissiveIntensity: 0.55,
-            shininess: 45,
-            flatShading: true
-        }),
-        eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x2a1005,
-            emissiveIntensity: 0.2,
-            flatShading: true
-        }),
-        // The eyes and stinger are the only bright accents.
-        eyeHighlightMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xff9d16,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        }),
-        stingerMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xff9d16,
-            emissiveIntensity: 1.4,
-            flatShading: true
-        }),
-        pincerMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x571d06,
-            emissiveIntensity: 0.35,
-            flatShading: true
-        }),
-        legMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x4a1906,
-            emissiveIntensity: 0.3,
-            flatShading: true
-        }),
-        tailMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0x7b2b06,
-            emissiveIntensity: 0.45,
-            flatShading: true
-        })
-    };
-
-    return scorpionParts;
-}
-
-function createScorpionAlien(group) {
-    const parts = getScorpionParts();
-
-    // Abdomen — rear body half — clone material so animation doesn't leak
-    const abdomen = new THREE.Mesh(parts.abdomenGeometry, parts.abdomenMaterial.clone());
-    abdomen.position.z = -0.10;
-    group.add(abdomen);
-    group.userData.abdomen = abdomen;
-
-    // Cephalothorax (head shield) — front body half
-    const cephalo = new THREE.Mesh(parts.cephaloGeometry, parts.cephaloMaterial.clone());
-    cephalo.position.z = 0.36;
-    group.add(cephalo);
-    group.userData.cephalo = cephalo;
-
-    // Eyes + fangs cluster — body, separated highlights glow independently
-    const eyeBody = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
-    eyeBody.position.set(0, 0.04, 0.50);
-    group.add(eyeBody);
-    group.userData.eyes = eyeBody;
-
-    // Separate glow-only mesh for eye highlights (compound eye reflections)
-    const eyeHighlights = new THREE.Mesh(parts.eyeHighlightGeometry, parts.eyeHighlightMaterial.clone());
-    eyeHighlights.position.set(0, 0.04, 0.50);
-    group.add(eyeHighlights);
-    group.userData.eyeHighlights = eyeHighlights;
-
-    // Tail chain — base mount at rear of abdomen, slightly elevated
-    const tailMount = new THREE.Group();
-    tailMount.position.set(0, 0.10, -0.48);
-    group.add(tailMount);
-
-    const tailChain = buildScorpionTailChain(
-        tailMount,
-        parts.tailGeometries,
-        SCORPION_TAIL_SEGMENTS,
-        parts.tailMaterial
-    );
-
-    // Stinger — venom sac + needle with glow
-    const stingerMesh = new THREE.Mesh(
-        parts.stingerGeometry,
-        parts.stingerMaterial.clone()
-    );
-    // Attach to the last (5th) segment tip
-    stingerMesh.position.y = SCORPION_TAIL_SEGMENTS[4].length + 0.02;
-    tailChain[4].add(stingerMesh);
-
-    // Pincers — two chunky arm sections and a distinct claw tip.
-    group.userData.pincers = [-1, 1].map(side => {
-        const pivot = new THREE.Group();
-        pivot.position.set(side * 0.50, 0.05, 0.24);
-        pivot.rotation.y = -side * 0.3;
-        group.add(pivot);
-
-        const upperArm = new THREE.Mesh(
-            parts.pincerGeometries[side.toString()],
-            parts.pincerMaterial.clone()
-        );
-        upperArm.position.z = 0.10;
-        upperArm.rotation.x = -0.35;
-        pivot.add(upperArm);
-
-        // Lower jaw / pincer tip — opens independently
-        const jaw = new THREE.Mesh(
-            parts.clawGeometries[side.toString()],
-            parts.pincerMaterial.clone()
-        );
-        jaw.position.z = 0.52;
-        jaw.rotation.x = 0.35;
-        pivot.add(jaw);
-
-        return { pivot, upperArm, jaw, side };
-    });
-
-    // Store tail references for animation
-    group.userData.tailChain = tailChain;
-    group.userData.tailPivot = tailMount;
-    group.userData.stinger = stingerMesh;
-
-    // Eight legs — tripod gait with joint spurs
-    group.userData.legs = SCORPION_LEG_MOUNTS.map(config => {
-        const legMount = new THREE.Group();
-        legMount.position.set(config.side * 0.55, -0.10, config.z);
-        legMount.rotation.y = config.side > 0 ? 0 : Math.PI;
-        group.add(legMount);
-
-        const segments = buildLimbChain(
-            legMount,
-            parts.legGeometries,
-            SCORPION_LEG_SEGMENTS,
-            parts.legMaterial,
-            -1
-        );
-
-        return { mount: legMount, segments, phase: config.phase, side: config.side };
-    });
-}
-
-// ---------------------------------------------------------------------------
-// Sentinel (row 9) - a levitating construct whose shell comes apart
-// ---------------------------------------------------------------------------
-
-// Every other invader is a body with limbs. This one has no limbs at all: it is
-// ten armour shards closed around an exposed plasma core, and its signature move
-// is disassembling itself. Form therefore has to come from the shard silhouette
-// and the obsidian value ramp, so the ramp is spread very wide (near-black to
-// pale ice) and the shard emissive is kept low - only the core, the baked glyph
-// strips and the lance are allowed to blow out under bloom.
-// The ramp is spread wide but its midpoint is deliberately lifted off black:
-// a near-black plate has nothing to read against space at formation distance,
-// so the sculpt collapsed into just its bright glyphs and core - a white
-// sparkle rather than a silhouette. The plate carries the shape; ICE and GLYPH
-// stay accents, and the core is tinted cyan rather than left pure white.
-const SENTINEL_VOID = 0x0c1422;      // seam shadow, deepest step
-const SENTINEL_OBSIDIAN = 0x1d2c45;  // shard underside
-const SENTINEL_PLATE = 0x36537a;     // main armour face
-const SENTINEL_EDGE = 0x6d9ad6;      // bevel highlight catching the light
-const SENTINEL_ICE = 0x9fd8ff;       // rim trim
-const SENTINEL_GLYPH = 0x5fd0f5;     // baked glyph strips
-const SENTINEL_CORE = 0x8fe4ff;      // plasma core body
-const SENTINEL_HOT = 0xdff6ff;       // core spines and lance
-
-// Three shard profiles, each centred on its own origin so the shard tumbles and
-// scales about itself rather than swinging around a baked-in offset. Local +Z is
-// "outward" for every shard: the shard's pivot carries the ring angle, so bloom
-// is a push along local +Z and orbit is a spin of the pivot.
-const SENTINEL_SHARD_UPPER = [
-    { size: [0.34, 0.15, 0.22], pos: [0, 0, 0], color: SENTINEL_PLATE },
-    { size: [0.26, 0.10, 0.18], pos: [0, 0.10, -0.03], color: SENTINEL_OBSIDIAN },
-    { size: [0.38, 0.05, 0.08], pos: [0, -0.05, 0.07], color: SENTINEL_EDGE },
-    { size: [0.08, 0.035, 0.20], pos: [0, 0.09, 0.01], color: SENTINEL_GLYPH },
-    { size: [0.30, 0.06, 0.07], pos: [0, -0.09, -0.07], color: SENTINEL_VOID },
-    { size: [0.14, 0.04, 0.06], pos: [0, 0.02, 0.11], color: SENTINEL_ICE }
-];
-
-const SENTINEL_SHARD_LOWER = [
-    { size: [0.30, 0.20, 0.20], pos: [0, 0, 0], color: SENTINEL_PLATE },
-    { size: [0.22, 0.12, 0.16], pos: [0, -0.11, -0.02], color: SENTINEL_OBSIDIAN },
-    { size: [0.34, 0.05, 0.08], pos: [0, 0.07, 0.06], color: SENTINEL_EDGE },
-    { size: [0.06, 0.16, 0.05], pos: [0, 0.00, 0.10], color: SENTINEL_GLYPH },
-    { size: [0.26, 0.05, 0.07], pos: [0, -0.14, 0.02], color: SENTINEL_VOID },
-    { size: [0.12, 0.04, 0.05], pos: [0, 0.10, -0.06], color: SENTINEL_ICE }
-];
-
-const SENTINEL_SHARD_SPIKE = [
-    { size: [0.22, 0.26, 0.22], pos: [0, 0, 0], color: SENTINEL_PLATE },
-    { size: [0.14, 0.20, 0.14], pos: [0, 0.16, 0], color: SENTINEL_OBSIDIAN },
-    { size: [0.07, 0.16, 0.07], pos: [0, 0.30, 0], color: SENTINEL_EDGE },
-    { size: [0.26, 0.05, 0.26], pos: [0, -0.10, 0], color: SENTINEL_VOID },
-    { size: [0.05, 0.24, 0.05], pos: [0, 0.05, 0.09], color: SENTINEL_GLYPH }
-];
-
-// Rest shell. `angle` goes on the shard's pivot, `radius` is the mesh's local +Z
-// offset, and `ring` is where the shard parks when the shell locks into a lens.
-const SENTINEL_SHARDS = [
-    { profile: 'upper', angle: Math.PI * 0.25, radius: 0.25, y: 0.28, lift: 0.34, spin: 1 },
-    { profile: 'upper', angle: Math.PI * 0.75, radius: 0.25, y: 0.28, lift: 0.34, spin: -1 },
-    { profile: 'upper', angle: Math.PI * 1.25, radius: 0.25, y: 0.28, lift: 0.34, spin: 1 },
-    { profile: 'upper', angle: Math.PI * 1.75, radius: 0.25, y: 0.28, lift: 0.34, spin: -1 },
-    { profile: 'lower', angle: 0, radius: 0.28, y: -0.17, lift: -0.26, spin: -1 },
-    { profile: 'lower', angle: Math.PI * 0.5, radius: 0.28, y: -0.17, lift: -0.26, spin: 1 },
-    { profile: 'lower', angle: Math.PI, radius: 0.28, y: -0.17, lift: -0.26, spin: -1 },
-    { profile: 'lower', angle: Math.PI * 1.5, radius: 0.28, y: -0.17, lift: -0.26, spin: 1 },
-    { profile: 'spike', angle: 0, radius: 0, y: 0.56, lift: 0.20, spin: 1, tilt: 0 },
-    { profile: 'spike', angle: Math.PI, radius: 0, y: -0.54, lift: -0.20, spin: -1, tilt: Math.PI }
-];
-
-// Gimbal ring: tangential blocks around a circle read as a ring at formation
-// distance for a fraction of a torus's vertices.
-function sentinelRingBoxes(radius, thickness, color, accent) {
-    const boxes = [];
-    const steps = 14;
-    for (let i = 0; i < steps; i++) {
-        const a = (i / steps) * Math.PI * 2;
-        boxes.push({
-            size: [0.22, thickness, thickness],
-            pos: [Math.cos(a) * radius, 0, Math.sin(a) * radius],
-            rotY: -a,
-            color: i % 4 === 0 ? accent : color
-        });
-    }
-    return boxes;
-}
-
-const SENTINEL_CORE_BOXES = [
-    { size: [0.24, 0.24, 0.24], pos: [0, 0, 0], rotY: Math.PI * 0.25, color: SENTINEL_CORE },
-    { size: [0.36, 0.09, 0.09], pos: [0, 0, 0], color: SENTINEL_HOT },
-    { size: [0.09, 0.36, 0.09], pos: [0, 0, 0], color: SENTINEL_HOT },
-    { size: [0.09, 0.09, 0.36], pos: [0, 0, 0], color: SENTINEL_HOT },
-    { size: [0.19, 0.19, 0.19], pos: [0, 0, 0], rotX: Math.PI * 0.25, rotZ: Math.PI * 0.25, color: SENTINEL_ICE }
-];
-
-const SENTINEL_IRIS_BOXES = [
-    { size: [0.13, 0.30, 0.05], pos: [0, 0, 0], color: SENTINEL_PLATE },
-    { size: [0.05, 0.30, 0.06], pos: [0.05, 0, 0.01], color: SENTINEL_EDGE },
-    { size: [0.09, 0.06, 0.05], pos: [-0.01, 0.13, 0.01], color: SENTINEL_VOID }
-];
-
-// Lance beam: this is the one place a baked-in offset is correct. The geometry
-// runs from z=0 forward, so scale.z grows the beam out of the emitter mount
-// instead of sliding a centred box away from it.
-const SENTINEL_LANCE_BOXES = [
-    { size: [0.11, 0.11, 1.70], pos: [0, 0, 0.85], color: SENTINEL_HOT },
-    { size: [0.20, 0.20, 1.30], pos: [0, 0, 0.68], color: SENTINEL_ICE }
-];
-
-let sentinelParts = null;
-
-function getSentinelParts() {
-    if (sentinelParts) return sentinelParts;
-
-    sentinelParts = {
-        shardGeometries: {
-            upper: buildVoxelGeometry(SENTINEL_SHARD_UPPER),
-            lower: buildVoxelGeometry(SENTINEL_SHARD_LOWER),
-            spike: buildVoxelGeometry(SENTINEL_SHARD_SPIKE)
-        },
-        coreGeometry: buildVoxelGeometry(SENTINEL_CORE_BOXES),
-        glowGeometry: new THREE.BoxGeometry(0.36, 0.36, 0.36),
-        irisGeometries: {
-            '-1': buildVoxelGeometry(SENTINEL_IRIS_BOXES),
-            '1': buildVoxelGeometry(mirrorBoxes(SENTINEL_IRIS_BOXES))
-        },
-        ringGeometries: [
-            buildVoxelGeometry(sentinelRingBoxes(0.50, 0.075, SENTINEL_PLATE, SENTINEL_GLYPH)),
-            buildVoxelGeometry(sentinelRingBoxes(0.42, 0.060, SENTINEL_OBSIDIAN, SENTINEL_EDGE))
-        ],
-        lanceGeometry: buildVoxelGeometry(SENTINEL_LANCE_BOXES),
-        // Deliberately dim. Gameplay bloom is much stronger than the Bestiary's,
-        // and emissive is added flat on top of the vertex colours, so anything
-        // higher collapses the whole obsidian ramp into one white sparkle.
-        shardMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: SENTINEL_OBSIDIAN,
-            emissiveIntensity: 0.18,
-            shininess: 70,
-            flatShading: true
-        }),
-        ringMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: SENTINEL_OBSIDIAN,
-            emissiveIntensity: 0.3,
-            flatShading: true
-        }),
-        coreMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: SENTINEL_CORE,
-            emissiveIntensity: 0.9,
-            flatShading: true
-        }),
-        glowMaterial: new THREE.MeshPhongMaterial({
-            color: SENTINEL_GLYPH,
-            emissive: SENTINEL_GLYPH,
-            emissiveIntensity: 1.2,
-            transparent: true,
-            opacity: 0.18,
-            depthWrite: false,
-            flatShading: true
-        }),
-        lanceMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: SENTINEL_HOT,
-            emissiveIntensity: 6.0,
-            transparent: true,
-            opacity: 0.9,
-            depthWrite: false,
-            flatShading: true
-        })
-    };
-
-    return sentinelParts;
-}
-
-function createSentinelAlien(group) {
-    const parts = getSentinelParts();
-
-    // Everything hangs off a hover pivot so the levitation bob, the yaw drift
-    // and the reassembly shudder never touch the formation-owned group axes.
-    const hoverPivot = new THREE.Group();
-    group.add(hoverPivot);
-    group.userData.hoverPivot = hoverPivot;
-
-    const core = new THREE.Mesh(parts.coreGeometry, parts.coreMaterial.clone());
-    hoverPivot.add(core);
-    group.userData.core = core;
-
-    const glow = new THREE.Mesh(parts.glowGeometry, parts.glowMaterial.clone());
-    hoverPivot.add(glow);
-    group.userData.glow = glow;
-
-    group.userData.rings = parts.ringGeometries.map((geometry, index) => {
-        const tilt = new THREE.Group();
-        tilt.rotation.x = index === 0 ? 0.42 : -0.34;
-        tilt.rotation.z = index === 0 ? -0.28 : 0.36;
-        hoverPivot.add(tilt);
-
-        const ring = new THREE.Mesh(geometry, parts.ringMaterial.clone());
-        tilt.add(ring);
-
-        return { tilt, ring, direction: index === 0 ? 1 : -1 };
-    });
-
-    group.userData.iris = [-1, 1].map(side => {
-        const plate = new THREE.Mesh(parts.irisGeometries[side], parts.shardMaterial.clone());
-        plate.position.set(side * 0.07, 0, 0.42);
-        hoverPivot.add(plate);
-        return { mesh: plate, side };
-    });
-
-    const lanceMount = new THREE.Group();
-    lanceMount.position.set(0, 0, 0.5);
-    hoverPivot.add(lanceMount);
-    const lance = new THREE.Mesh(parts.lanceGeometry, parts.lanceMaterial.clone());
-    lance.scale.set(0.001, 0.001, 0.001);
-    lanceMount.add(lance);
-    group.userData.lance = lance;
-
-    group.userData.shards = SENTINEL_SHARDS.map((config, index) => {
-        const pivot = new THREE.Group();
-        pivot.rotation.y = config.angle;
-        hoverPivot.add(pivot);
-
-        const mesh = new THREE.Mesh(
-            parts.shardGeometries[config.profile],
-            parts.shardMaterial.clone()
-        );
-        mesh.position.set(0, config.y, config.radius);
-        mesh.rotation.x = config.tilt !== undefined ? config.tilt : (config.y > 0 ? -0.32 : 0.30);
-        mesh.castShadow = true;
-        pivot.add(mesh);
-
-        return {
-            pivot,
-            mesh,
-            angle: config.angle,
-            radius: config.radius,
-            y: config.y,
-            lift: config.lift,
-            spin: config.spin,
-            restTilt: mesh.rotation.x,
-            // Where this shard parks when the blown-apart shell locks into a
-            // firing lens in front of the core.
-            ringAngle: (index / SENTINEL_SHARDS.length) * Math.PI * 2,
-            phase: index * 0.63
-        };
-    });
-}
-
-// ---------------------------------------------------------------------------
-// Warden (row 10) - a standing hoop with a hole through the middle
-// ---------------------------------------------------------------------------
-
-// The first hollow silhouette in the roster: every other type is a solid mass
-// or a tight cluster, so the Warden's read at distance comes from the gap in
-// its outline rather than from its mass. That makes the flip its signature —
-// turning the hoop edge-on collapses a circle to a line, which is legible from
-// the formation camera in a way a limb movement is not.
-const WARDEN_VOID = 0x1a0a1e;    // deepest recess, seams only
-const WARDEN_DARK = 0x2f1233;    // hoop underside
-const WARDEN_PLATE = 0x6b2a5f;   // main hoop face - the midpoint, kept well off black
-const WARDEN_TRIM = 0xa84a7d;    // bevel highlight
-const WARDEN_GLOW = 0xd77aa0;    // inner teeth
-const WARDEN_CORE = 0xffc94a;    // molten gold core
-const WARDEN_HOT = 0xffe9a8;     // core spines and halo
-
-// A ring standing in the XY plane, so it faces the player. Tangential boxes
-// around a circle read as a hoop for a fraction of a torus's vertices.
-function wardenHoopBoxes(radius, span, thickness, depth, color, accent) {
-    const boxes = [];
-    const steps = 16;
-    for (let i = 0; i < steps; i++) {
-        const a = (i / steps) * Math.PI * 2;
-        boxes.push({
-            size: [span, thickness, depth],
-            pos: [Math.cos(a) * radius, Math.sin(a) * radius, 0],
-            rotZ: a + Math.PI / 2,
-            color: i % 4 === 0 ? accent : color
-        });
-    }
-    return boxes;
-}
-
-const WARDEN_HOOP = [
-    ...wardenHoopBoxes(0.62, 0.30, 0.13, 0.17, WARDEN_PLATE, WARDEN_TRIM),
-    ...wardenHoopBoxes(0.62, 0.26, 0.05, 0.21, WARDEN_DARK, WARDEN_DARK),
-    ...wardenHoopBoxes(0.70, 0.16, 0.05, 0.07, WARDEN_TRIM, WARDEN_GLOW)
-];
-
-// Inward-pointing teeth on a smaller radius, animated as their own mesh so the
-// ring can brighten independently of the hoop plates.
-const WARDEN_TEETH = wardenHoopBoxes(0.47, 0.10, 0.10, 0.09, WARDEN_GLOW, WARDEN_HOT);
-
-// Centred on the origin, so scaling the mesh retracts the spokes toward the
-// core instead of sliding them off to one side.
-const WARDEN_SPOKES = [
-    { size: [1.04, 0.055, 0.055], pos: [0, 0, 0], color: WARDEN_TRIM },
-    { size: [0.055, 1.04, 0.055], pos: [0, 0, 0], color: WARDEN_TRIM },
-    { size: [0.86, 0.04, 0.04], pos: [0, 0, 0], rotZ: Math.PI / 4, color: WARDEN_DARK },
-    { size: [0.86, 0.04, 0.04], pos: [0, 0, 0], rotZ: -Math.PI / 4, color: WARDEN_DARK }
-];
-
-const WARDEN_CORE_BOXES = [
-    { size: [0.21, 0.21, 0.21], pos: [0, 0, 0], rotZ: Math.PI * 0.25, color: WARDEN_CORE },
-    { size: [0.30, 0.07, 0.07], pos: [0, 0, 0], color: WARDEN_HOT },
-    { size: [0.07, 0.30, 0.07], pos: [0, 0, 0], color: WARDEN_HOT },
-    { size: [0.15, 0.15, 0.26], pos: [0, 0, 0], color: WARDEN_VOID }
-];
-
-// Short keel behind the hoop so the model still has depth when seen edge-on at
-// the midpoint of the flip.
-const WARDEN_ANCHOR = [
-    { size: [0.22, 0.22, 0.20], pos: [0, 0, -0.24], color: WARDEN_DARK },
-    { size: [0.14, 0.14, 0.26], pos: [0, 0, -0.42], color: WARDEN_PLATE },
-    { size: [0.30, 0.06, 0.10], pos: [0, -0.14, -0.34], color: WARDEN_TRIM },
-    { size: [0.06, 0.26, 0.08], pos: [0, 0.16, -0.36], color: WARDEN_VOID }
-];
-
-// The launch flash: a thin disc that grows outward through the hoop. Centred on
-// the origin so scale expands it about the core.
-const WARDEN_HALO = [
-    ...wardenHoopBoxes(0.40, 0.20, 0.09, 0.04, WARDEN_HOT, WARDEN_HOT)
-];
-
-let wardenParts = null;
-
-function getWardenParts() {
-    if (wardenParts) return wardenParts;
-
-    wardenParts = {
-        hoopGeometry: buildVoxelGeometry(WARDEN_HOOP),
-        teethGeometry: buildVoxelGeometry(WARDEN_TEETH),
-        spokeGeometry: buildVoxelGeometry(WARDEN_SPOKES),
-        coreGeometry: buildVoxelGeometry(WARDEN_CORE_BOXES),
-        anchorGeometry: buildVoxelGeometry(WARDEN_ANCHOR),
-        haloGeometry: buildVoxelGeometry(WARDEN_HALO),
-        hoopMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WARDEN_DARK,
-            emissiveIntensity: 0.45,
-            shininess: 55,
-            flatShading: true
-        }),
-        teethMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WARDEN_GLOW,
-            emissiveIntensity: 0.8,
-            flatShading: true
-        }),
-        coreMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WARDEN_CORE,
-            emissiveIntensity: 1.1,
-            flatShading: true
-        }),
-        haloMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: WARDEN_HOT,
-            emissiveIntensity: 3.5,
-            transparent: true,
-            opacity: 0,
-            depthWrite: false,
-            flatShading: true
-        })
-    };
-
-    return wardenParts;
-}
-
-function createWardenAlien(group) {
-    const parts = getWardenParts();
-
-    // Hover carries the idle bob; the formation keeps group.position.x / .z.
-    const hoverPivot = new THREE.Group();
-    group.add(hoverPivot);
-    group.userData.hoverPivot = hoverPivot;
-
-    // Only the hoop assembly flips. The core stays face-on so it is still
-    // readable at the midpoint of the flip, when the hoop is edge-on.
-    const flipPivot = new THREE.Group();
-    hoverPivot.add(flipPivot);
-    group.userData.flipPivot = flipPivot;
-
-    const hoop = new THREE.Mesh(parts.hoopGeometry, parts.hoopMaterial.clone());
-    hoop.castShadow = true;
-    flipPivot.add(hoop);
-    group.userData.hoop = hoop;
-
-    const teeth = new THREE.Mesh(parts.teethGeometry, parts.teethMaterial.clone());
-    flipPivot.add(teeth);
-    group.userData.teeth = teeth;
-
-    const spokes = new THREE.Mesh(parts.spokeGeometry, parts.hoopMaterial.clone());
-    flipPivot.add(spokes);
-    group.userData.spokes = spokes;
-
-    const core = new THREE.Mesh(parts.coreGeometry, parts.coreMaterial.clone());
-    hoverPivot.add(core);
-    group.userData.core = core;
-
-    const halo = new THREE.Mesh(parts.haloGeometry, parts.haloMaterial.clone());
-    halo.scale.setScalar(0.001);
-    hoverPivot.add(halo);
-    group.userData.halo = halo;
-
-    const anchor = new THREE.Mesh(parts.anchorGeometry, parts.hoopMaterial);
-    hoverPivot.add(anchor);
-    group.userData.anchor = anchor;
-}
-
-// ---------------------------------------------------------------------------
-// Spire (row 11) - tall crystalline tower with accent crystals
-// ---------------------------------------------------------------------------
-
-// Tall vertical silhouette: stacked diamond tiers tapering to a sharp apex,
-// with small gold crystals jutting from the mid-section on all four sides.
-const SPIRE_DARK  = 0x2e1550;    // lighter dark base — reads against space
-const SPIRE_MID   = 0x8a3ccf;    // purple body
-const SPIRE_BRIGHT= 0xca60ff;    // bright purple (lifted from deep)
-const SPIRE_HOT   = 0xda70d6;    // magenta (unchanged)
-const SPIRE_GOLD  = 0xffd700;    // gold accent crystals
-const SPIRE_WARM  = 0xffdf70;    // warm gold tip
-
-// Main crystal body — stacked diamond tiers, widest at the base, tapering up.
-// Sharper size steps for crystal-silhouette contrast; gold apex dominates top.
-const SPIRE_BODY = [
-    // Base tier — wide diamond footprint, dark base
-    { size: [1.00, 0.34, 1.00], pos: [0, 0.50, 0.00], color: SPIRE_DARK },
-    // Lower body — significant step up from base
-    { size: [0.76, 0.30, 0.76], pos: [0, 0.84, 0.00], color: SPIRE_DARK },
-    // Mid body — widest for crystal cluster attachment zone
-    { size: [0.56, 0.28, 0.56], pos: [0, 1.16, 0.00], color: SPIRE_MID },
-    // Upper body
-    { size: [0.34, 0.26, 0.34], pos: [0, 1.46, 0.00], color: SPIRE_MID },
-    // Upper taper — transition to gold
-    { size: [0.20, 0.24, 0.20], pos: [0, 1.72, 0.00], color: SPIRE_GOLD },
-    // Apex crystal — substantial gold tower
-    { size: [0.10, 0.22, 0.10], pos: [0, 1.96, 0.00], color: SPIRE_GOLD },
-    // Gold cap tip
-    { size: [0.04, 0.22, 0.04], pos: [0, 2.18, 0.00], color: SPIRE_WARM }
-];
-
-// Accent crystal cluster — small gold crystals jutting outward from the mid
-// section at the four cardinal points. Each cluster is a single box so it
-// renders as a tight diamond shape.
-const SPIRE_CLUSTER = [
-    // Front cluster
-    { size: [0.14, 0.14, 0.10], pos: [0, 1.15, 0.45], color: SPIRE_GOLD },
-    { size: [0.10, 0.10, 0.08], pos: [0, 1.24, 0.42], color: SPIRE_WARM }
-];
-
-// Lazily built once, shared by every instance.
-let spireParts = null;
-
-function getSpireParts() {
-    if (spireParts) return spireParts;
-
-    spireParts = {
-        bodyGeometry: buildVoxelGeometry(SPIRE_BODY),
-        crystalGeometry: buildVoxelGeometry(SPIRE_CLUSTER),
-        bodyMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: SPIRE_DARK,
-            emissiveIntensity: 0.38,     // lifted: lighter base needs more glow to read vs space
-            shininess: 70,
-            flatShading: true
-        }),
-        crystalMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: SPIRE_GOLD,
-            emissiveIntensity: 0.9,      // reduced: gold color ramp must survive bloom
-            flatShading: true
-        })
-    };
-
-    return spireParts;
-}
-
-function createSpireAlien(group) {
-    const parts = getSpireParts();
-
-    // bodyPivot carries all display motion so the formation keeps ownership
-    // of group.position.x / .z.
-    const bodyPivot = new THREE.Group();
-    group.add(bodyPivot);
-    group.userData.bodyPivot = bodyPivot;
-
-    const body = new THREE.Mesh(parts.bodyGeometry, parts.bodyMaterial);
-    body.castShadow = true;
-    bodyPivot.add(body);
-    group.userData.body = body;
-
-    // Gold crystals at the four cardinal points.
-    const crystals = [];
-    [-1, 1].forEach(side => {
-        // Front
-        const fCrystal = new THREE.Mesh(parts.crystalGeometry, parts.crystalMaterial.clone());
-        fCrystal.position.set(0, 0, side * 0.38);
-        bodyPivot.add(fCrystal);
-        crystals.push({ mesh: fCrystal, side: side, axis: 'z' });
-
-        // Back
-        const bCrystal = new THREE.Mesh(parts.crystalGeometry, parts.crystalMaterial.clone());
-        bCrystal.position.set(0, 0, -side * 0.38);
-        bCrystal.rotation.y = Math.PI;
-        bodyPivot.add(bCrystal);
-        crystals.push({ mesh: bCrystal, side: -side, axis: 'z' });
-    });
-    // Left and right crystals (offset in X)
-    const leftCrystal = new THREE.Mesh(parts.crystalGeometry, parts.crystalMaterial.clone());
-    leftCrystal.position.set(-0.38, 0, 0);
-    leftCrystal.rotation.y = -Math.PI / 2;
-    bodyPivot.add(leftCrystal);
-    crystals.push({ mesh: leftCrystal, side: -1, axis: 'x' });
-
-    const rightCrystal = new THREE.Mesh(parts.crystalGeometry, parts.crystalMaterial.clone());
-    rightCrystal.position.set(0.38, 0, 0);
-    rightCrystal.rotation.y = Math.PI / 2;
-    bodyPivot.add(rightCrystal);
-    crystals.push({ mesh: rightCrystal, side: 1, axis: 'x' });
-
-    group.userData.crystals = crystals;
-}
-
-// ---------------------------------------------------------------------------
-// Prism (row 12) - crystal diamond frame with four orbiting shards
-// ---------------------------------------------------------------------------
-
-// Diamond silhouette with hollow centre — a geometric construct with orbiting
-// shards at each corner. Colours form a wide ramp that survives bloom at
-// gameplay distance.
-const PRISM_DARK   = 0x0a0018;    // near-black void
-const PRISM_BODY   = 0x2a0066;    // deep purple body
-const PRISM_MID    = 0x6633aa;    // mid purple
-const PRISM_BRIGHT = 0x9966dd;    // bright purple frame
-const PRISM_HOT    = 0xcc99ff;    // hot purple accent
-const PRISM_SHARD  = 0xffccff;    // luminous shard tip
-
-// Diamond frame — four boxes forming a tilted square outline, hollow centre.
-// Each side is a slightly tapered box to give the crystal facets.
-const PRISM_FRAME = [
-    // Top-left diagonal bar
-    { size: [0.14, 0.14, 0.72], pos: [-0.34, 0.76, 0.00], color: PRISM_BODY },
-    { size: [0.16, 0.16, 0.60], pos: [-0.18, 0.74, 0.04], color: PRISM_MID },
-    // Top-right diagonal bar
-    { size: [0.14, 0.14, 0.72], pos: [0.34, 0.76, 0.00], color: PRISM_BODY },
-    { size: [0.16, 0.16, 0.60], pos: [0.18, 0.74, 0.04], color: PRISM_MID },
-    // Bottom-left diagonal bar
-    { size: [0.14, 0.14, 0.72], pos: [-0.34, 0.14, 0.00], color: PRISM_BODY },
-    { size: [0.16, 0.16, 0.60], pos: [-0.18, 0.16, 0.04], color: PRISM_MID },
-    // Bottom-right diagonal bar
-    { size: [0.14, 0.14, 0.72], pos: [0.34, 0.14, 0.00], color: PRISM_BODY },
-    { size: [0.16, 0.16, 0.60], pos: [0.18, 0.16, 0.04], color: PRISM_MID },
-    // Centre accent — small bright diamond plate at the hollow centre
-    { size: [0.10, 0.10, 0.06], pos: [0, 0.45, 0.30], color: PRISM_BRIGHT },
-    // Frame corners — slightly thicker at joints for voxel-join feel
-    { size: [0.18, 0.18, 0.18], pos: [-0.50, 0.90, 0.00], color: PRISM_MID },
-    { size: [0.18, 0.18, 0.18], pos: [0.50, 0.90, 0.00], color: PRISM_MID },
-    { size: [0.18, 0.18, 0.18], pos: [-0.50, 0.00, 0.00], color: PRISM_MID },
-    { size: [0.18, 0.18, 0.18], pos: [0.50, 0.00, 0.00], color: PRISM_MID }
-];
-
-// Orbiting shard — a small faceted crystal that orbits each corner.
-// Each shard is a tapered shape (diamond cross-section in XZ, tall in Y).
-const PRISM_SHARD_BOX = [
-    // Main shard body — tall tapered crystal
-    { size: [0.08, 0.28, 0.06], pos: [0, 0, 0.00], color: PRISM_SHARD },
-    // Shard tip — bright point
-    { size: [0.05, 0.06, 0.04], pos: [0, 0.17, 0.00], color: 0xffffff }
-];
-
-let prismParts = null;
-
-function getPrismParts() {
-    if (prismParts) return prismParts;
-
-    prismParts = {
-        frameGeometry: buildVoxelGeometry(PRISM_FRAME),
-        frameMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: PRISM_BODY,
-            emissiveIntensity: 0.25,
-            shininess: 90,
-            flatShading: true
-        }),
-        shardGeometry: buildVoxelGeometry(PRISM_SHARD_BOX),
-        shardMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: PRISM_SHARD,
-            emissiveIntensity: 1.2,
-            shininess: 100,
-            flatShading: true
-        })
-    };
-
-    return prismParts;
-}
-
-function createPrismAlien(group) {
-    const parts = getPrismParts();
-
-    const bodyPivot = new THREE.Group();
-    group.add(bodyPivot);
-    group.userData.bodyPivot = bodyPivot;
-
-    // Diamond frame
-    const frame = new THREE.Mesh(parts.frameGeometry, parts.frameMaterial.clone());
-    frame.castShadow = true;
-    bodyPivot.add(frame);
-    group.userData.frame = frame;
-
-    // Four orbiting shards at the diamond corners
-    const shards = [];
-    const corners = [
-        { x: -0.50, y: 0.90, angle: 0.0 },       // top-left
-        { x: 0.50,  y: 0.90, angle: Math.PI },    // top-right
-        { x: -0.50, y: 0.00, angle: -Math.PI / 2 }, // bottom-left
-        { x: 0.50,  y: 0.00, angle: Math.PI / 2 }   // bottom-right
-    ];
-
-    corners.forEach((corner, i) => {
-        const shard = new THREE.Mesh(parts.shardGeometry, parts.shardMaterial.clone());
-        shard.position.set(corner.x, corner.y, 0);
-        bodyPivot.add(shard);
-        shards.push({
-            mesh: shard,
-            restAngle: corner.angle,
-            orbitRadius: 0.14,
-            phase: i * Math.PI / 2
-        });
-    });
-
-    group.userData.shards = shards;
-}
-
-// ---------------------------------------------------------------------------
-// Voidworm (row 13) - a sinuous chain of 7 linked crystalline spheres
-// ---------------------------------------------------------------------------
-
-// A floating worm/serpent of segmented spheres with an undulating wave.
-// Silhouette: completely unlike any row — a sinuous chain, not a solid body.
-const VOIDWORM_DEEP   = 0x3a0070;
-const VOIDWORM_DARK   = 0x6a22aa;
-const VOIDWORM_MID    = 0xaa55ee;
-const VOIDWORM_BRIGHT = 0xdd99ff;
-const VOIDWORM_HOT    = 0xffccff;
-
-// Crown teeth — 4 small spikes at the front of the head.
-const VOIDWORM_TEETH = [
-    { size: [0.04, 0.08, 0.04], pos: [-0.08, 0.06, 0.16], color: VOIDWORM_HOT },
-    { size: [0.04, 0.08, 0.04], pos: [0.08, 0.06, 0.16], color: VOIDWORM_HOT },
-    { size: [0.04, 0.08, 0.04], pos: [-0.08, 0.06, -0.12], color: VOIDWORM_HOT },
-    { size: [0.04, 0.08, 0.04], pos: [0.08, 0.06, -0.12], color: VOIDWORM_HOT }
-];
-
-// Eyes — small bright spots on the head.
-const VOIDWORM_EYES = [
-    { size: [0.05, 0.05, 0.04], pos: [-0.07, 0.04, 0.045], color: 0xffffff },
-    { size: [0.05, 0.05, 0.04], pos: [0.07, 0.04, 0.045], color: 0xffffff }
-];
-
-// Arm voxels — two crystal prisms that hang from the mid-body and swing.
-// Each arm has an upper prism and a forearm prism, joined at a "joint."
-const VOIDWORM_UPPER_ARM = [
-    { size: [0.14, 0.22, 0.14], pos: [0, -0.11, 0], color: VOIDWORM_MID },
-    { size: [0.16, 0.05, 0.16], pos: [0, -0.23, 0], color: VOIDWORM_DARK }  // joint bead
-];
-const VOIDWORM_FORE_ARM = [
-    { size: [0.12, 0.20, 0.12], pos: [0, -0.10, 0], color: VOIDWORM_MID },
-    { size: [0.08, 0.04, 0.08], pos: [0, -0.21, 0], color: VOIDWORM_BRIGHT }  // glowing tip
-];
-
-// Per-segment radii (sphere-like segments, tapering head/tail)
-const VOIDWORM_RADII = [0.16, 0.13, 0.12, 0.14, 0.11, 0.09, 0.07];
-const VOIDWORM_Y     = [0, -0.28, -0.56, -0.82, -1.08, -1.30, -1.52];
-
-let voidwormParts = null;
-
-function getVoidwormParts() {
-    if (voidwormParts) return voidwormParts;
-
-    // 7 segment geometries — elongated octahedrons for crystal-prism look.
-    // Chosen over icosahedrons by eye: 8 sharp faces read as faceted crystal,
-    // while 20-face icosahedrons render as soft blobs at gameplay size.
-    const segmentGeometries = VOIDWORM_RADII.map((r, i) => {
-        const geo = new THREE.OctahedronGeometry(r, 0); // 8 sharp triangular faces
-        geo.scale(1, 1.15, 1); // slight elongation into diamonds
-        return geo;
-    });
-
-    // Interconnectors — small voxel tapered crystals between segments
-    const connectorGeometries = [];
-    for (let i = 0; i < VOIDWORM_RADII.length - 1; i++) {
-        const r1 = VOIDWORM_RADII[i], r2 = VOIDWORM_RADII[i + 1];
-        const avgR = (r1 + r2) * 0.5;
-        // Tapered crystal connector: wider at top, narrower at bottom
-        connectorGeometries.push(
-            buildVoxelGeometry([
-                { size: [avgR * 1.6, 0.08, avgR * 1.6], pos: [0, 0, 0], color: VOIDWORM_DARK }
-            ])
-        );
-    }
-
-    // Core glow — small bright crystal sphere at center of each segment
-    // Half-radius so it sits inside the outer shell
-    const coreGeometries = VOIDWORM_RADII.map(r =>
-        new THREE.IcosahedronGeometry(r * 0.35, 1)
-    );
-
-    // Dorsal spines — sharp crystal spikes running along the top of each segment.
-    // Only on segments thick enough to support them (radii ≥ 0.12).
-    const spineGeometry = buildVoxelGeometry([
-        // Pointed crystal spine: wider at base, tapering to a point
-        { size: [0.06, 0.14, 0.04], pos: [0, 0.07, 0], color: VOIDWORM_BRIGHT }
-    ]);
-
-    // Segment accent plates — flat diamond-shaped plates that wrap across each
-    // segment's surface, catching light as the worm waves. Adds surface detail
-    // without changing the chain silhouette.
-    const plateGeometry = buildVoxelGeometry([
-        { size: [0.28, 0.04, 0.22], pos: [0, 0, 0], rotX: 0, color: VOIDWORM_MID }
-    ]);
-
-    // Joint beads — small ring-like beads between segments that catch light as
-    // the sine wave passes. Emphasizes the segmented, articulated nature.
-    const beadGeometry = buildVoxelGeometry([
-        { size: [0.12, 0.06, 0.12], pos: [0, 0, 0], color: VOIDWORM_DARK }
-    ]);
-
-    // Arms — two crystal-prism limbs hanging from the mid-body, swinging like
-    // pendulums. Each arm has an upper prism + joint bead and a forearm + tip.
-    const armUpperGeometry = buildVoxelGeometry(VOIDWORM_UPPER_ARM);
-    const armForeGeometry = buildVoxelGeometry(VOIDWORM_FORE_ARM);
-
-    voidwormParts = {
-        segmentGeometries,
-        connectorGeometries,
-        coreGeometries,
-        teethGeometry: buildVoxelGeometry(VOIDWORM_TEETH),
-        eyeGeometry: buildVoxelGeometry(VOIDWORM_EYES),
-        armUpperGeometry,
-        armForeGeometry,
-        spineGeometry,
-        plateGeometry,
-        beadGeometry,
-        segmentMaterials: VOIDWORM_RADII.map((_, i) => {
-            // Each segment gets a distinct hue so the chain reads as individual crystals,
-            // not a uniform tube. Wide spectrum: magenta → purple → violet → blue-violet → deep indigo.
-            // Bottom segments boosted to stay visible against the black starfield.
-            const colors = [0xdd55ff, 0xbb33ee, 0x9922dd, 0x8833cc, 0x7722bb, 0x6611aa, 0x551199];
-            const emissives = [0xdd55ff, 0xbb33ee, 0x9922dd, 0x7711cc, 0x6611bb, 0x5511aa, 0x4411aa];
-            const intensities = [0.7, 0.7, 0.7, 0.7, 0.9, 0.9, 1.0];
-            return new THREE.MeshPhongMaterial({
-                color: colors[i],
-                emissive: emissives[i],
-                emissiveIntensity: intensities[i],
-                // MeshPhongMaterial defaults specular to 0x111111, so shininess
-                // 120 lit nothing and the octahedron faces read as flat paper.
-                // A real specular colour is what makes the facets catch light.
-                specular: 0xbb88ff,
-                shininess: 120,
-                flatShading: true
-            });
-        }),
-        connectorMaterial: new THREE.MeshPhongMaterial({
-            color: VOIDWORM_DARK,
-            emissive: VOIDWORM_DEEP,
-            emissiveIntensity: 0.5,
-            shininess: 60,
-            flatShading: true
-        }),
-        coreMaterial: new THREE.MeshPhongMaterial({
-            color: VOIDWORM_HOT,
-            emissive: VOIDWORM_HOT,
-            emissiveIntensity: 1.1,
-            transparent: true,
-            opacity: 0.7,
-            flatShading: true
-        }),
-        spineMaterial: new THREE.MeshPhongMaterial({
-            color: VOIDWORM_BRIGHT,
-            emissive: VOIDWORM_DARK,
-            emissiveIntensity: 1.2,
-            shininess: 100,
-            flatShading: true
-        }),
-        plateMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: VOIDWORM_MID,
-            emissiveIntensity: 0.3,
-            shininess: 80,
-            flatShading: true
-        }),
-        beadMaterial: new THREE.MeshPhongMaterial({
-            color: VOIDWORM_DARK,
-            emissive: VOIDWORM_DEEP,
-            emissiveIntensity: 0.4,
-            shininess: 40,
-            flatShading: true
-        }),
-        teethMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            // Violet, not near-white. VOIDWORM_HOT (0xffccff) clipped under
-            // bloom and turned the whole crown into a featureless white blob,
-            // so the teeth the bestiary promises were never visible.
-            emissive: VOIDWORM_BRIGHT,
-            emissiveIntensity: 1.0,
-            flatShading: true
-        }),
-        eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xffffff,
-            emissiveIntensity: 1.1,
-            flatShading: true
-        }),
-        armUpperMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: VOIDWORM_DARK,
-            emissiveIntensity: 0.4,
-            specular: 0xbb88ff,
-            shininess: 100,
-            flatShading: true
-        }),
-        armForeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: VOIDWORM_DARK,
-            emissiveIntensity: 0.4,
-            specular: 0xbb88ff,
-            shininess: 100,
-            flatShading: true
-        })
-    };
-
-    return voidwormParts;
-}
-
-function createVoidwormAlien(group) {
-    const parts = getVoidwormParts();
-
-    const bodyPivot = new THREE.Group();
-    group.add(bodyPivot);
-    group.userData.bodyPivot = bodyPivot;
-
-    // Crown teeth — bright crown on the head (attached to head segment, NOT bodyPivot)
-    const teeth = new THREE.Mesh(parts.teethGeometry, parts.teethMaterial.clone());
-    teeth.position.set(0, 0.10, 0);
-    group.userData.teeth = teeth;
-
-    // Eyes — paired bright spots on the head (attached to head segment, NOT bodyPivot)
-    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
-    eyes.position.set(0, 0, 0);
-    group.userData.eyes = eyes;
-
-    // 7 crystalline segments, each parented to its own pivot for undulation
-    const segments = [];
-    const segmentPhases = [0, 0.35, 0.70, 1.05, 1.40, 1.75, 2.10];
-    for (let i = 0; i < 7; i++) {
-        const pivot = new THREE.Group();
-        pivot.position.y = VOIDWORM_Y[i];
-        bodyPivot.add(pivot);
-
-        // Icosahedron segment mesh — faceted crystal sphere
-        const segMesh = new THREE.Mesh(
-            parts.segmentGeometries[i],
-            parts.segmentMaterials[i].clone()
-        );
-        segMesh.castShadow = true;
-        pivot.add(segMesh);
-
-        // Core glow — tiny bright crystal at the center, visible through facets
-        const coreMesh = new THREE.Mesh(
-            parts.coreGeometries[i],
-            parts.coreMaterial.clone()
-        );
-        pivot.add(coreMesh);
-
-        // Crystal connector between this segment and the next
-        if (i < 6) {
-            const connMesh = new THREE.Mesh(
-                parts.connectorGeometries[i],
-                parts.connectorMaterial.clone()
-            );
-            // Position connector at bottom of segment
-            connMesh.position.y = -VOIDWORM_RADII[i];
-            pivot.add(connMesh);
-        }
-
-        // Accent plate — flat surface on the side, catches light during sway
-        const plateMesh = new THREE.Mesh(
-            parts.plateGeometry,
-            parts.plateMaterial.clone()
-        );
-        plateMesh.position.set(VOIDWORM_RADII[i] * 0.7, 0, 0);
-        plateMesh.rotation.y = Math.PI / 2;
-        // Scale the footprint to the segment, keeping thickness. A fixed
-        // 0.28 plate on the 0.07-radius tail segments was four times their
-        // diameter and read as a flat fin hanging off the chain.
-        const plateFit = VOIDWORM_RADII[i] / VOIDWORM_RADII[0];
-        plateMesh.scale.set(plateFit, 1, plateFit);
-        pivot.add(plateMesh);
-
-        const seg = { pivot, phase: segmentPhases[i], mesh: segMesh, core: coreMesh, spine: null, plate: plateMesh, bead: null };
-
-        // Dorsal spine — crystal spike on top of each segment (only on thick-enough segments)
-        if (VOIDWORM_RADII[i] >= 0.12) {
-            const spineMesh = new THREE.Mesh(
-                parts.spineGeometry,
-                parts.spineMaterial.clone()
-            );
-            spineMesh.position.set(0, VOIDWORM_RADII[i] + 0.05, 0);
-            pivot.add(spineMesh);
-            seg.spine = spineMesh;
-        }
-
-        // Joint bead — ring between this segment and the next
-        if (i < 6) {
-            const beadMesh = new THREE.Mesh(
-                parts.beadGeometry,
-                parts.beadMaterial.clone()
-            );
-            beadMesh.position.y = -VOIDWORM_RADII[i] * 0.85;
-            pivot.add(beadMesh);
-            seg.bead = beadMesh;
-        }
-
-        segments.push(seg);
-    }
-    group.userData.segments = segments;
-
-    // The face rides the head. Segment 0 sways (pivot.position.x, +/-0.22) and
-    // tilts (pivot.rotation.z) every frame, so teeth and eyes left on
-    // bodyPivot visibly detached and floated over the body below.
-    segments[0].pivot.add(teeth);
-    segments[0].pivot.add(eyes);
-
-    // Crystal arms — two prismatic limbs hanging from body segments 1 and 2,
-    // swinging pendulum-style. Each arm has an upper prism + joint and a forearm.
-    group.userData.arms = [-1, 1].map((side, idx) => {
-        // Mount on segment 1 (idx 0) and segment 2 (idx 1)
-        const segIdx = idx + 1;
-        const mount = new THREE.Group();
-        // Position on the side of the segment, hanging down
-        mount.position.set(side * VOIDWORM_RADII[segIdx], 0, 0);
-        segments[segIdx].pivot.add(mount);
-
-        // Upper arm — vertical crystal prism
-        const upper = new THREE.Mesh(
-            parts.armUpperGeometry,
-            parts.armUpperMaterial.clone()
-        );
-        upper.position.y = -0.11;
-        mount.add(upper);
-
-        // Forearm — hangs from the joint, slightly offset
-        const fore = new THREE.Mesh(
-            parts.armForeGeometry,
-            parts.armForeMaterial.clone()
-        );
-        fore.position.y = -0.28;
-        mount.add(fore);
-
-        return { mount, upper, fore, side, idx };
-    });
-}
-
-// ---------------------------------------------------------------------------
-// Raven (row 14) — a compact bird-like form with sweeping wings, sharp beak,
-// crown crest and taloned feet
-// ---------------------------------------------------------------------------
-
-// A standing-raptor silhouette: body, swept-back wings, beak, crest, talons.
-// Silhouette is distinct from every other type: bird shape + beak + wings
-// + talons. No other row has a beak or talons.
-
-const RAVEN_DARK    = 0x1c1c1c;
-const RAVEN_SHADE   = 0x2a2a3a;
-const RAVEN_MID     = 0x3d3d5c;
-const RAVEN_BRIGHT  = 0x5a5a7a;
-const RAVEN_HOT     = 0x7a7a9a;
-const RAVEN_HIGHLIGHT = 0x9a9aba;
-
-// Core body — slightly tapered, blocky bird torso.
-const RAVEN_BODY = [
-    // Upper body (chest / shoulder area)
-    { size: [0.52, 0.30, 0.36], pos: [0, 0.08, 0.0], color: RAVEN_MID },
-    // Mid body
-    { size: [0.44, 0.24, 0.34], pos: [0, -0.08, 0.0], color: RAVEN_SHADE },
-    // Lower body / belly
-    { size: [0.36, 0.18, 0.30], pos: [0, -0.24, 0.0], color: RAVEN_DARK }
-];
-
-// Wings — each wing is a swept-back panel. We store one half and mirror.
-// When spread, the outer edge reaches ~0.95 half-width, right at budget.
-const RAVEN_WING = [
-    { size: [0.56, 0.08, 0.28], pos: [0.52, 0.00, -0.06], rotZ: -0.55, color: RAVEN_SHADE }
-];
-
-// Crown crest — feathers on top of the head.
-const RAVEN_CREST = [
-    { size: [0.12, 0.14, 0.06], pos: [0.0, 0.28, -0.14], rotX: 0.35, color: RAVEN_BRIGHT },
-    { size: [0.08, 0.10, 0.06], pos: [-0.07, 0.25, -0.18], rotX: 0.25, color: RAVEN_MID },
-    { size: [0.08, 0.10, 0.06], pos: [0.07, 0.25, -0.18], rotX: 0.25, color: RAVEN_MID }
-];
-
-// Beak — sharp triangular nose.
-const RAVEN_BEAK = [
-    { size: [0.14, 0.08, 0.18], pos: [0.0, 0.00, 0.24], rotX: 0.2, color: RAVEN_BRIGHT }
-];
-
-// Eyes — bright spots on the sides of the head.
-const RAVEN_EYES = [
-    { size: [0.08, 0.08, 0.06], pos: [-0.22, 0.14, 0.10], color: 0xe8e8ff },
-    { size: [0.08, 0.08, 0.06], pos: [0.22, 0.14, 0.10], color: 0xe8e8ff }
-];
-
-// Talons — small feet beneath the body.
-const RAVEN_TALON = [
-    { size: [0.10, 0.06, 0.08], pos: [0.0, -0.36, 0.02], color: RAVEN_HOT }
-];
-
-let ravenParts = null;
-
-function getRavenParts() {
-    if (ravenParts) return ravenParts;
-
-    ravenParts = {
-        bodyGeometry: buildVoxelGeometry(RAVEN_BODY),
-        wingGeometries: {
-            '-1': buildVoxelGeometry(RAVEN_WING),
-            '1':  buildVoxelGeometry(mirrorBoxes(RAVEN_WING))
-        },
-        crestGeometry: buildVoxelGeometry(RAVEN_CREST),
-        beakGeometry: buildVoxelGeometry(RAVEN_BEAK),
-        eyeGeometry: buildVoxelGeometry(RAVEN_EYES),
-        talonGeometry: buildVoxelGeometry(RAVEN_TALON),
-        bodyMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: RAVEN_DARK,
-            emissiveIntensity: 0.45,
-            shininess: 30,
-            flatShading: true
-        }),
-        wingMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: RAVEN_SHADE,
-            emissiveIntensity: 0.55,
-            shininess: 40,
-            flatShading: true
-        }),
-        crestMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: RAVEN_BRIGHT,
-            emissiveIntensity: 1.5,
-            flatShading: true
-        }),
-        beakMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: RAVEN_BRIGHT,
-            emissiveIntensity: 0.9,
-            shininess: 60,
-            flatShading: true
-        }),
-        eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: 0xe8e8ff,
-            emissiveIntensity: 2.0,
-            flatShading: true
-        }),
-        talonMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: RAVEN_HOT,
-            emissiveIntensity: 1.2,
-            flatShading: true
-        })
-    };
-
-    return ravenParts;
-}
-
-function createRavenAlien(group) {
-    const parts = getRavenParts();
-
-    const bodyPivot = new THREE.Group();
-    group.add(bodyPivot);
-    group.userData.bodyPivot = bodyPivot;
-
-    // Core body
-    const body = new THREE.Mesh(parts.bodyGeometry, parts.bodyMaterial.clone());
-    body.castShadow = true;
-    bodyPivot.add(body);
-    group.userData.body = body;
-
-    // Wings — separate meshes so we can rotate them open/close
-    group.userData.wings = [-1, 1].map(side => {
-        const wing = new THREE.Mesh(parts.wingGeometries[side], parts.wingMaterial.clone());
-        wing.position.x = side * 0.32;
-        bodyPivot.add(wing);
-        return { mesh: wing, side };
-    });
-
-    // Crest
-    const crest = new THREE.Mesh(parts.crestGeometry, parts.crestMaterial.clone());
-    bodyPivot.add(crest);
-    group.userData.crest = crest;
-
-    // Beak
-    const beak = new THREE.Mesh(parts.beakGeometry, parts.beakMaterial.clone());
-    bodyPivot.add(beak);
-    group.userData.beak = beak;
-
-    // Eyes
-    const eyes = new THREE.Mesh(parts.eyeGeometry, parts.eyeMaterial.clone());
-    bodyPivot.add(eyes);
-    group.userData.eyes = eyes;
-
-    // Talons (2 sides)
-    group.userData.talons = [-1, 1].map(side => {
-        const talon = new THREE.Mesh(parts.talonGeometry, parts.talonMaterial.clone());
-        talon.position.x = side * 0.10;
-        talon.position.z = 0.14;
-        talon.position.y = -0.36;
-        bodyPivot.add(talon);
-        return { mesh: talon, side };
-    });
-}
-
-// ---------------------------------------------------------------------------
-// TYPE 15 — NEXUS: orbital station with rotating crystal arms and energy ring
-// ---------------------------------------------------------------------------
-
-const NEXUS_DARK    = 0x0a0a1e;
-const NEXUS_SHADE   = 0x1a2a6e;
-const NEXUS_MID     = 0x2a4aaa;
-const NEXUS_BRIGHT  = 0x4a7aff;
-const NEXUS_HOT     = 0x7aaaff;
-const NEXUS_CORE    = 0xffffff;
-
-// Central core — glowing crystal sphere.
-const NEXUS_CORE_BOX = [
-    { size: [0.28, 0.28, 0.28], pos: [0, 0, 0], color: NEXUS_CORE }
-];
-
-// Crystal arms — one quarter-arm, mirrored to make 4.
-// Each arm is a tapered crystal spike pointing outward.
-const NEXUS_ARM_HALF = [
-    // Main arm body — tapered toward tip
-    { size: [0.06, 0.06, 0.52], pos: [0.05, 0, 0.38], color: NEXUS_SHADE },
-    { size: [0.08, 0.08, 0.36], pos: [0.05, 0, 0.18], color: NEXUS_MID },
-    // Tip accent — brighter crystal
-    { size: [0.04, 0.04, 0.10], pos: [0.05, 0, 0.68], color: NEXUS_HOT }
-];
-
-// Energy ring — a flat disc around the core, between the arms.
-const NEXUS_RING = [
-    // Outer ring segments — four quadrants form a ring
-    { size: [0.60, 0.04, 0.04], pos: [0.30, 0, 0.0], color: NEXUS_BRIGHT },
-    { size: [0.04, 0.04, 0.60], pos: [0.0, 0, 0.30], color: NEXUS_BRIGHT },
-    // Inner ring — thinner, brighter
-    { size: [0.36, 0.03, 0.03], pos: [0.18, 0, 0.0], color: NEXUS_HOT },
-    { size: [0.03, 0.03, 0.36], pos: [0.0, 0, 0.18], color: NEXUS_HOT }
-];
-
-// Cross-bracing — subtle structural elements connecting arms to core.
-const NEXUS_BRACE = [
-    { size: [0.04, 0.04, 0.14], pos: [0.10, 0, 0.10], color: NEXUS_SHADE },
-    { size: [0.14, 0.04, 0.04], pos: [0.10, 0, 0.10], color: NEXUS_SHADE }
-];
-
-let nexusParts = null;
-
-function getNexusParts() {
-    if (nexusParts) return nexusParts;
-
-    nexusParts = {
-        coreGeometry: buildVoxelGeometry(NEXUS_CORE_BOX),
-        armGeometries: {
-            '-1': buildVoxelGeometry(NEXUS_ARM_HALF),
-            '1':  buildVoxelGeometry(mirrorBoxes(NEXUS_ARM_HALF))
-        },
-        ringGeometry: buildVoxelGeometry(NEXUS_RING),
-        braceGeometry: buildVoxelGeometry(NEXUS_BRACE),
-        coreMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: NEXUS_CORE,
-            emissiveIntensity: 2.0,
-            shininess: 120,
-            flatShading: true
-        }),
-        armMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: NEXUS_SHADE,
-            emissiveIntensity: 0.4,
-            shininess: 60,
-            flatShading: true
-        }),
-        ringMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: NEXUS_BRIGHT,
-            emissiveIntensity: 1.0,
-            shininess: 90,
-            flatShading: true
-        }),
-        braceMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: NEXUS_DARK,
-            emissiveIntensity: 0.2,
-            shininess: 40,
-            flatShading: true
-        })
-    };
-
-    return nexusParts;
-}
-
-function createNexusAlien(group) {
-    const parts = getNexusParts();
-
-    // Pivot for rotating arms — entire alien rotates as a unit
-    const pivot = new THREE.Group();
-    group.add(pivot);
-    group.userData.pivot = pivot;
-
-    // Central core — static, bright crystal
-    const core = new THREE.Mesh(parts.coreGeometry, parts.coreMaterial.clone());
-    pivot.add(core);
-    group.userData.core = core;
-
-    // Four crystal arms — each is a pair of mirrored halves
-    group.userData.arms = [-1, 1].map((side, idx) => {
-        // Each arm quadrant: two mirrored halves for the arm pointing in the +Z direction,
-        // rotated to point in all 4 cardinal directions
-        const angle = idx * Math.PI / 2;
-        const armGroup = new THREE.Group();
-        armGroup.rotation.z = angle;
-        pivot.add(armGroup);
-
-        // Inner half (closer to core)
-        const inner = new THREE.Mesh(parts.armGeometries['1'], parts.armMaterial.clone());
-        armGroup.add(inner);
-
-        // Outer half (mirrored, farther from core) — placed further out
-        const outer = new THREE.Mesh(parts.armGeometries['-1'], parts.armMaterial.clone());
-        outer.position.z = 0.12; // shift outward along arm axis
-        armGroup.add(outer);
-
-        // Arm tip glow — small bright accent at the tip
-        const tipGeo = new THREE.BoxGeometry(0.04, 0.04, 0.04);
-        const tipMat = new THREE.MeshPhongMaterial({
-            color: NEXUS_HOT,
-            emissive: NEXUS_HOT,
-            emissiveIntensity: 1.5,
-            flatShading: true
-        });
-        const tip = new THREE.Mesh(tipGeo, tipMat);
-        tip.position.z = 0.72;
-        armGroup.add(tip);
-
-        return { group: armGroup, inner, outer, tip, side, angle };
-    });
-
-    // Energy ring — rotating disc between arms
-    const ring = new THREE.Mesh(parts.ringGeometry, parts.ringMaterial.clone());
-    pivot.add(ring);
-    ring.rotation.x = Math.PI / 2; // flat in XZ plane
-    group.userData.ring = ring;
-
-    // Cross-braces — subtle structural links
-    group.userData.braces = [-1, 1].map((side) => {
-        const brace = new THREE.Mesh(parts.braceGeometry, parts.braceMaterial.clone());
-        pivot.add(brace);
-        brace.rotation.z = side * Math.PI / 4; // diagonal
-        return brace;
-    });
-
-    // Store reference for animation
-    group.userData.corePulse = 0;
-    group.userData.ringAngle = 0;
-    group.userData.chargePhase = 0;
-    group.userData.wasFiring = false;
-}
-
-// Animate a single alien
 export function animateAlien(alien) {
     const time = Date.now() * 0.001 + alien.userData.animationOffset;
     const row = alien.userData.row;
@@ -4890,105 +1731,11 @@ export function animateAlien(alien) {
             break;
         }
 
-        case 13: { // Voidworm — sinuous undulating wave through 7 segments
-            const self = alien.userData;
-            const t = time;
-            const period = 7.0;
-            const p = (t % period) / period;
-
-            // Crown teeth windup — open before firing, snap shut on burst.
-            // Period-based firing telegraph: teeth flare out at 0.30→0.40,
-            // snap shut at 0.40, burst flash at 0.40→0.46.
-            const windup = p >= 0.28 && p < 0.42
-                ? Math.sin(((p - 0.28) / 0.14) * Math.PI / 2)
-                : p >= 0.42 && p < 0.48 ? 1.0
-                : p >= 0.48 && p < 0.60
-                    ? Math.sin(((0.60 - p) / 0.12) * Math.PI / 2)
-                    : 0;
-
-            // Sinuous body wave — each segment sways laterally with phase offset.
-            // The S-curve uses sine with increasing amplitude toward the middle
-            // so the wave reads clearly at gameplay distance.
-            if (self.segments) {
-                self.segments.forEach((seg, i) => {
-                    // Lateral position sway — moves the segment left/right to form an S-curve.
-                    // Amplitude increases toward the middle (i=3) for a pronounced wave.
-                    const waveAmp = 0.22 + Math.sin(i * 0.5) * 0.12;
-                    const sway = Math.sin(t * 2.8 + seg.phase) * waveAmp;
-                    seg.pivot.position.x = sway;
-                    // Also tilt the segment for extra visual motion
-                    seg.pivot.rotation.z = Math.sin(t * 2.8 + seg.phase) * 0.25;
-
-                    // Core glow — travelling pulse along the chain.
-                    // Each segment's core brightens and dims in sequence.
-                    if (seg.core) {
-                        const corePulse = Math.sin(t * 3.2 + seg.phase * 0.8);
-                        seg.core.material.emissiveIntensity =
-                            0.6 + (corePulse * 0.5 + 0.5) * 1.8;
-                    }
-
-                    // Per-segment mesh scale pulse — crystal shimmer
-                    if (seg.mesh) {
-                        const shimmer = Math.sin(t * 5.5 + seg.phase * 1.3);
-                        seg.mesh.scale.setScalar(1.0 + shimmer * 0.04);
-                    }
-
-                    // Spine brightening — peaks during windup, faint pulse otherwise
-                    if (seg.spine) {
-                        const spinePulse = Math.sin(t * 3.2 + seg.phase);
-                        seg.spine.material.emissiveIntensity =
-                            0.6 + (spinePulse * 0.3 + 0.3) * 2.0 + windup * 1.5;
-                        // Spine extends outward during windup
-                        const spineExt = windup * 0.08;
-                        seg.spine.position.y = VOIDWORM_RADII[i] + 0.05 + spineExt;
-                    }
-
-                    // Plate rotation — catches light as worm waves; oscillates in local Y
-                    if (seg.plate) {
-                        const plateSway = Math.sin(t * 2.8 + seg.phase) * 0.4;
-                        seg.plate.rotation.y = Math.PI / 2 + plateSway;
-                    }
-
-                    // Joint bead — subtle scale pulse on the bead between segments
-                    if (seg.bead) {
-                        const beadPulse = Math.sin(t * 4.0 + seg.phase * 1.1);
-                        seg.bead.scale.setScalar(1.0 + beadPulse * 0.15 + windup * 0.12);
-                    }
-                });
-            }
-
-            if (self.teeth) {
-                // Teeth emissive — bright flash during windup
-                self.teeth.material.emissiveIntensity =
-                    0.6 + windup * 1.7;
-                // Teeth open: scale outward during windup, snap shut on burst
-                const teethScale = 1.0 + windup * 0.6;
-                self.teeth.scale.setScalar(teethScale);
-            }
-
-            // Crystal arms — pendulum swing. Each arm hangs from its body
-            // segment and swings back and forth, with a phase offset so the
-            // left and right arms don't move in lockstep. The swing amplitude
-            // follows the worm's undulation — bigger wave = wider arm swing.
-            if (self.arms) {
-                self.arms.forEach(arm => {
-                    const phase = arm.idx * Math.PI; // opposite phase for left/right
-                    // Pendulum swing: rotation in X about the mount pivot
-                    const swing = Math.sin(t * 2.5 + phase) * 0.55;
-                    arm.mount.rotation.x = swing;
-                    // Slight Y swing for more organic motion
-                    arm.mount.rotation.z = Math.sin(t * 1.8 + phase + 0.7) * 0.15;
-                    // Forearm hangs loosely — slight lag behind upper arm
-                    arm.fore.position.y = -0.28 - Math.abs(swing) * 0.04;
-                });
-            }
-
-            // Idle hover
-            if (!alien.userData.isSwooping) {
-                alien.position.y = 0.04 + Math.sin(t * 1.5) * 0.03;
-            }
+        case 13: { // Gravworm — geometry+animation live in invaders/gravworm.js
+            animateGravworm(alien, time);
             break;
         }
+
 
         case 14: { // Raven
             const self = alien.userData;
@@ -5209,653 +1956,193 @@ export function animateAlien(alien) {
             }
             break;
         }
-        case 18: { // Manta — continuous wing-sweep glide, snap wide on windup, settle back
+        case 18: { // Manta — wingbeat swim, cephalic-horn roll, feeding attack
             const self = alien.userData;
+            if (!self || !self.wings) break;
             const t = time;
+            const period = 6.0;
+            const phase = (t % period) / period;
 
-            const windup = phase >= 0.30 && phase < 0.45
-                ? Math.sin(((phase - 0.30) / 0.15) * Math.PI / 2)
-                : phase >= 0.45 && phase < 0.55 ? 1 : 0;
-            const strike = phase >= 0.55 && phase < 0.70
-                ? Math.sin(((phase - 0.55) / 0.15) * Math.PI)
+            // ---- Signature feeding attack (once per period) ----
+            const attackWindup = phase >= 0.18 && phase < 0.32
+                ? Math.sin(((phase - 0.18) / 0.14) * Math.PI / 2)
+                : phase >= 0.32 && phase < 0.42 ? 1 : 0;
+            const attackStrike = phase >= 0.42 && phase < 0.58
+                ? Math.sin(((phase - 0.42) / 0.16) * Math.PI)
                 : 0;
-            const recoil = phase >= 0.70 ? Math.max(0, 1 - (phase - 0.70) / 0.18) : 0;
+            const attackRecovery = phase >= 0.58 ? Math.max(0, 1 - (phase - 0.58) / 0.22) : 0;
 
-            if (self.wings) {
-                self.wings.forEach(wing => {
-                    // Wing sweep: continuous idle motion + windup flare + strike + recoil
-                    wing.pivot.rotation.x = Math.sin(t * 3.5 + wing.side) * 0.04
-                                          + windup * wing.side * 0.28
-                                          + strike * wing.side * 0.18
-                                          - recoil * wing.side * 0.10;
-                    // Cloned per instance -> safe.
-                    wing.eye.material.emissiveIntensity = 2.5 + windup * 1.8 + strike * 3.0;
-                    // Wing tip accent flashes on windup.
-                    wing.wingTip.scale.y = 1 + windup * 0.20 + strike * 0.10;
+            // ---- Continuous wingbeat (always running) ----
+            const wingCycle = Math.sin(t * 3.2) * 0.5 + 0.5; // 0-1 oscillation
+
+            // Bank: gentle side-to-side roll
+            const bank = Math.sin(t * 0.9) * 0.08;
+
+            // ---- Cephalic horns: rolled during cruise, unfurl during attack ----
+            if (self.horns) {
+                self.horns.forEach(horn => {
+                    if (!horn.pivot) return;
+                    const roll = attackStrike > 0
+                        ? horn.side * (0.35 + attackStrike * 0.55)
+                        : attackWindup > 0
+                            ? horn.side * (0.20 + attackWindup * 0.15)
+                            : horn.side * 0.12 * Math.sin(t * 2.0 + horn.side);
+                    horn.pivot.rotation.x = roll;
+                    horn.pivot.rotation.z = attackStrike > 0
+                        ? horn.side * (0.15 + attackStrike * 0.25)
+                        : 0;
                 });
             }
 
-            if (self.bodyPivot) {
-                // Body rises slightly on windup, crouches on strike.
-                self.bodyPivot.position.y = Math.sin(t * 2.8) * 0.025 + windup * 0.04 - strike * 0.03;
-                self.bodyPivot.rotation.z = Math.sin(t * 1.3) * 0.025;
+            // ---- Mouth: opens during attack ----
+            if (self.mouth) {
+                self.mouth.scale.y = 1 + attackWindup * 0.5 + attackStrike * 1.5;
+                if (self.mouth.material && self.mouth.material.emissiveIntensity !== undefined) {
+                    self.mouth.material.emissiveIntensity = 1.0 + attackWindup * 0.5 + attackStrike * 3.0;
+                }
             }
 
+            // ---- Eyes: gold, pulse during attack ----
+            if (self.eyes) {
+                self.eyes.forEach(eye => {
+                    if (eye.material && eye.material.emissiveIntensity !== undefined) {
+                        eye.material.emissiveIntensity = 2.0 + attackStrike * 4.0 + wingCycle * 0.3;
+                        eye.material.emissive.setHSL(0.08 + attackStrike * 0.05, 0.9, 0.6);
+                    }
+                });
+            }
+
+            // ---- Articulated wings: wingGroup Y rotation for the main
+            // wingbeat, per-segment Z rotation for the traveling wave ----
+            if (self.wings) {
+                self.wings.forEach(wing => {
+                    if (!wing.wingGroup) return;
+                    if (!wing.segments) return;
+                    // Main wingbeat: flap the entire wingGroup up/down
+                    // about the Z axis. The wing extends in +X relative
+                    // to the group, so Z rotation sweeps it up (positive)
+                    // and down (negative) — producing visible flapping.
+                    const mainBeat = wing.side * 0.18 * wingCycle;
+                    wing.wingGroup.rotation.z = mainBeat;
+
+                    // Attack: wings cup inward toward body
+                    const cup = attackStrike > 0
+                        ? wing.side * (0.15 + attackStrike * 0.25)
+                        : 0;
+
+                    // Per-segment traveling wave: root→tip phase delay
+                    wing.segments.forEach((seg, i) => {
+                        if (!seg || !seg.pivot) return;
+                        const lag = i * 0.3;
+                        // Z rotation creates the wave along the wing span
+                        const wave = Math.sin(t * 3.2 + lag) * (0.06 + i * 0.03);
+                        // Add cup effect
+                        const segCup = cup * (i + 1) * 0.25;
+
+                        seg.pivot.rotation.z = wave + segCup;
+                        // Slight X tilt for 3D feel
+                        seg.pivot.rotation.x = bank * wing.side * 0.3 * (i + 1) * 0.25;
+                    });
+                });
+            }
+
+            // ---- Tail: undulation wave ----
+            if (self.tailSegments) {
+                self.tailSegments.forEach((seg, i) => {
+                    if (!seg) return;
+                    const tailWave = Math.sin(t * 2.0 - i * 0.4) * 0.06;
+                    const tailAttack = attackStrike > 0 ? 0.12 * attackStrike : 0;
+                    seg.rotation.x = tailWave + tailAttack * (i + 1) * Math.sin(t * 3.0);
+                });
+            }
+
+            // ---- Body pivot: gentle float + attack motions ----
+            if (self.bodyPivot) {
+                const hover = Math.sin(t * 1.4) * 0.02;
+                self.bodyPivot.position.y = hover + attackWindup * 0.03 - attackStrike * 0.02;
+                if (self.bodyPivot.rotation) {
+                    self.bodyPivot.rotation.z = bank * 0.3;
+                    // Permanent dorsal pitch so the broad diamond body/wings
+                    // are visible from the front (camera sees along +Z).
+                    // Small oscillation for breathing; attackStrike
+                    // perturbs around the base pitch.
+                    self.bodyPivot.rotation.x = -0.75
+                        + Math.sin(t * 1.1) * 0.06
+                        + attackStrike * 0.15
+                        - attackRecovery * 0.08;
+                }
+            }
+
+            // Body breathing (scale child mesh only, not group scale)
             if (self.body) {
-                // Body compresses slightly on windup (child-mesh scale only).
-                self.body.scale.y = 1 - windup * 0.12 + strike * 0.06;
+                const breathe = 1 + Math.sin(t * 1.8) * 0.01;
+                self.body.scale.set(breathe, breathe, breathe);
             }
 
             // updateSwoop() owns Y during a kamikaze dive.
             if (!alien.userData.isSwooping) {
-                alien.position.y = 0.02 + Math.sin(t * 1.8) * 0.02;
+                alien.position.y = 0.02 + Math.sin(t * 1.4) * 0.015;
             }
             break;
         }
-    }
-}
+        case 19: { // Peacock - iridescent abdomen display, waving arms, pulsing eyes
+            const peacock = alien.userData;
+            const t = time;
 
-// Update alien formation movement
-export function updateAliens(gameOverCallback) {
-    if (aliens.length === 0) return;
+            // Iridescent abdomen color cycle (cyan→green→red shimmer)
+            const abdPhase = t * 2.5 + peacock.abdomenPhase;
+            const abdShimmer = (Math.sin(abdPhase) + 1) / 2;
+            const colorR = Math.sin(abdPhase) * 0.5 + 0.5;
+            const colorG = Math.cos(abdPhase * 0.7) * 0.5 + 0.5;
+            if (peacock.abdomen && peacock.abdomen.material) {
+                peacock.abdomen.material.emissive.setHSL(
+                    0.5 + abdShimmer * 0.3,  // Shift hue from cyan to green-red
+                    0.8,
+                    0.5 + abdShimmer * 0.2
+                );
+                peacock.abdomen.material.emissiveIntensity = 0.55 + abdShimmer * 0.8;
+            }
 
-    // Dynamic speed calculation based on remaining aliens
-    // As aliens are destroyed, they speed up significantly
-    const totalAliens = levelConfig.rows * levelConfig.cols;
-    const remainingRatio = Math.min(aliens.length / totalAliens, 1.0);  // Clamp to prevent NaN
+            // Abdomen fans/pulses (the nurse hat display)
+            if (peacock.abdomen) {
+                const fanScale = 1 + Math.sin(t * 3.2 + peacock.abdomenPhase) * 0.08;
+                peacock.abdomen.scale.set(fanScale, fanScale * 1.05, fanScale);
+            }
 
-    // Use level config base speed, scale up to 6x at the end
-    const minSpeed = levelConfig.baseSpeed;
-    const maxSpeed = levelConfig.baseSpeed * 6;
+            // Raised arms wave in display dance
+            if (peacock.arms) {
+                peacock.arms.forEach((arm, i) => {
+                    const wavePhase = t * 4 + i * Math.PI + peacock.armPhase;
+                    const waveAngle = Math.sin(wavePhase) * 0.6;
+                    arm.pivot.rotation.z = waveAngle;
+                    arm.pivot.rotation.y = Math.sin(wavePhase * 0.7) * 0.3;
+                });
+            }
 
-    // Non-linear speed curve (gets faster more quickly at the end)
-    alienSpeed = minSpeed + (maxSpeed - minSpeed) * Math.pow(1 - remainingRatio, 1.5);
+            // Large eyes pulse and shift focus
+            if (peacock.eyes && peacock.eyes.material) {
+                const eyePulse = (Math.sin(t * 5 + peacock.eyePulse) + 1) / 2;
+                peacock.eyes.material.emissiveIntensity = 2.5 + eyePulse * 2.5;
+                // Slight eye tracking
+                peacock.eyes.position.z = 0.36 + eyePulse * 0.02;
+            }
 
-    let shouldMoveDown = false;
+            // Head bobs subtly with display
+            if (peacock.head) {
+                peacock.head.position.z = 0.36 + Math.sin(t * 2.8 + peacock.abdomenPhase) * 0.015;
+                peacock.head.rotation.y = Math.sin(t * 1.6) * 0.08;
+            }
 
-    // Check if any alien hit the edge
-    for (let alien of aliens) {
-        if (alien.userData.destroyed) continue;
-        if (alien.userData.isSwooping || alien.userData.isTelegraphing) continue; // Ignore swooping aliens for edge check
+            // Legs adjust slightly
+            if (peacock.legs) {
+                peacock.legs.forEach((leg) => {
+                    leg.pivot.rotation.z = Math.sin(t * 3 + leg.phase) * 0.06;
+                });
+            }
 
-        if ((alienDirection > 0 && alien.position.x > 13) ||
-            (alienDirection < 0 && alien.position.x < -13)) {
-            shouldMoveDown = true;
+            // Gentle rotation wobble (display sway)
+            alien.rotation.y = Math.sin(t * 1.4 + peacock.armPhase) * 0.12;
             break;
         }
     }
-
-    if (shouldMoveDown) {
-        alienDirection *= -1;
-        for (let alien of aliens) {
-            if (!alien.userData.destroyed && !alien.userData.isSwooping && !alien.userData.isTelegraphing) {
-                alien.position.z += 1;
-
-                // Check if aliens reached player
-                if (alien.position.z > 8) {
-                    gameOverCallback(false);
-                }
-            }
-        }
-        // Speed is now calculated per frame, so we don't need to multiply here
-    }
-
-    // Move aliens
-    for (let alien of aliens) {
-        if (alien.userData.destroyed) continue;
-
-        // Handle Kamikaze Swoop
-        if (alien.userData.isTelegraphing) {
-            updateTelegraph(alien);
-        } else if (alien.userData.isSwooping) {
-            updateSwoop(alien);
-        } else {
-            // Normal formation movement
-            alien.position.x += alienDirection * alienSpeed;
-        }
-    }
-
-    // Check for new swoop triggers
-    checkSwoopTrigger();
-}
-
-// Swoop state
-let lastSwoopTime = 0;
-const SWOOP_INTERVAL_MIN = 5000; // 5 seconds
-const SWOOP_INTERVAL_MAX = 10000; // 10 seconds
-let nextSwoopInterval = 5000;
-
-function checkSwoopTrigger() {
-    // Only swoop if few aliens remain (based on level config)
-    if (aliens.length >= levelConfig.swoopThreshold) return;
-
-    const now = Date.now();
-    if (now - lastSwoopTime > nextSwoopInterval) {
-        triggerSwoop();
-        lastSwoopTime = now;
-        nextSwoopInterval = SWOOP_INTERVAL_MIN + Math.random() * (SWOOP_INTERVAL_MAX - SWOOP_INTERVAL_MIN);
-    }
-}
-
-function triggerSwoop() {
-    // Find available aliens not already swooping
-    const availableAliens = aliens.filter(a => !a.userData.destroyed && !a.userData.isSwooping);
-
-    if (availableAliens.length === 0) return;
-
-    // Pick a random alien
-    const alien = availableAliens[Math.floor(Math.random() * availableAliens.length)];
-
-    // Initialize telegraph state (Warning phase)
-    alien.userData.isTelegraphing = true;
-    alien.userData.telegraphStartTime = Date.now();
-    alien.userData.originalScale = alien.scale.clone();
-
-    // Play warning sound
-    playSwoopWarning();
-}
-
-function updateTelegraph(alien) {
-    const now = Date.now();
-    const elapsed = (now - alien.userData.telegraphStartTime) / 1000;
-
-    // Pulse effect (scale up and down rapidly)
-    const pulse = 1 + Math.sin(elapsed * 20) * 0.3;
-    alien.scale.set(
-        alien.userData.originalScale.x * pulse,
-        alien.userData.originalScale.y * pulse,
-        alien.userData.originalScale.z * pulse
-    );
-
-    // Shake effect
-    alien.position.x += (Math.random() - 0.5) * 0.2;
-
-    // End telegraph after 1 second
-    if (elapsed > 1.0) {
-        alien.userData.isTelegraphing = false;
-        alien.scale.copy(alien.userData.originalScale); // Reset scale
-        startSwoop(alien);
-    }
-}
-
-function startSwoop(alien) {
-    // Initialize swoop state
-    alien.userData.isSwooping = true;
-    alien.userData.swoopStartTime = Date.now();
-    alien.userData.swoopStartX = alien.position.x;
-    alien.userData.swoopStartZ = alien.position.z;
-
-    // Randomize swoop pattern
-    alien.userData.swoopFreqX = 2 + Math.random() * 3; // Frequency of X wobble
-    alien.userData.swoopAmpX = 3 + Math.random() * 4;  // Amplitude of X wobble
-
-    // Increased speed: 0.25 to 0.40 (was 0.15 to 0.25)
-    alien.userData.swoopSpeedZ = 0.25 + Math.random() * 0.15;
-}
-
-function updateSwoop(alien) {
-    const time = (Date.now() - alien.userData.swoopStartTime) * 0.001;
-
-    // Move forward rapidly
-    alien.position.z += alien.userData.swoopSpeedZ;
-
-    // Sine wave motion on X
-    alien.position.x = alien.userData.swoopStartX + Math.sin(time * alien.userData.swoopFreqX) * alien.userData.swoopAmpX;
-
-    // Dive motion on Y (dip down then up)
-    alien.position.y = Math.sin(time * 3) * 2;
-
-    // Banking rotation
-    alien.rotation.z = Math.cos(time * alien.userData.swoopFreqX) * 0.5;
-
-    // Check if passed player (Z > 15)
-    if (alien.position.z > 15) {
-        resetSwoop(alien);
-    }
-}
-
-function resetSwoop(alien) {
-    alien.userData.isSwooping = false;
-
-    // Reset to back of formation
-    alien.position.z = -25;
-
-    // Random X position within bounds
-    alien.position.x = (Math.random() - 0.5) * 20;
-
-    // Reset rotation
-    alien.rotation.z = 0;
-    alien.position.y = 0;
-
-    // Ensure it's not too close to edges immediately
-    alien.position.x = Math.max(-10, Math.min(10, alien.position.x));
-}
-
-// Get all aliens
-export function getAliens() {
-    return aliens;
-}
-
-// Hide all aliens
-export function hideAliens() {
-    aliens.forEach(alien => {
-        alien.visible = false;
-    });
-}
-
-// Show all aliens
-export function showAliens() {
-    aliens.forEach(alien => {
-        alien.visible = true;
-    });
-}
-
-import { spawnPowerUp } from './powerups.js';
-
-// Remove alien from array
-export function removeAlien(alien, scene) {
-    alien.userData.destroyed = true;
-
-    // Chance to drop power-up (10%)
-    if (Math.random() < 0.1) {
-        spawnPowerUp(alien.position, scene);
-    }
-
-    scene.remove(alien);
-    const alienIndex = aliens.indexOf(alien);
-    if (alienIndex > -1) {
-        aliens.splice(alienIndex, 1);
-    }
-}
-
-// Reset aliens for new game
-export function resetAliens(scene) {
-    aliens.forEach(alien => scene.remove(alien));
-    aliens = [];
-    alienDirection = 1;
-    alienSpeed = levelConfig.baseSpeed;
-    lastSwoopTime = 0;
-    nextSwoopInterval = 5000;
-}
-
-// Get alien state for reset
-export function getAlienState() {
-    return {
-        direction: alienDirection,
-        speed: alienSpeed
-    };
-}
-
-// ---------------------------------------------------------------------------
-// TYPE 16 — APEX: floating geometric core with orbiting prismatic shards
-// ---------------------------------------------------------------------------
-
-const APEX_DARK    = 0x1a0a2e;
-const APEX_SHADE   = 0x3d1f6e;
-const APEX_MID     = 0x8b45c7;
-const APEX_BRIGHT  = 0xc77dff;
-const APEX_HOT     = 0xe8b4ff;
-const APEX_CORE    = 0xffeeff;
-
-// Central core — inverted tetrahedron (diamond pointing down)
-const APEX_CORE_BOX = [
-    { size: [0.18, 0.18, 0.18], pos: [0, 0, 0], color: APEX_CORE }
-];
-
-// Three orbiting prismatic shards — one shard definition, replicated 3x
-const APEX_SHARD = [
-    // Main shard body — elongated diamond
-    { size: [0.08, 0.08, 0.36], pos: [0, 0, 0], color: APEX_BRIGHT },
-    // Tip accent — brighter at the point
-    { size: [0.04, 0.04, 0.12], pos: [0, 0, 0.22], color: APEX_HOT }
-];
-
-// Orbit ring — subtle ring showing the orbit path
-const APEX_ORBIT = [
-    { size: [0.60, 0.02, 0.02], pos: [0.30, 0, 0.0], color: APEX_DARK },
-    { size: [0.02, 0.02, 0.60], pos: [0.0, 0, 0.30], color: APEX_DARK },
-    { size: [0.40, 0.02, 0.40], pos: [0.20, 0, 0.20], color: APEX_DARK },
-    { size: [0.40, 0.02, 0.02], pos: [0.20, 0, 0.20], color: APEX_DARK },
-    { size: [0.02, 0.02, 0.40], pos: [0.20, 0, 0.20], color: APEX_DARK }
-];
-
-let apexParts = null;
-
-function getApexParts() {
-    if (apexParts) return apexParts;
-
-    apexParts = {
-        coreGeometry: buildVoxelGeometry(APEX_CORE_BOX),
-        shardGeometry: buildVoxelGeometry(APEX_SHARD),
-        orbitGeometry: buildVoxelGeometry(APEX_ORBIT),
-        coreMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: APEX_CORE,
-            emissiveIntensity: 2.0,
-            shininess: 120,
-            flatShading: true
-        }),
-        shardMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: APEX_BRIGHT,
-            emissiveIntensity: 0.6,
-            shininess: 80,
-            flatShading: true
-        }),
-        orbitMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: APEX_DARK,
-            emissiveIntensity: 0.15,
-            shininess: 20,
-            flatShading: true
-        })
-    };
-
-    return apexParts;
-}
-
-function createApexAlien(group) {
-    const parts = getApexParts();
-
-    // Pivot for orbiting shards — entire alien rotates as a unit
-    const pivot = new THREE.Group();
-    group.add(pivot);
-    group.userData.pivot = pivot;
-
-    // Central core — static, bright crystal
-    const core = new THREE.Mesh(parts.coreGeometry, parts.coreMaterial.clone());
-    pivot.add(core);
-    group.userData.core = core;
-
-    // Orbit path — subtle ring
-    const orbitRing = new THREE.Mesh(parts.orbitGeometry, parts.orbitMaterial.clone());
-    orbitRing.rotation.x = Math.PI / 2; // flat in XZ plane
-    pivot.add(orbitRing);
-    group.userData.orbitRing = orbitRing;
-
-    // Three prismatic shards — orbit at 120° intervals
-    group.userData.shards = [];
-    for (let i = 0; i < 3; i++) {
-        const angle = (i * 2 * Math.PI) / 3; // 0°, 120°, 240°
-        const shard = new THREE.Mesh(parts.shardGeometry, parts.shardMaterial.clone());
-        // Position on orbit circle
-        shard.position.x = Math.cos(angle) * 0.55;
-        shard.position.z = Math.sin(angle) * 0.55;
-        shard.position.y = 0.05; // slight lift
-        pivot.add(shard);
-        group.userData.shards.push(shard);
-    }
-
-    // Store reference for animation
-    group.userData.orbitAngle = 0;
-    group.userData.chargePhase = 0;
-    group.userData.wasFiring = false;
-}
-
-// ---------------------------------------------------------------------------
-// TYPE 17 — AMPHISBAENA: two-headed serpent with twin arching necks
-// ---------------------------------------------------------------------------
-
-// Ramp: dark forest -> venom green -> pale venom glow. Midpoint is clearly
-// lighter than space so the sculpt reads at formation distance; the chartreuse
-// hot tone is reserved for small accents (eyes, crest).
-const BASILISK_DARK   = 0x0d1f14;
-const BASILISK_SHADE  = 0x1f4d2a;
-const BASILISK_MID    = 0x3fa34d;
-const BASILISK_BRIGHT = 0x8fd84a;
-const BASILISK_HOT    = 0xe8ff8a;
-
-// Torso: compact cut-corner disc with a dorsal fin and a belly plate.
-const BASILISK_TORSO = [
-    ...saucerTier(0.62, 0.46, 0.16, -0.10, BASILISK_SHADE),
-    ...saucerTier(0.52, 0.38, 0.14,  0.02, BASILISK_MID),
-    ...saucerTier(0.38, 0.28, 0.12,  0.13, BASILISK_BRIGHT),
-    // dorsal fin behind the heads
-    { size: [0.10, 0.26, 0.20], pos: [0, 0.24, -0.10], rotX: -0.12, color: BASILISK_BRIGHT },
-    { size: [0.06, 0.14, 0.12], pos: [0, 0.38, -0.14], rotX: -0.12, color: BASILISK_HOT },
-    // belly plate toward the player
-    { size: [0.30, 0.05, 0.14], pos: [0, -0.19, 0.08], color: BASILISK_DARK },
-    // ventral ridge accent at the front
-    { size: [0.12, 0.08, 0.06], pos: [0, -0.02, 0.21], color: BASILISK_MID }
-];
-
-// Neck (right side): three stepped segments arching up, then curving inward
-// toward the player. One side only — mirrorBoxes() builds the left.
-const BASILISK_NECK = [
-    { size: [0.17, 0.30, 0.17], pos: [0.34, 0.14, 0.06], rotZ: -0.50, color: BASILISK_MID },
-    { size: [0.14, 0.26, 0.14], pos: [0.53, 0.29, 0.14], rotZ: -0.95, color: BASILISK_BRIGHT },
-    { size: [0.12, 0.20, 0.12], pos: [0.66, 0.43, 0.23], rotZ: -1.35, color: BASILISK_MID }
-];
-
-// Eyes: one glowing venom pit per head, on the outer face. Each is parented
-// to its neck pivot so the eyes travel with the head through the strike;
-// materials are cloned per instance so the flare pulses out of phase.
-const BASILISK_EYE_RIGHT = [
-    { size: [0.07, 0.05, 0.05], pos: [0.58, 0.55, 0.365], color: BASILISK_HOT }
-];
-
-// Head accents (both heads): brow crest spike and lower jaw — merged so the
-// bright crest stays one draw call per head.
-const BASILISK_HEAD_ACCENT_RIGHT = [
-    { size: [0.08, 0.11, 0.08], pos: [0.52, 0.63, 0.20], rotZ: 0.12, color: BASILISK_HOT },
-    { size: [0.20, 0.06, 0.15], pos: [0.52, 0.445, 0.29], color: BASILISK_SHADE }
-];
-
-// Fangs (both heads): two dripping teeth under each jaw, aimed at the player.
-const BASILISK_FANGS_RIGHT = [
-    { size: [0.05, 0.12, 0.05], pos: [0.58, 0.40, 0.375], color: BASILISK_HOT },
-    { size: [0.05, 0.12, 0.05], pos: [0.46, 0.40, 0.375], color: BASILISK_HOT }
-];
-
-// Head (right side): skull box facing the player, mirrored for the left.
-const BASILISK_HEAD_RIGHT = [
-    { size: [0.24, 0.14, 0.18], pos: [0.52, 0.53, 0.27], color: BASILISK_BRIGHT }
-];
-
-let basiliskParts = null;
-
-function getBasiliskParts() {
-    if (basiliskParts) return basiliskParts;
-
-    const neckRight = buildVoxelGeometry(BASILISK_NECK);
-    const neckLeft = buildVoxelGeometry(mirrorBoxes(BASILISK_NECK));
-    const headRight = buildVoxelGeometry(BASILISK_HEAD_RIGHT);
-    const headLeft = buildVoxelGeometry(mirrorBoxes(BASILISK_HEAD_RIGHT));
-    const accentRight = buildVoxelGeometry(BASILISK_HEAD_ACCENT_RIGHT);
-    const accentLeft = buildVoxelGeometry(mirrorBoxes(BASILISK_HEAD_ACCENT_RIGHT));
-    const fangsRight = buildVoxelGeometry(BASILISK_FANGS_RIGHT);
-    const fangsLeft = buildVoxelGeometry(mirrorBoxes(BASILISK_FANGS_RIGHT));
-
-    basiliskParts = {
-        torsoGeometry: buildVoxelGeometry(BASILISK_TORSO),
-        neckGeometries: { '-1': neckLeft, '1': neckRight },
-        headGeometries: { '-1': headLeft, '1': headRight },
-        accentGeometries: { '-1': accentLeft, '1': accentRight },
-        fangGeometries: { '-1': fangsLeft, '1': fangsRight },
-        eyeGeometries: {
-            '-1': buildVoxelGeometry(mirrorBoxes(BASILISK_EYE_RIGHT)),
-            '1': buildVoxelGeometry(BASILISK_EYE_RIGHT)
-        },
-        shellMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: BASILISK_MID,
-            emissiveIntensity: 0.22,
-            shininess: 50,
-            flatShading: true
-        }),
-        accentMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: BASILISK_HOT,
-            emissiveIntensity: 0.9,
-            flatShading: true
-        }),
-        fangMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: BASILISK_HOT,
-            emissiveIntensity: 0.7,
-            flatShading: true
-        }),
-        eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: BASILISK_HOT,
-            emissiveIntensity: 2.2,
-            flatShading: true
-        })
-    };
-
-    return basiliskParts;
-}
-
-function createBasiliskAlien(group) {
-    const parts = getBasiliskParts();
-
-    // Body pivot carries all display motion; the formation keeps ownership of
-    // group.position.x / .z.
-    const bodyPivot = new THREE.Group();
-    group.add(bodyPivot);
-    group.userData.bodyPivot = bodyPivot;
-
-    const torso = new THREE.Mesh(parts.torsoGeometry, parts.shellMaterial);
-    torso.castShadow = true;
-    bodyPivot.add(torso);
-    group.userData.torso = torso;
-
-    // Twin necks: each side gets a pivot at its shoulder so the whole neck
-    // coils and strikes as one arc. The neck carries head + accents + fangs.
-    group.userData.necks = [-1, 1].map(side => {
-        const pivot = new THREE.Group();
-        pivot.position.set(side * 0.14, 0.02, 0.04);
-        bodyPivot.add(pivot);
-
-        const neck = new THREE.Mesh(parts.neckGeometries[side], parts.shellMaterial);
-        neck.position.set(-side * 0.14, -0.02, -0.04); // neck boxes are in body space
-        pivot.add(neck);
-
-        const head = new THREE.Mesh(parts.headGeometries[side], parts.shellMaterial);
-        head.position.set(-side * 0.14, -0.02, -0.04);
-        pivot.add(head);
-
-        const accent = new THREE.Mesh(parts.accentGeometries[side], parts.accentMaterial);
-        accent.position.set(-side * 0.14, -0.02, -0.04);
-        pivot.add(accent);
-
-        const fangs = new THREE.Mesh(parts.fangGeometries[side], parts.fangMaterial);
-        fangs.position.set(-side * 0.14, -0.02, -0.04);
-        pivot.add(fangs);
-
-        // Cloned per instance: emissiveIntensity is animated.
-        const eye = new THREE.Mesh(parts.eyeGeometries[side], parts.eyeMaterial.clone());
-        eye.position.set(-side * 0.14, -0.02, -0.04);
-        pivot.add(eye);
-
-        return { pivot, side, eye };
-    });
-}
-
-// ---------------------------------------------------------------------------
-// TYPE 18 — MANTA: wide flat manta ray with sweeping diamond wings
-// ---------------------------------------------------------------------------
-
-// Ramp: deep ocean blue -> coral glow. Midpoint clearly lighter than space;
-// coral reserved for small accents (wing-tip glow, eye spots).
-const MANTA_DARK    = 0x0a2040;
-const MANTA_SHADE   = 0x1a4080;
-const MANTA_MID     = 0x4080c0;
-const MANTA_BRIGHT  = 0x80c0ff;
-const MANTA_HOT     = 0xff6040;
-
-// Nose and body: stacked tiers tapering forward.
-const MANTA_BODY = [
-    { size: [0.18, 0.05, 0.18], pos: [0, -0.02, 0.28], color: MANTA_SHADE },
-    { size: [0.35, 0.08, 0.22], pos: [0, -0.04, 0.08], color: MANTA_MID },
-    { size: [0.42, 0.06, 0.18], pos: [0, -0.04, -0.05], color: MANTA_MID },
-    { size: [0.28, 0.05, 0.14], pos: [0, -0.03, -0.18], color: MANTA_SHADE },
-    // Tail segments
-    { size: [0.12, 0.04, 0.16], pos: [0, -0.02, -0.34], color: MANTA_DARK },
-    { size: [0.06, 0.03, 0.12], pos: [0, -0.01, -0.48], color: MANTA_DARK }
-];
-
-// Wing (right side): three tapered segments forming a diamond shape.
-const MANTA_WING = [
-    { size: [0.28, 0.06, 0.10], pos: [0.46, -0.02, 0.05], rotZ: -0.22, color: MANTA_BRIGHT },
-    { size: [0.26, 0.05, 0.12], pos: [0.62, -0.02, -0.02], rotZ: -0.32, color: MANTA_BRIGHT },
-    { size: [0.16, 0.04, 0.08], pos: [0.74, -0.02, -0.08], rotZ: -0.48, color: MANTA_MID }
-];
-
-// Wing tip accent (right side): bright coral glow at the extremity.
-const MANTA_WING_TIP = [
-    { size: [0.06, 0.02, 0.04], pos: [0.82, -0.01, -0.10], color: MANTA_HOT }
-];
-
-// Eye (right side): small bright spot on the upper body.
-const MANTA_EYE = [
-    { size: [0.05, 0.05, 0.05], pos: [0.30, 0.06, 0.10], color: MANTA_HOT }
-];
-
-let mantaParts = null;
-
-function getMantaParts() {
-    if (mantaParts) return mantaParts;
-
-    const wingRight = buildVoxelGeometry(MANTA_WING);
-    const wingLeft = buildVoxelGeometry(mirrorBoxes(MANTA_WING));
-    const wingTipRight = buildVoxelGeometry(MANTA_WING_TIP);
-    const wingTipLeft = buildVoxelGeometry(mirrorBoxes(MANTA_WING_TIP));
-    const eyeRight = buildVoxelGeometry(MANTA_EYE);
-    const eyeLeft = buildVoxelGeometry(mirrorBoxes(MANTA_EYE));
-
-    mantaParts = {
-        bodyGeometry: buildVoxelGeometry(MANTA_BODY),
-        wingGeometries: { '-1': wingLeft, '1': wingRight },
-        wingTipGeometries: { '-1': wingTipLeft, '1': wingTipRight },
-        eyeGeometries: { '-1': eyeLeft, '1': eyeRight },
-        shellMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true, emissive: MANTA_MID, emissiveIntensity: 0.18,
-            shininess: 60, flatShading: true
-        }),
-        accentMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true, emissive: MANTA_HOT, emissiveIntensity: 1.5,
-            flatShading: true
-        }),
-        eyeMaterial: new THREE.MeshPhongMaterial({
-            vertexColors: true, emissive: MANTA_HOT, emissiveIntensity: 2.5,
-            flatShading: true
-        })
-    };
-
-    return mantaParts;
-}
-
-function createMantaAlien(group) {
-    const parts = getMantaParts();
-
-    const bodyPivot = new THREE.Group();
-    group.add(bodyPivot);
-    group.userData.bodyPivot = bodyPivot;
-
-    const body = new THREE.Mesh(parts.bodyGeometry, parts.shellMaterial);
-    body.castShadow = true;
-    bodyPivot.add(body);
-    group.userData.body = body;
-
-    group.userData.wings = [-1, 1].map(side => {
-        const pivot = new THREE.Group();
-        pivot.position.set(side * 0.28, -0.02, 0.02);
-        bodyPivot.add(pivot);
-
-        const wing = new THREE.Mesh(parts.wingGeometries[side], parts.shellMaterial);
-        wing.position.set(-side * 0.28, 0, -0.02);
-        pivot.add(wing);
-
-        const wingTip = new THREE.Mesh(parts.wingTipGeometries[side], parts.accentMaterial);
-        wingTip.position.set(-side * 0.28, 0, -0.02);
-        pivot.add(wingTip);
-
-        // Cloned per instance: emissiveIntensity animated.
-        const eye = new THREE.Mesh(parts.eyeGeometries[side], parts.eyeMaterial.clone());
-        eye.position.set(side * 0.05, 0.04, 0);
-        pivot.add(eye);
-
-        return { pivot, side, wingTip, eye };
-    });
 }
