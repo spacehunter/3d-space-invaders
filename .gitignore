@@ -21,5 +21,8 @@ assets/
 # Playwright MCP scratch output
 .playwright-mcp/
 
+# Canvas tool scratch output
+.cnvs/
+
 # Local Claude tooling config
 .claude_settings.json
