@@ -189,7 +189,7 @@ function createInitialEntryUI() {
         const selectorMaterial = new THREE.MeshPhongMaterial({
             color: 0xffff00,
             emissive: 0xffff00,
-            emissiveIntensity: 2,
+            emissiveIntensity: 1,
             transparent: true,
             opacity: 0
         });
@@ -221,7 +221,7 @@ function createCharacterMesh(char, x, y) {
     const charMaterial = new THREE.MeshPhongMaterial({
         color: 0xffaa00,
         emissive: 0xff8800,
-        emissiveIntensity: 1.2,
+        emissiveIntensity: 0.6,
         shininess: 100
     });
     const charBox = new THREE.Mesh(charGeometry, charMaterial);
@@ -605,18 +605,18 @@ export function updateHighScoreUI() {
             } else if (mesh.userData.animateType === 'confirm') {
                 // Flash and lock
                 const intensity = Math.max(0, 1 - elapsed / 500);
-                mesh.userData.charBox.material.emissiveIntensity = 1.2 + intensity * 2;
+                mesh.userData.charBox.material.emissiveIntensity = 0.6 + intensity * 1;
 
                 if (elapsed > 500) {
                     mesh.userData.animateTime = null;
-                    mesh.userData.charBox.material.emissiveIntensity = 1.2;
+                    mesh.userData.charBox.material.emissiveIntensity = 0.6;
                 }
             } else if (mesh.userData.animateType === 'complete') {
                 // Rainbow flash
                 const hue = (elapsed * 0.001) % 1;
                 const color = new THREE.Color().setHSL(hue, 1, 0.5);
                 mesh.userData.charBox.material.emissive = color;
-                mesh.userData.charBox.material.emissiveIntensity = 2;
+                mesh.userData.charBox.material.emissiveIntensity = 1;
 
                 const scale = 1 + Math.sin(elapsed * 0.01) * 0.2;
                 mesh.scale.set(scale, scale, scale);
@@ -666,9 +666,13 @@ export function updateHighScoreUI() {
     }
 }
 
-// Check if initial entry is active
+// True while the entry panel is on screen. Input is only accepted during
+// the active phase, but the camera lock, reduced bloom, and click gating
+// must persist through the 2-second completion animation too - otherwise
+// the camera drifts away mid-flash and a click can land the gameOver
+// screen on top of the landing page.
 export function isInitialEntryActive() {
-    return initialEntryActive;
+    return initialEntryActive || completionAnimationActive;
 }
 
 // Update high scores display in HTML
