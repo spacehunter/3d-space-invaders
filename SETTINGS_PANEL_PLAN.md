@@ -1,5 +1,7 @@
 # Settings Panel Design Plan
 
+> **Status (2026-09-14):** Implemented as the Option A slide-out, then redesigned: the panel is now a **centered console dialog** matching the landing page and Alien Files (scanline texture, green hairline border, corner brackets, flex header/scrolling-content/footer layout, fade/scale open, yellow RESET action button). Option A's drawer geometry and the 4 animated scanline strips below are obsolete; `js/settings.js` logic is unchanged. See `index.html` `.settings-panel` CSS for the current source of truth.
+
 ## Executive Summary
 
 This plan outlines the implementation of a comprehensive settings panel for 3D Space Invaders that maintains the retro arcade aesthetic while providing players with granular control over audio, visual, and gameplay settings.

@@ -4,9 +4,18 @@ A modern 3D recreation of the classic Space Invaders arcade game built with THRE
 
 ## Current Project Status
 
-As of 2026-08-17, all 13 alien rows have distinct rebuilt voxel models and animations. The newest is the Row 12 Mantis, an upright ambush predator in olive and bone: it is the only invader that holds almost completely still, tracking you with its head while its oversized raptorial forearms stay folded — until they unfold and snap out in a fraction of a second, and it looses a spur that drifts in slowly, coils to a near-standstill, and then lunges.
+As of 2026-09-14, the whole presentation layer got a readability pass:
 
-Latest validation: `npm run build` passes. Run the dev server with the browser-safe host command below and open `http://127.0.0.1:5173/` to test the game, or `http://127.0.0.1:5173/alien-preview.html` to inspect the Scorpion directly.
+- **Long-lens camera**: the gameplay camera is now parked far back with a narrow, mouse-zoomed FOV, so front and back alien rows render at a similar on-screen size (aliens used to shrink to ~33 px near the top of their approach). Fog and the nebula backdrop were re-tuned for the new lens, and a muzzle-flash light pulses from the ship on every shot.
+- **Readable high-score entry**: the initials panel is now framed with the same FOV-fit search used for gameplay (it previously kept the long gameplay lens and overflowed the panel off-screen), emissive letters and selector were dimmed, and bloom drops to 0.35× while entry — including its completion animation — is on screen.
+- **Settings panel redesigned**: from a right-side slide-in drawer to a centered console dialog matching the landing page and Alien Files (scanline texture, green hairline border, corner brackets, yellow action button), with a themed scrollbar and a staggered rise-in animation. ESC toggles it anywhere; ✕ or an overlay click closes.
+- **Self-hosted arcade fonts**: Press Start 2P and VT323 are bundled under `fonts/` — the retro type no longer depends on a network fetch.
+- **Alien Files** is the new in-game name for the Bestiary gallery.
+- **Audio fix**: muting (or any slider at 0) no longer wedges the UFO travel sound for the rest of the session — gain now floors at -80 dB instead of ramping exponentially to an illegal zero.
+
+All 13 alien rows keep their distinct rebuilt voxel models and animations (newest: the Row 12 Mantis and its coil-then-lunge ambush spur).
+
+Latest validation: `npm run build` passes; the camera, high-score entry and settings panel were verified end-to-end in a browser at `http://127.0.0.1:5173/`. Run the dev server with the browser-safe host command below, or open `http://127.0.0.1:5173/alien-preview.html` to inspect a single alien directly.
 
 ## Features
 
@@ -135,7 +144,7 @@ The game features 13 rows of aliens, each with distinctive 3D designs and dramat
     - Worth 0 points
 
 ### Bestiary Gallery
-A field guide reached from the **BESTIARY** option on the landing page (or the **B** key):
+A field guide reached from the **ALIEN FILES** option on the landing page (or the **B** key):
 - Browse all 13 alien types one at a time, rendered large and centred on a slowly turning display
 - Each model runs its full in-game animation - tentacle curls, snapping claws, chase lights, rolling treads and all
 - Shows the alien's name, row colour, point value, behaviour summary and armament
@@ -344,6 +353,7 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 | Mouse Left/Right | Move spaceship horizontally |
 | Mouse Up/Down | Adjust camera distance (zoom in/out) |
 | Left Click | Fire missile |
+| ESC | Toggle the Settings panel |
 | Click (Game Over) | Restart game |
 
 ### During High Score Entry
@@ -373,6 +383,7 @@ Massive, earth-shaking sound effects using procedurally generated Web Audio API 
 - **Engine**: THREE.js (v0.158.0)
 - **Rendering**: WebGL with shadows enabled
 - **Audio**: Web Audio API for procedurally generated sound effects
+- **Fonts**: Self-hosted Press Start 2P and VT323 (`fonts/fonts.css`), no network dependency
 - **Persistence**: localStorage API for high score data
 - **Geometry**: Box geometries for pixel/voxel aesthetic
 - **Materials**: Phong materials with emissive properties
@@ -467,6 +478,7 @@ The first command should return `HTTP/1.1 200 OK`, and the second should show Vi
 ├── index.html          # Main HTML file with game UI
 ├── package.json        # Dependencies and build scripts
 ├── vite.config.js      # Vite build configuration
+├── fonts/              # Self-hosted Press Start 2P / VT323
 ├── js/                 # Modular JavaScript game code
 │   ├── main.js         # Entry point and initialization
 │   ├── game.js         # Game state and main update loop
@@ -536,8 +548,9 @@ Tested on:
   - Audio controls (Master, SFX, Music volumes, Mute All)
   - Visual settings (Glow Intensity, Particle Density, FPS Counter)
   - Gameplay settings (Mouse Sensitivity, Debug Hitboxes)
-  - Retro CRT aesthetic with **4 animated scanlines** moving at different speeds
-  - Accessible from landing page or during gameplay (ESC key)
+  - Centered retro console dialog matching the landing page and Alien Files: scanline texture, green hairline border, corner brackets, yellow RESET action button
+  - Staggered rise-in animation for the settings rows, replayed on every open
+  - Toggle with ESC anywhere, or the ⚙ button in-game; close with ✕, ESC, or an overlay click
   - Settings persist across sessions in localStorage
 - ✅ **Continue System Fixed** - Proper game state reset!
   - Starting from any level now correctly resets lives to 3
