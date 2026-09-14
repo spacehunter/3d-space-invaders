@@ -8,7 +8,7 @@ import { createStarfield } from './starfield.js';
 import { createAliens } from './aliens.js';
 import { initInput, setMouseSensitivity } from './input.js';
 import { initGame, update, handleFire, startGame, startFromLevel, resetGame, pauseGame, resumeGame } from './game.js';
-import { updateHighScoresDisplay } from './highscores.js';
+import { updateHighScoresDisplay, isInitialEntryActive } from './highscores.js';
 import { initLanding, isLandingActive, showLanding } from './landing.js';
 import { initBestiary, openBestiary, isBestiaryActive, updateBestiary, getBestiaryScene, getBestiaryCamera, onBestiaryResize } from './bestiary.js';
 import { initAudio, setMasterVolume, setSFXVolume, setMusicVolume, setMute } from './audio.js';
@@ -19,11 +19,21 @@ let scene, camera, renderer, composer, bloomPass, renderPass;
 // Glow intensity from settings, and the factor applied on top of it. The
 // bestiary views models from close up, where full gameplay bloom blows the
 // bright emissive types (the white Invader especially) out to a flat blob.
+// High score entry is the same problem: the camera parks feet away from a
+// panel of emissive boxes and canvas text, and gameplay bloom washes the
+// whole thing into an unreadable white-out.
 let baseBloomStrength = 1.5;
 const BESTIARY_BLOOM_SCALE = 0.5;
+const HS_ENTRY_BLOOM_SCALE = 0.35;
 
 function applyBloomStrength() {
-    bloomPass.strength = baseBloomStrength * (isBestiaryActive() ? BESTIARY_BLOOM_SCALE : 1);
+    let scale = 1;
+    if (isBestiaryActive()) {
+        scale = BESTIARY_BLOOM_SCALE;
+    } else if (isInitialEntryActive()) {
+        scale = HS_ENTRY_BLOOM_SCALE;
+    }
+    bloomPass.strength = baseBloomStrength * scale;
 }
 
 // Initialize the game
@@ -31,11 +41,11 @@ function init() {
     // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x010208);
-    scene.fog = new THREE.Fog(0x02030a, 10, 110);
+    scene.fog = new THREE.Fog(0x02030a, 68, 190);
 
     // Camera - 3rd person view
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 8, 15);
+    camera = new THREE.PerspectiveCamera(11, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 6, 80);
     camera.lookAt(0, 0, 0);
 
     // Renderer
@@ -95,6 +105,7 @@ function init() {
     const cyanLight = new THREE.PointLight(0x00aaff, 0.6, 60);
     cyanLight.position.set(15, 3, -20);
     scene.add(cyanLight);
+
 
     // Create game entities
     createPlayer(scene);

@@ -93,11 +93,16 @@ export function createStarfield(scene) {
     scene.add(brightStars);
 
     // Distant nebula blobs for color depth (drawn behind everything, no fog)
+    // Sized for the gameplay camera's long lens. These are placed ~250 units from
+    // the camera, where a ~11 deg FOV sees only about 50 world units of height, so
+    // the wide-FOV values these once used (scale 130 at x +-45) covered the screen
+    // 2.5x over and washed all the contrast out of the models. Positions and scales
+    // are kept at the angular size they had under the old 75 deg camera.
     const nebulaConfigs = [
-        { color: 0x4422aa, x: -45, y: 25, z: -160, scale: 130 },
-        { color: 0xaa2266, x: 50, y: -15, z: -170, scale: 110 },
-        { color: 0x2266aa, x: 10, y: 40, z: -180, scale: 150 },
-        { color: 0x116655, x: -25, y: -35, z: -165, scale: 100 }
+        { color: 0x4422aa, x: -9.0, y: 5.0, z: -160, scale: 26 },
+        { color: 0xaa2266, x: 10.0, y: -3.0, z: -170, scale: 22 },
+        { color: 0x2266aa, x: 2.0, y: 8.0, z: -180, scale: 30 },
+        { color: 0x116655, x: -5.0, y: -7.0, z: -165, scale: 20 }
     ];
     for (const cfg of nebulaConfigs) {
         const material = new THREE.SpriteMaterial({

@@ -142,12 +142,31 @@ export function getSavedProgress() {
     return saved ? parseInt(saved, 10) : 1;
 }
 
+// Gameplay camera. A long lens far back keeps the front and back alien rows at
+// a similar on-screen size; see updateCamera() for why.
+const CAM_Z = 95;
+const CAM_Y = 38;
+const CAM_LOOK_Z = -27;
+const CAM_FOV_MIN = 7;
+const CAM_FOV_MAX = 26;
+const CAM_PLAYER_HALF_X = 12;   // matches the player's clamped x-range
+const CAM_FIT_MARGIN = 0.80;    // NDC; leaves a border so nothing kisses the edge
+const cameraProbe = new THREE.Vector3();
+
 // Update camera position based on player and mouse
 export function updateCamera(player, mouseX, mouseY) {
-    // If high score entry is active, lock camera to face the panel
+    // If high score entry is active, lock camera to face the panel.
+    // The fov must be re-framed too: gameplay leaves a narrow 7-26 deg long
+    // lens that, from 8 units out, overflows the panel off-screen into an
+    // unreadable blown-up close-up. Frame the panel corners with the same
+    // search used for gameplay so entry reads the same at any window size.
     if (isInitialEntryActive()) {
-        // High score panel is at position (0, -2, 5)
-        // Position camera to face it directly
+        // Mirrors createInitialEntryUI() in highscores.js: panel at (0, -2, 5),
+        // tilted back 0.6 rad, border 12.4 x 6.4
+        const PANEL_Y = -2;
+        const PANEL_Z = 5;
+        const PANEL_TILT = -0.6;
+
         const targetX = 0;
         const targetY = 2;  // Slightly above for better viewing angle
         const targetZ = 12;  // Back from the panel
@@ -157,29 +176,109 @@ export function updateCamera(player, mouseX, mouseY) {
         camera.position.z += (targetZ - camera.position.z) * 0.1;
 
         // Look directly at the high score panel
-        camera.lookAt(0, -2, 5);
+        camera.lookAt(0, PANEL_Y, PANEL_Z);
+        camera.updateMatrixWorld(true);
+
+        const cos = Math.cos(PANEL_TILT);
+        const sin = Math.sin(PANEL_TILT);
+        const panelCorners = [];
+        for (const sx of [-1, 1]) {
+            for (const sy of [-1, 1]) {
+                panelCorners.push(new THREE.Vector3(
+                    sx * 6.4,
+                    PANEL_Y + sy * 3.4 * cos,
+                    PANEL_Z + sy * 3.4 * sin
+                ));
+            }
+        }
+
+        let lo = 8;
+        let hi = 110;
+        const savedFov = camera.fov;
+        for (let i = 0; i < 8; i++) {
+            const mid = (lo + hi) / 2;
+            camera.fov = mid;
+            camera.updateProjectionMatrix();
+            if (framePointsFit(panelCorners)) hi = mid; else lo = mid;
+        }
+        camera.fov = savedFov;
+
+        camera.fov += (hi - camera.fov) * 0.1;
+        camera.updateProjectionMatrix();
         return;
     }
 
-    // Normal gameplay camera
-    // Smooth camera follow with subtle tilt
-    const targetX = player.position.x * 0.15;  // Reduced from 0.3
-    const targetRotY = -mouseX * 0.05;  // Reduced from 0.2
+    // Normal gameplay camera - a long lens parked far back.
+    //
+    // Perspective foreshortening, not camera distance, is what used to make the
+    // aliens tiny: the ship sits close to the camera with a wide x-range, so a
+    // FOV wide enough to frame it shrank everything 25+ units further upfield to
+    // ~33px. Pulling the camera back and narrowing the FOV compresses the
+    // player-to-formation distance ratio, so the front and back rows now render
+    // at a similar, much larger size.
+    //
+    // The zoom is driven by fov rather than by moving the camera: dollying a long
+    // lens swims the parallax badly, while a fov change reads as a clean push-in.
+    const aliveAliens = getAliens().filter(a => !a.userData.destroyed);
+    const boss = getCurrentBoss();
 
-    // Mouse Y controls camera depth (Z position)
-    // Mouse up (negative Y) = camera moves forward (closer)
-    // Mouse down (positive Y) = camera moves backward (further)
-    const targetZ = 15 - mouseY * 5;  // Range from 10 to 20
-    const targetY = 8 + Math.abs(mouseY) * 2;  // Height increases slightly when looking from extreme angles
+    // The points that must stay on screen. As rows are cleared the upfield
+    // extent shrinks, which lets the binary search below zoom in further.
+    // The ship is the closest thing to the camera, so it moves most per unit of
+    // zoom; framing it as a single point let its nose clip the bottom edge.
+    const framePoints = [
+        new THREE.Vector3(-CAM_PLAYER_HALF_X, 0, player.position.z + 1.6),
+        new THREE.Vector3(CAM_PLAYER_HALF_X, 0, player.position.z + 1.6),
+        new THREE.Vector3(-CAM_PLAYER_HALF_X, 0, player.position.z - 1.6),
+        new THREE.Vector3(CAM_PLAYER_HALF_X, 0, player.position.z - 1.6)
+    ];
+    for (const alien of aliveAliens) {
+        framePoints.push(new THREE.Vector3(alien.position.x, 0, alien.position.z));
+    }
+    if (boss) {
+        framePoints.push(new THREE.Vector3(boss.position.x - 8, 0, boss.position.z));
+        framePoints.push(new THREE.Vector3(boss.position.x + 8, 0, boss.position.z));
+    }
 
-    camera.position.x += (targetX - camera.position.x) * 0.08;  // Smoother interpolation
-    camera.position.z += (targetZ - camera.position.z) * 0.08;  // Smooth Z movement
-    camera.position.y += (targetY - camera.position.y) * 0.08;  // Keep camera above plane
-    camera.rotation.y += (targetRotY - camera.rotation.y) * 0.08;
+    const targetX = player.position.x * 0.15;
+    camera.position.x += (targetX - camera.position.x) * 0.08;
+    camera.position.y += (CAM_Y - camera.position.y) * 0.08;
+    camera.position.z += (CAM_Z - camera.position.z) * 0.08;
 
-    // Always look at a point slightly ahead of the player
-    const lookAtPoint = new THREE.Vector3(player.position.x * 0.3, 0, player.position.z - 5);
+    const lookAtPoint = new THREE.Vector3(player.position.x * 0.3, 0, CAM_LOOK_Z);
     camera.lookAt(lookAtPoint);
+    camera.updateMatrixWorld(true);
+
+    // Smallest fov (most zoomed) that still frames every point, found by binary
+    // search against the real projection - cheaper to get right than the
+    // trigonometry, and it stays correct if the layout ever changes.
+    let lo = CAM_FOV_MIN;
+    let hi = CAM_FOV_MAX;
+    const savedFov = camera.fov;
+    for (let i = 0; i < 7; i++) {
+        const mid = (lo + hi) / 2;
+        camera.fov = mid;
+        camera.updateProjectionMatrix();
+        if (framePointsFit(framePoints)) hi = mid; else lo = mid;
+    }
+    camera.fov = savedFov;
+
+    // Mouse Y stays a manual zoom trim on top of the automatic framing.
+    const targetFov = Math.min(CAM_FOV_MAX, hi * (1 + mouseY * 0.18));
+    camera.fov += (targetFov - camera.fov) * 0.06;
+    camera.updateProjectionMatrix();
+}
+
+// Does every point project inside the viewport, with a margin? Used by the
+// camera's zoom search above.
+function framePointsFit(points) {
+    for (const p of points) {
+        cameraProbe.copy(p).project(camera);
+        if (Math.abs(cameraProbe.x) > CAM_FIT_MARGIN || Math.abs(cameraProbe.y) > CAM_FIT_MARGIN) {
+            return false;
+        }
+    }
+    return true;
 }
 
 // Handle firing
