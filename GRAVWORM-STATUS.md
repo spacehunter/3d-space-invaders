@@ -1,3 +1,26 @@
+## Now (updated 2026-09-14 14:40) — COMPLETE REFACTOR: VOIDWORM is now GRAVWORM
+
+Per Joe's request ("complete refactor, start from scratch, create an invader
+unlike what we have"), the crystal-chain design was scrapped entirely — the
+vertical chain read as a snake, not a creature, and no amount of patching
+fixed the disconnected-segment flaw.
+
+New design: a HORIZONTAL armored larva crawler. Nothing else on the grid
+moves along the ground plane — every other invader bobs in place.
+- js/invaders/gravworm.js (225 lines): 6 per-segment BoxGeometry shells on a
+  Z-chained rig (rig yaw -90 deg), 6 two-joint pedipalp legs, mandible jaw,
+  antennae, emissive core. Head cap geometry faces local +X (camera side).
+- Gait: body traces a sine arc across 36% of ALIEN_SPACING (never reaches
+  neighbors), spine pitch ripples with 0.55 rad phase lag per segment, legs
+  pedal in a metachronal wave, whole-body lurch on the fire telegraph.
+- Fire: gravity orb (createGravwormSpore) sheds 3 diverging shards after
+  0.6 s. Firing branch keys on row === 13, unchanged.
+- verify-invader.mjs 13/13 PASS. capture clean, no throws, fps parity with
+  existing rows (23 vs 22). Vision-verified: horizontal connected chain,
+  no floating parts, head toward camera.
+- Old js/invaders/voidworm.js deleted; row 13 anim delegated to
+  animateGravworm from aliens.js case 13.
+
 # VOIDWORM — status
 
 Read this FIRST in any session (a Telegram reply is a fresh session with no
