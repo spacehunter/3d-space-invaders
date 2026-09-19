@@ -2,3 +2,6 @@ node_modules/
 dist/
 *.zip
 .invader-run.lock
+
+# JEV BRAIN: TypeSafe API key (never commit)
+.env
