@@ -66,6 +66,11 @@ try {
   }
   await page.waitForTimeout(1200); // settle on the entry
 
+  // Navigation passes through earlier bestiary entries. Their independent
+  // animation errors must not invalidate evidence for the selected target;
+  // from this point on, collect only errors thrown while NAME is active.
+  errors.length = 0;
+
   // Confirm we landed on the right one before believing the screenshot.
   const shown = await page.evaluate(() => document.body.innerText.slice(0, 4000));
   const onEntry = shown.toUpperCase().includes(NAME);

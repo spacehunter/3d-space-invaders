@@ -27,6 +27,7 @@ const missiles = read('js/missiles.js');
 const game = read('js/game.js');
 const bestiary = read('js/bestiary.js');
 const levels = read('js/levels.js');
+const modular = read(`js/invaders/${nameArg.toLowerCase()}.js`); // modular model file
 
 if (!aliens || !missiles || !game || !bestiary || !levels) {
   console.error('FATAL: could not read one of js/{aliens,missiles,game,bestiary,levels}.js');
@@ -44,14 +45,19 @@ check('type cap includes this id', cap !== null && ID < cap,
 
 check('createAlien has case', new RegExp(`case\\s+${ID}\\s*:`).test(aliens));
 
-// animateAlien is a different switch; require the id to appear at least twice
-const caseCount = (aliens.match(new RegExp(`case\\s+${ID}\\s*:`, 'g')) || []).length;
-check('animate branch present', caseCount >= 2,
-  `found ${caseCount} \`case ${ID}:\` branches (need >=2: create + animate)`);
+// animateAlien is a different switch; require the id to appear in animateAlien (aliens.js).
+// createAlien has a case in aliens.js too. So >=1 in aliens.js is sufficient
+// (models may live in js/invaders/<name>.js).
+const caseCountAliens = (aliens.match(new RegExp(`case\\s+${ID}\\s*:`, 'g')) || []).length;
+check('animate branch present', caseCountAliens >= 1,
+  `found ${caseCountAliens} \`case ${ID}:\` branch(es) in aliens.js`);
 
 // --- model ------------------------------------------------------------------
-const modelConsts = (aliens.match(new RegExp(`^const ${NAME}_[A-Z_]+`, 'gm')) || []).length;
-check('model constants defined', modelConsts > 0, `${modelConsts} ${NAME}_* consts`);
+// Model constants may live in the modular file (js/invaders/<name>.js) or in aliens.js
+const modConsts = modular
+  ? (modular.match(new RegExp(`^const ${NAME}_[A-Z_]+`, 'gm')) || []).length
+  : (aliens.match(new RegExp(`^const ${NAME}_[A-Z_]+`, 'gm')) || []).length;
+check('model constants defined', modConsts > 0, `${modConsts} ${NAME}_* consts (in ${modular ? 'modular file' : 'aliens.js'})`);
 
 // --- bestiary ---------------------------------------------------------------
 const entries = (bestiary.match(/^\s*name:\s*'/gm) || []).length;

@@ -3,9 +3,10 @@ import { initAudio } from './audio.js';
 import { getPlayer, updatePlayer, showPlayer, triggerPlayerFire } from './player.js';
 import { updateStarfield, setStarfieldSpeed } from './starfield.js';
 import { createAliens, updateAliens, animateAlien, getAliens, resetAliens, setAlienConfig } from './aliens.js';
-import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, updateWebBombs, updateBlasterBolts, updateVenomDarts, updateWaspNeedles, updatePrismLances, updateHaloWaves, updateSpireShards, updateSerpentineBeams, updateVoidwormSpores, updateRavenNeedles, updateNexusSpirals, checkAlienFire, resetMissiles, initUFOMissiles, setLevelCompleteCallback, updateEclipseLasers, updateEclipseWormholes, updateApexBeams, updateBasiliskBlades, updateMantaRays } from './missiles.js';
+import { fireMissile, updateMissiles, updateAlienMissiles, updateUFOMissiles, updateWebBombs, updateBlasterBolts, updateVenomDarts, updateWaspNeedles, updatePrismLances, updateHaloWaves, updateSpireShards, updateSerpentineBeams, updateGravwormSpores, updateRavenNeedles, updateNexusSpirals, checkAlienFire, resetMissiles, initUFOMissiles, setLevelCompleteCallback, updateEclipseLasers, updateEclipseWormholes, updateApexBeams, updateBasiliskBlades, updateMantaRays } from './missiles.js';
 import { updateParticles, updateShrapnelParticles, resetParticles } from './particles.js';
-import { getMousePosition } from './input.js';
+import { getMousePosition, getMovementX } from './input.js';
+import { jevBrainAct } from './jev-brain.js';
 import { isHighScore, showInitialEntry, updateHighScoreUI, hideInitialEntry, isInitialEntryActive } from './highscores.js';
 import { spawnBonusUFO, updateBonusUFO, resetBonusUFO } from './bonus-ufo.js';
 import { createBarriers, resetBarriers } from './barriers.js';
@@ -383,18 +384,44 @@ function showGameOverScreen(won, initials) {
 
     let message = '';
     if (initials) {
-        message = `<div style="color: #00ff00; font-size: 36px; margin-bottom: 10px;">HIGH SCORE!</div>`;
+        message += `<div style="color: #00ff00; font-size: 36px; margin-bottom: 10px;">HIGH SCORE!</div>`;
         message += `<div style="color: #ffff00; font-size: 28px; margin-bottom: 20px;">${initials}: ${score}</div>`;
     }
 
     if (won) {
-        message += '<div style="color: #0f0;">YOU WIN!</div><div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>';
+        message += '<div style="color: #0f0;">YOU WIN!</div><div style="font-size: 24px; margin-top: 20px;">Tap button to restart</div>';
     } else {
-        message += '<div style="color: #f00;">GAME OVER</div><div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>';
+        message += '<div style="color: #f00;">GAME OVER</div><div style="font-size: 24px; margin-top: 20px;">Tap button to restart</div>';
     }
 
-    gameOverDiv.innerHTML = message;
+    gameOverDiv.innerHTML = message + '<button id="restartBtn" onclick="window._resetGame()">RESTART</button>';
+
+    // Also show mobile game-over overlay
+    const mobileGameOverEl = document.getElementById('mobileGameOver');
+    if (mobileGameOverEl) {
+        mobileGameOverEl.classList.add('visible');
+        mobileGameOverEl.querySelector('.mobile-gameover-text').textContent =
+            won ? 'YOU WIN!' : 'GAME OVER';
+    }
 }
+
+// Export resetGame for the game-over button onclick
+window._resetGame = function () {
+    resetGame();
+    const gameOverDiv = document.getElementById('gameOver');
+    gameOverDiv.style.display = 'none';
+    const mobileGameOverEl = document.getElementById('mobileGameOver');
+    if (mobileGameOverEl) mobileGameOverEl.classList.remove('visible');
+};
+
+// Export returnToLanding for the mobile landing button
+window._returnToLanding = function () {
+    returnToLanding();
+    const gameOverDiv = document.getElementById('gameOver');
+    gameOverDiv.style.display = 'none';
+    const mobileGameOverEl = document.getElementById('mobileGameOver');
+    if (mobileGameOverEl) mobileGameOverEl.classList.remove('visible');
+};
 
 // Return to landing page after game over
 function returnToLanding() {
@@ -405,6 +432,10 @@ function returnToLanding() {
 
     // Hide initial entry if active
     hideInitialEntry();
+
+    // Hide mobile game-over if visible
+    const mobileGameOverEl = document.getElementById('mobileGameOver');
+    if (mobileGameOverEl) mobileGameOverEl.classList.remove('visible');
 
     // Show landing page
     showLanding();
@@ -487,27 +518,27 @@ export function update() {
     }
 
     if (gameActive) {
-        updatePlayer(mouse.x);
+        // JEV BRAIN (feature-flagged, default off): when active it returns an
+        // action that replaces mouse/touch movement instead of the mouse.
+        const jev = jevBrainAct(player);
+        // Use touch joystick X if active, otherwise mouse X
+        const moveX = jev ? jev.moveX : getMovementX();
+        updatePlayer(moveX);
 
         // Update based on level type
         if (isBossLevel) {
-            // Boss level - update boss instead of aliens
-            updateBoss(scene, player, 16.67);  // ~60fps delta
+            updateBoss(scene, player, 16.67);
         } else {
-            // Normal wave level
             updateAliens(gameOver);
             checkAlienFire(scene);
-
-            // Spawn and update bonus UFO (only in wave levels)
             spawnBonusUFO(scene, Date.now());
             updateBonusUFO();
         }
 
-        // Update power-ups
         updatePowerUps(scene, player);
 
-        // Auto-fire check
-        if (getIsMouseDown()) {
+        // Auto-fire: mouse hold OR touch fire button OR JEV BRAIN wanting to fire
+        if (getIsMouseDown() || (jev && jev.fire)) {
             handleFire();
         }
     }
@@ -524,7 +555,7 @@ export function update() {
     updateHaloWaves(player, scene, gameActive, decreaseLives, gameOver);
     updateSpireShards(player, scene, gameActive, decreaseLives, gameOver);
     updateSerpentineBeams(player, scene, gameActive, decreaseLives, gameOver);
-    updateVoidwormSpores(player, scene, gameActive, decreaseLives, gameOver);
+    updateGravwormSpores(player, scene, gameActive, decreaseLives, gameOver);
     updateRavenNeedles(player, scene, gameActive, decreaseLives, gameOver);
     updateNexusSpirals(player, scene, gameActive, decreaseLives, gameOver);
     updateEclipseLasers(player, scene, gameActive, decreaseLives, gameOver);

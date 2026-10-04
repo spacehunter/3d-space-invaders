@@ -1,9 +1,9 @@
-// Input handling
+// Input handling — supports both mouse (desktop) and touch (mobile)
 let mouseX = 0;
 let mouseY = 0;
 let isMouseDown = false;
 let onFireCallback = null;
-let mouseSensitivity = 1.0; // Default sensitivity multiplier
+let mouseSensitivity = 1.0;
 
 // Initialize input handlers
 export function initInput(fireCallback) {
@@ -12,21 +12,15 @@ export function initInput(fireCallback) {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
-    // Keep click for single fire fallback or menu interactions
     window.addEventListener('click', onMouseClick);
 }
 
 // Mouse move handler
 function onMouseMove(event) {
-    // Normalize mouse position
     const rawX = (event.clientX / window.innerWidth) * 2 - 1;
-    const rawY = (event.clientY / window.innerHeight) * 2 - 1;  // -1 at top, 1 at bottom
-
-    // Apply sensitivity
+    const rawY = (event.clientY / window.innerHeight) * 2 - 1;
     mouseX = rawX * mouseSensitivity;
     mouseY = rawY * mouseSensitivity;
-
-    // Clamp to valid range
     mouseX = Math.max(-1, Math.min(1, mouseX));
     mouseY = Math.max(-1, Math.min(1, mouseY));
 }
@@ -39,9 +33,7 @@ export function setMouseSensitivity(sensitivity) {
 // Mouse down handler
 function onMouseDown(event) {
     isMouseDown = true;
-    if (onFireCallback) {
-        onFireCallback();
-    }
+    if (onFireCallback) onFireCallback();
 }
 
 // Mouse up handler
@@ -49,9 +41,9 @@ function onMouseUp(event) {
     isMouseDown = false;
 }
 
-// Mouse click handler (optional, mostly covered by mousedown)
+// Mouse click handler
 function onMouseClick(event) {
-    // Can be left empty if mousedown handles firing
+    // Intentionally left empty; mousedown handles firing
 }
 
 // Get mouse position
@@ -62,4 +54,45 @@ export function getMousePosition() {
 // Check if mouse is held down
 export function getIsMouseDown() {
     return isMouseDown;
+}
+
+// --- Touch bridge ---
+// touch-input.js calls these to update state. This module is the single
+// source of truth — game.js reads from here and never talks to touch-input.js.
+
+/**
+ * Set the current touch joystick X value (-1 to +1).
+ * When a touch joystick is active this value is read instead of mouseX.
+ */
+let _touchX = 0;
+let _touchActive = false;
+let _touchFiring = false;
+
+export function syncTouchX(x) {
+    _touchX = x;
+    _touchActive = true;
+}
+
+export function syncTouchInactive() {
+    if (!_touchFiring) {
+        _touchActive = false;
+        _touchX = 0;
+    }
+}
+
+export function syncTouchFire(firing) {
+    _touchFiring = firing;
+    if (firing && onFireCallback) onFireCallback();
+    if (!firing) {
+        _touchActive = false;
+        _touchX = 0;
+    }
+}
+
+/**
+ * Called by game.js to get the effective horizontal position for movement.
+ * Returns touch X if a touch device is active, otherwise mouse X.
+ */
+export function getMovementX() {
+    return _touchActive ? _touchX : mouseX;
 }

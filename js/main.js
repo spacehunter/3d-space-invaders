@@ -7,12 +7,14 @@ import { createPlayer } from './player.js';
 import { createStarfield } from './starfield.js';
 import { createAliens } from './aliens.js';
 import { initInput, setMouseSensitivity } from './input.js';
+import { initTouchInput } from './touch-input.js';
 import { initGame, update, handleFire, startGame, startFromLevel, resetGame, pauseGame, resumeGame } from './game.js';
 import { updateHighScoresDisplay } from './highscores.js';
 import { initLanding, isLandingActive, showLanding } from './landing.js';
 import { initBestiary, openBestiary, isBestiaryActive, updateBestiary, getBestiaryScene, getBestiaryCamera, onBestiaryResize } from './bestiary.js';
 import { initAudio, setMasterVolume, setSFXVolume, setMusicVolume, setMute } from './audio.js';
 import { settingsManager } from './settings.js';
+import { initJevBrain } from './jev-brain.js';
 
 let scene, camera, renderer, composer, bloomPass, renderPass;
 
@@ -108,6 +110,39 @@ function init() {
 
     // Initialize input
     initInput(handleFire);
+    initJevBrain();
+
+    // Initialize touch input (mobile) — creates virtual joystick + fire button
+    initTouchInput();
+
+    // Mobile pause button — shows game over options when game is over
+    const pauseBtn = document.getElementById('mobilePauseBtn');
+    if (pauseBtn) {
+        pauseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const gameOverDiv = document.getElementById('gameOver');
+            const mobileGameOverEl = document.getElementById('mobileGameOver');
+            // If game is over, show the mobile game-over overlay
+            if (gameOverDiv && gameOverDiv.style.display === 'block') {
+                if (mobileGameOverEl) mobileGameOverEl.classList.add('visible');
+            } else if (gameActive) {
+                pauseGame();
+                pauseBtn.textContent = '▶';
+            } else {
+                resumeGame();
+                pauseBtn.textContent = '⏸';
+            }
+        });
+    }
+
+    // Game over restart button (desktop fallback)
+    const desktopRestartBtn = document.getElementById('restartBtn');
+    if (desktopRestartBtn && !desktopRestartBtn.onclick) {
+        desktopRestartBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window._resetGame();
+        });
+    }
 
     // Initialize high scores display
     updateHighScoresDisplay();
@@ -133,6 +168,62 @@ function init() {
             openBestiary();
         }
     );
+
+    // Landing page mobile tap support — ensure landing page buttons work
+    // with touch without triggering context menus or zoom
+    const landingStartNew = document.getElementById('startNew');
+    if (landingStartNew) {
+        landingStartNew.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            landingStartNew.click();
+        }, { passive: false });
+        landingStartNew.style.webkitTapHighlightColor = 'transparent';
+    }
+    const landingContinue = document.getElementById('continueGame');
+    if (landingContinue) {
+        landingContinue.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            landingContinue.click();
+        }, { passive: false });
+        landingContinue.style.webkitTapHighlightColor = 'transparent';
+    }
+    const landingBestiary = document.getElementById('openBestiary');
+    if (landingBestiary) {
+        landingBestiary.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            landingBestiary.click();
+        }, { passive: false });
+        landingBestiary.style.webkitTapHighlightColor = 'transparent';
+    }
+    const landingSettings = document.getElementById('openSettings');
+    if (landingSettings) {
+        landingSettings.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            landingSettings.click();
+        }, { passive: false });
+        landingSettings.style.webkitTapHighlightColor = 'transparent';
+    }
+
+    // Wire up bestiary mobile navigation buttons
+    const bestiaryMobilePrev = document.getElementById('bestiaryMobilePrev');
+    const bestiaryMobileNext = document.getElementById('bestiaryMobileNext');
+    if (bestiaryMobilePrev) {
+        bestiaryMobilePrev.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Trigger previous by dispatching a keydown for ArrowLeft
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', code: 'ArrowLeft', bubbles: true }));
+        });
+    }
+    if (bestiaryMobileNext) {
+        bestiaryMobileNext.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', bubbles: true }));
+        });
+    }
 
     // Wire up settings to game systems BEFORE initializing settings manager
     // This ensures loaded settings are applied when init() calls applyAllSettings()

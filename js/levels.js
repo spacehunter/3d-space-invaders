@@ -31,9 +31,9 @@ const CAPS = {
     // silently kept the Wasp (type 8) out of every wave despite it being fully
     // implemented and unreachable in real waves. 10 admits both the Wasp and the
     // Sentinel. 12 admits the Spire too. 13 admits the Prism too. 13 admits
-    // Voidworm too. 15 admits the Nexus too. 17 admits the Apex too. 18 admits
-    // the Basilisk too. 19 admits the Manta too.
-    maxRows: 19,
+    // Gravworm too. 15 admits the Nexus too. 17 admits the Apex too. 18 admits
+    // the Basilisk too. 19 admits the Manta too. 20 admits the Peacock too.
+    maxRows: 20,
     maxCols: 11,
     maxSwoopThreshold: 15,
     maxPowerUpDropRate: 0.25

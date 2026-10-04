@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <title>3D Space Invaders</title>
     <style>
         body {
@@ -33,6 +33,100 @@
             text-shadow: 0 0 5px #f00;
             display: none;
             text-align: center;
+            z-index: 101;
+        }
+        /* Game over restart button */
+        #restartBtn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 32px;
+            background: transparent;
+            border: 2px solid #f00;
+            color: #f00;
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+            transition: all 0.2s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        #restartBtn:active,
+        #restartBtn.active {
+            background: rgba(255, 0, 0, 0.2);
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.7);
+            transform: scale(1.05);
+        }
+        /* Mobile game-over overlay with pause + restart */
+        #mobileGameOver {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            background: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #mobileGameOver.visible {
+            display: flex;
+        }
+        #mobileGameOver .mobile-gameover-text {
+            font-size: 42px;
+            color: #f00;
+            text-shadow: 0 0 20px #f00;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        #mobileGameOver .mobile-gameover-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #mobileGameOver .mobile-go-btn {
+            min-width: 140px;
+            min-height: 60px;
+            padding: 14px 28px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #mobileGameOver .mobile-go-btn:active {
+            transform: scale(1.05);
+        }
+        #mobileGameOver .mobile-go-btn.restart {
+            border-color: #0f0;
+            color: #0f0;
+            box-shadow: 0 0 12px rgba(0, 255, 0, 0.3);
+        }
+        #mobileGameOver .mobile-go-btn.restart:active {
+            background: rgba(0, 255, 0, 0.15);
+        }
+        #mobileGameOver .mobile-go-btn.landing {
+            border-color: #0ff;
+            color: #0ff;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+        }
+        #mobileGameOver .mobile-go-btn.landing:active {
+            background: rgba(0, 255, 255, 0.15);
         }
         #instructions {
             position: absolute;
@@ -904,6 +998,57 @@
             background: rgba(255, 0, 255, 0.1);
         }
 
+        /* ==================== MOBILE LANDING PAGE ==================== */
+        @media (hover: none) and (pointer: coarse) {
+            .landing-content {
+                padding: env(safe-area-inset-top, 20px);
+            }
+            .game-title {
+                font-size: 48px;
+                letter-spacing: 6px;
+            }
+            .title-invaders {
+                font-size: 44px;
+                letter-spacing: 4px;
+            }
+            .title-decoration {
+                width: 260px;
+                margin: 15px auto 30px;
+            }
+            .start-options {
+                gap: 16px;
+                margin-bottom: 30px;
+            }
+            .start-prompt,
+            .continue-prompt,
+            .bestiary-prompt,
+            .settings-prompt {
+                font-size: 22px;
+                padding: 16px 30px;
+                min-height: 56px;
+                /* Larger tap target */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .landing-instructions {
+                display: none;
+            }
+            .landing-mobile-hint {
+                display: flex !important;
+                flex-direction: column;
+                gap: 12px;
+                margin-top: 20px;
+            }
+            .feature-list {
+                font-size: 10px;
+            }
+        }
+        /* Landing page mobile hint (hidden on desktop) */
+        .landing-mobile-hint {
+            display: none;
+        }
+
         /* ==================== BESTIARY GALLERY STYLES ==================== */
         /* Transparent overlay - the alien is rendered by the WebGL canvas behind */
         #bestiaryOverlay {
@@ -1052,11 +1197,354 @@
             letter-spacing: 2px;
             color: #666;
         }
+        /* Bestiary mobile nav buttons */
+        .bestiary-mobile-nav {
+            display: none;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .bestiary-mobile-btn {
+            padding: 12px 24px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bestiary-mobile-btn:active {
+            background: rgba(0, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+        /* Show mobile nav only on touch devices */
+        @media (hover: none) and (pointer: coarse) {
+            .bestiary-mobile-nav {
+                display: flex;
+            }
+            .bestiary-keys {
+                display: none;
+            }
+            .bestiary-info button#bestiaryBack {
+                font-size: 18px;
+                padding: 14px 28px;
+                min-height: 56px;
+            }
+        }
         @media (max-width: 768px) {
             #bestiaryPrev { left: 10px; }
             #bestiaryNext { right: 10px; }
             #bestiaryOverlay .bestiary-nav { font-size: 30px; padding: 6px 12px; }
             #bestiaryOverlay .bestiary-title { font-size: 26px; letter-spacing: 6px; }
+        }
+
+        /* ==================== GLOBAL SCROLL/ZOOM PREVENTION ==================== */
+        html {
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: auto;
+        }
+        body {
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: auto;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        canvas {
+            touch-action: none;
+            -webkit-touch-callout: none;
+        }
+        /* Prevent pull-to-refresh on iOS */
+        body {
+            overscroll-behavior-y: contain;
+        }
+        /* Prevent double-tap zoom on buttons */
+        * {
+            touch-action: manipulation;
+        }
+        /* Mobile touch controls get their own touch-action */
+        #touchControls,
+        #joystickZone,
+        #fireZone,
+        .mobile-go-btn,
+        .mobile-gameover-btn,
+        #mobilePauseBtn,
+        .bestiary-mobile-btn {
+            touch-action: none;
+        }
+
+        /* ==================== MOBILE TOUCH CONTROLS ==================== */
+
+        #touchControls {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            pointer-events: none;
+            display: none;
+            /* Respect safe-area insets (notch, status bar, home indicator) */
+            padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            #touchControls {
+                display: block;
+            }
+        }
+
+        /* Virtual joystick — left side */
+        #joystickZone {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 45%;
+            height: 50%;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        #joystickBase {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.08);
+            border: 2px solid rgba(0, 255, 255, 0.25);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
+            backdrop-filter: blur(2px);
+            transition: background 0.1s;
+        }
+
+        #joystickStick {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.45);
+            border: 2px solid rgba(0, 255, 255, 0.7);
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+            transition: box-shadow 0.1s;
+            pointer-events: none;
+        }
+
+        #joystickStick.active {
+            background: rgba(0, 255, 255, 0.65);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+        }
+
+        /* Fire button — right side */
+        #fireZone {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 30%;
+            height: 45%;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        #fireBtn {
+            position: absolute;
+            border-radius: 50%;
+            width: 70%;
+            height: 70%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 60, 60, 0.2);
+            border: 2px solid rgba(255, 80, 80, 0.5);
+            color: rgba(255, 180, 180, 0.9);
+            font-family: 'Courier New', monospace;
+            font-size: clamp(14px, 3vw, 22px);
+            font-weight: bold;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            transition: background 0.1s, box-shadow 0.1s;
+        }
+
+        #fireBtn:active,
+        #fireBtn.active {
+            background: rgba(255, 0, 0, 0.5);
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.7), 0 0 50px rgba(255, 0, 0, 0.3);
+        }
+
+        /* HUD adjustments for mobile */
+        @media (hover: none) and (pointer: coarse) {
+            #ui {
+                top: env(safe-area-inset-top, 10px);
+                left: 10px;
+                font-size: 18px;
+            }
+
+            #highscores {
+                top: env(safe-area-inset-top, 10px);
+                right: 10px;
+                font-size: 13px;
+            }
+
+            #highscores h3 {
+                font-size: 16px;
+            }
+
+            #levelIndicator {
+                font-size: 22px;
+                top: calc(env(safe-area-inset-top, 10px) + 35px);
+            }
+
+            #bossHealthBar {
+                top: calc(env(safe-area-inset-top, 10px) + 60px);
+                width: min(300px, 70vw);
+            }
+
+            #instructions {
+                display: none; /* Hidden on mobile — replaced by touch controls */
+            }
+
+            #fps {
+                bottom: calc(env(safe-area-inset-bottom, 10px) + 10px);
+                left: 10px;
+                font-size: 12px;
+            }
+
+            #version {
+                bottom: calc(env(safe-area-inset-bottom, 10px) + 10px);
+                right: 10px;
+                font-size: 12px;
+            }
+
+            /* Hide settings toggle when touch controls are active (they cover it) */
+            .settings-toggle,
+            #settingsPanel,
+            #settingsOverlay {
+                display: none !important;
+            }
+
+            /* Pause button — small button at top-center for mobile */
+            #mobilePauseBtn {
+                position: fixed;
+                top: env(safe-area-inset-top, 10px);
+                left: 50%;
+                transform: translateX(-50%);
+                width: 50px;
+                height: 50px;
+                background: rgba(0, 0, 0, 0.6);
+                border: 2px solid rgba(0, 255, 255, 0.5);
+                border-radius: 50%;
+                color: #00ffff;
+                font-size: 20px;
+                font-family: 'Courier New', monospace;
+                cursor: pointer;
+                z-index: 998;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                user-select: none;
+                -webkit-user-select: none;
+                -webkit-touch-callout: none;
+                pointer-events: auto;
+                touch-action: none;
+            }
+        }
+
+        /* Landscape adjustments for mobile */
+        @media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+            #joystickZone {
+                left: 0;
+                bottom: 0;
+                width: 35%;
+                height: 100%;
+            }
+
+            #fireZone {
+                right: 0;
+                bottom: 0;
+                width: 25%;
+                height: 100%;
+            }
+
+            #ui {
+                top: 5px;
+                left: 5px;
+                font-size: 14px;
+            }
+
+            #highscores {
+                top: 5px;
+                right: 5px;
+                font-size: 11px;
+            }
+
+            #levelIndicator {
+                top: 28px;
+                font-size: 16px;
+            }
+
+            #bossHealthBar {
+                top: 48px;
+                width: 60%;
+            }
+
+            #fps {
+                bottom: 5px;
+                left: 5px;
+                font-size: 10px;
+            }
+
+            #version {
+                bottom: 5px;
+                right: 5px;
+                font-size: 10px;
+            }
+        }
+
+        /* Very small phones */
+        @media (max-height: 500px) {
+            #ui {
+                font-size: 14px;
+            }
+
+            #levelIndicator {
+                font-size: 16px;
+            }
+        }
+
+        /* Tablet portrait — slightly different layout */
+        @media (min-width: 600px) and (max-width: 1024px) and (orientation: portrait) {
+            #joystickZone {
+                width: 40%;
+            }
+
+            #fireZone {
+                width: 28%;
+            }
+
+            #joystickBase {
+                width: 120px;
+                height: 120px;
+            }
+
+            #fireBtn {
+                width: 100px;
+                height: 100px;
+                font-size: 18px;
+            }
         }
     </style>
 </head>
@@ -1074,7 +1562,16 @@
     </div>
     <div id="gameOver">
         <div>GAME OVER</div>
-        <div style="font-size: 24px; margin-top: 20px;">Click to Restart</div>
+        <div style="font-size: 24px; margin-top: 20px;">Click or tap to restart</div>
+        <button id="restartBtn">RESTART</button>
+    </div>
+    <!-- Mobile game-over overlay -->
+    <div id="mobileGameOver">
+        <div class="mobile-gameover-text">GAME OVER</div>
+        <div class="mobile-gameover-buttons">
+            <button class="mobile-go-btn restart" id="mobileRestartBtn" onclick="window._resetGame()">RESTART</button>
+            <button class="mobile-go-btn landing" id="mobileLandingBtn" onclick="window._returnToLanding()">MENU</button>
+        </div>
     </div>
     <div id="instructions">
         Move Mouse: Control Ship | Click: Fire Missile
@@ -1191,6 +1688,9 @@
     <!-- Settings Toggle Button -->
     <button id="settingsToggle" class="settings-toggle" title="Settings (ESC)">⚙</button>
 
+    <!-- Mobile pause button (only visible on touch devices) -->
+    <div id="mobilePauseBtn">⏸</div>
+
     <!-- Overlay for when settings are open -->
     <div id="settingsOverlay" class="settings-overlay"></div>
 
@@ -1233,6 +1733,15 @@
                 <span class="feature-divider">•</span>
                 <span class="feature">POWER-UPS</span>
             </div>
+            <!-- Mobile landing hints — only visible on touch devices -->
+            <div class="landing-mobile-hint">
+                <div style="color: #0ff; font-size: 16px; text-shadow: 0 0 5px #0ff;">
+                    Tap a button above to play
+                </div>
+                <div style="color: #888; font-size: 13px;">
+                    Drag joystick left/right • Tap FIRE to shoot
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1257,6 +1766,11 @@
             <div id="bestiaryCounter">1 / 7</div>
             <button id="bestiaryBack">◄ BACK</button>
             <div class="bestiary-keys">← / → NAVIGATE &nbsp;•&nbsp; B RETURN</div>
+            <!-- Mobile nav buttons -->
+            <div class="bestiary-mobile-nav">
+                <button class="bestiary-mobile-btn" id="bestiaryMobilePrev">◀ PREV</button>
+                <button class="bestiary-mobile-btn" id="bestiaryMobileNext">NEXT ▶</button>
+            </div>
         </div>
     </div>
 

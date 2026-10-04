@@ -136,7 +136,7 @@ The game features 19 rows of aliens, each with distinctive 3D designs and dramat
     - **Fires serpentine beams** — an elongated crystal projectile that travels in a sinusoidal wave
     - Worth 0 points
 
-14. **Voidworm Aliens** (Row 14 - Void)
+14. **Gravworm Aliens** (Row 14 - Void)
     - **A sinuous chain of seven linked crystalline spheres** with an undulating wave that travels the length of the body
     - **Crown teeth** flare open during weapon windup and snap shut on burst
     - **Traveling phase pattern** — segments rotate in a wave from tail to head
@@ -250,7 +250,7 @@ Aliens fight back! Every 1.5 seconds, random aliens fire at you:
 |- **Serpentine Beams** (Row 12 - Prism Aliens):
   - An elongated crystal projectile that travels in a sinusoidal wave
   - **Smooth lateral oscillation** — the beam weaves side to side as it approaches
-|- **Fractal Spores** (Row 13 - Voidworm Aliens):
+|- **Fractal Spores** (Row 13 - Gravworm Aliens):
   - A crystal projectile that **splits mid-flight** into three diverging shards after 0.6 seconds
   - The sub-spores continue with lateral drift on independent paths
 |- **Accelerating Zigzag Needles** (Row 14 - Raven Aliens):
